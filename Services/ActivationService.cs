@@ -2,6 +2,7 @@ using System;
 using System.Configuration;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -60,6 +61,7 @@ namespace SantexnikaSRM.Services
         {
             activation = null;
             string file = Path.Combine(Database.GetAppDataRoot(), ActivationFileName);
+            TryMigrateLegacyActivationFile(file);
             if (!File.Exists(file))
             {
                 message = "Aktivatsiya topilmadi. Iltimos online aktivatsiya qiling.";
@@ -113,6 +115,66 @@ namespace SantexnikaSRM.Services
             {
                 message = "Aktivatsiya faylini o'qishda xatolik.";
                 return false;
+            }
+        }
+
+        private static void TryMigrateLegacyActivationFile(string targetFile)
+        {
+            try
+            {
+                if (File.Exists(targetFile))
+                {
+                    return;
+                }
+
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+                string[] candidates = new[]
+                {
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ActivationFileName),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "current", ActivationFileName),
+                    Path.Combine(localAppData, "Programs", "OsontrackSRM", ActivationFileName),
+                    Path.Combine(localAppData, "Programs", "OsontrackSRM", "current", ActivationFileName),
+                    Path.Combine(localAppData, "OsontrackSRM", "current", ActivationFileName),
+                    Path.Combine(appData, "OsontrackSRM", ActivationFileName)
+                };
+
+                string? source = candidates
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(path =>
+                    {
+                        try
+                        {
+                            if (!File.Exists(path))
+                            {
+                                return null;
+                            }
+
+                            var info = new FileInfo(path);
+                            return info.Length > 0 ? info : null;
+                        }
+                        catch
+                        {
+                            return null;
+                        }
+                    })
+                    .Where(info => info != null)
+                    .OrderByDescending(info => info!.LastWriteTimeUtc)
+                    .Select(info => info!.FullName)
+                    .FirstOrDefault();
+
+                if (string.IsNullOrWhiteSpace(source))
+                {
+                    return;
+                }
+
+                File.Copy(source, targetFile, overwrite: false);
+            }
+            catch
+            {
+                // Migratsiya muvaffaqiyatsiz bo'lsa odatdagi aktivatsiya oqimi davom etadi.
             }
         }
 

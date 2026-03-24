@@ -2,6 +2,8 @@ using Microsoft.Data.Sqlite;
 using System.Configuration;
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SantexnikaSRM.Data
 {
@@ -86,16 +88,66 @@ namespace SantexnikaSRM.Data
         {
             try
             {
-                if (File.Exists(appDataPath) || !File.Exists(legacyPath))
+                if (File.Exists(appDataPath))
                 {
                     return;
                 }
 
-                File.Copy(legacyPath, appDataPath, overwrite: false);
+                var candidates = new List<string> { legacyPath };
+                candidates.AddRange(GetAdditionalLegacyDatabaseCandidates(Path.GetFileName(appDataPath)));
+
+                string? source = candidates
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(path =>
+                    {
+                        try
+                        {
+                            if (!File.Exists(path))
+                            {
+                                return null;
+                            }
+
+                            var info = new FileInfo(path);
+                            return info.Length > 0 ? info : null;
+                        }
+                        catch
+                        {
+                            return null;
+                        }
+                    })
+                    .Where(info => info != null)
+                    .OrderByDescending(info => info!.LastWriteTimeUtc)
+                    .Select(info => info!.FullName)
+                    .FirstOrDefault();
+
+                if (string.IsNullOrWhiteSpace(source))
+                {
+                    return;
+                }
+
+                File.Copy(source, appDataPath, overwrite: false);
             }
             catch
             {
                 // Migratsiya muvaffaqiyatsiz bo'lsa ulanish baribir appData path bilan davom etadi.
+            }
+        }
+
+        private static IEnumerable<string> GetAdditionalLegacyDatabaseCandidates(string fileName)
+        {
+            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                yield return Path.Combine(localAppData, "Programs", AppDataFolderName, fileName);
+                yield return Path.Combine(localAppData, "Programs", AppDataFolderName, "current", fileName);
+                yield return Path.Combine(localAppData, AppDataFolderName, "current", fileName);
+            }
+
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (!string.IsNullOrWhiteSpace(appData))
+            {
+                yield return Path.Combine(appData, AppDataFolderName, fileName);
             }
         }
     }
