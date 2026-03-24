@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+tmp_publish_fd/
+tmp_publish_velopack/
+ReleaseBundles/
+*.db
+*.log
+LicenseAdminServer/
+LicenseAdminClient/bin/
+LicenseAdminClient/obj/
