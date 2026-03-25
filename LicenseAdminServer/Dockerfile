@@ -1,11 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY LicenseAdminServer.csproj ./
-RUN dotnet restore LicenseAdminServer.csproj
+# Railway build context is repository root.
+COPY LicenseAdminServer/LicenseAdminServer.csproj ./LicenseAdminServer/
+RUN dotnet restore ./LicenseAdminServer/LicenseAdminServer.csproj
 
-COPY . ./
-RUN dotnet publish LicenseAdminServer.csproj -c Release -o /app/publish /p:UseAppHost=false
+COPY LicenseAdminServer/. ./LicenseAdminServer/
+RUN dotnet publish ./LicenseAdminServer/LicenseAdminServer.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
