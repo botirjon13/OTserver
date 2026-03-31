@@ -195,14 +195,40 @@ namespace SantexnikaSRM.Forms
             rateBadge.Controls.Add(lblDollar);
             rateBadge.Controls.Add(_lblRate);
 
+            Button btnReceiptHistory = NewHeaderIconButton("Chek tarixi", "sale-action-history.png", "\uE81C");
+            btnReceiptHistory.Top = 10;
+            btnReceiptHistory.Click += (_, __) =>
+            {
+                using var form = new ReceiptHistoryForm(_currentUser);
+                form.ShowDialog(this);
+            };
+
+            Button btnReturn = NewHeaderIconButton("Qaytarib olish", "sale-action-return.png", "\uE7A7");
+            btnReturn.Top = 10;
+            btnReturn.Click += (_, __) =>
+            {
+                using var form = new ReturnForm(_currentUser);
+                form.ShowDialog(this);
+            };
+
+            var tip = new ToolTip();
+            tip.SetToolTip(btnReceiptHistory, "Chek tarixi");
+            tip.SetToolTip(btnReturn, "Qaytarib olish");
+
             header.Controls.Add(icon);
             header.Controls.Add(lblSub);
             header.Controls.Add(rateBadge);
+            header.Controls.Add(btnReceiptHistory);
+            header.Controls.Add(btnReturn);
             header.Resize += (s, e) =>
             {
                 rateBadge.Left = Math.Max(0, header.ClientSize.Width - rateBadge.Width);
+                btnReturn.Left = Math.Max(0, rateBadge.Left - 10 - btnReturn.Width);
+                btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
             };
             rateBadge.Left = Math.Max(0, header.ClientSize.Width - rateBadge.Width);
+            btnReturn.Left = Math.Max(0, rateBadge.Left - 10 - btnReturn.Width);
+            btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
 
             TableLayoutPanel main = new TableLayoutPanel
             {
@@ -1660,6 +1686,34 @@ namespace SantexnikaSRM.Forms
             };
             b.Resize += (s, e) => b.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, b.Width), Math.Max(1, b.Height)), 10));
             return b;
+        }
+
+        private static Button NewHeaderIconButton(string text, string iconFileName, string fallbackGlyph)
+        {
+            Button button = new Button
+            {
+                Width = 42,
+                Height = 42,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(31, 55, 86),
+                Font = UiTheme.IconFont(16),
+                Text = fallbackGlyph,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Cursor = Cursors.Hand
+            };
+            button.FlatAppearance.BorderSize = 1;
+            button.FlatAppearance.BorderColor = Color.FromArgb(194, 207, 227);
+
+            Image? actionImage = BrandingAssets.TryLoadAssetImage(iconFileName);
+            if (actionImage != null)
+            {
+                button.Image = actionImage;
+                button.Text = string.Empty;
+                button.ImageAlign = ContentAlignment.MiddleCenter;
+            }
+
+            return button;
         }
 
         private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
