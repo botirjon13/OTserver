@@ -8,3 +8,5 @@ ReleaseBundles/
 *.log
 LicenseAdminClient/bin/
 LicenseAdminClient/obj/
+
+tmp_test_backups/
