@@ -1,5 +1,6 @@
 using System;
 using System.Configuration;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Velopack;
@@ -10,81 +11,138 @@ namespace SantexnikaSRM.Services
     {
         public async Task<UpdateCheckResult> CheckAsync(string serverUrl, string currentVersion)
         {
-            try
+            string? lastError = null;
+            List<string> feeds = ResolveFeedUrls(serverUrl);
+
+            if (feeds.Count == 0)
             {
-                _ = currentVersion;
-                string feedUrl = ResolveFeedUrl(serverUrl);
-                if (string.IsNullOrWhiteSpace(feedUrl))
-                {
-                    return UpdateCheckResult.NoUpdate();
-                }
-
-                var manager = new UpdateManager(feedUrl);
-                Velopack.UpdateInfo? updates = await manager.CheckForUpdatesAsync();
-                if (updates == null || updates.TargetFullRelease == null)
-                {
-                    return UpdateCheckResult.NoUpdate();
-                }
-
-                string version = updates.TargetFullRelease.Version?.ToString() ?? string.Empty;
-                string note = updates.TargetFullRelease.NotesMarkdown ?? string.Empty;
-
-                return UpdateCheckResult.WithUpdate(new AppUpdateInfo(
-                    feedUrl,
-                    version,
-                    note,
-                    mandatory: false,
-                    updates));
+                return UpdateCheckResult.WithError("Update manzili topilmadi.");
             }
-            catch
+
+            string localVersion = currentVersion?.Trim() ?? string.Empty;
+
+            foreach (string feedUrl in feeds)
             {
-                return UpdateCheckResult.NoUpdate();
+                try
+                {
+                    var manager = new UpdateManager(feedUrl);
+                    Velopack.UpdateInfo? updates = await manager.CheckForUpdatesAsync();
+                    if (updates == null || updates.TargetFullRelease == null)
+                    {
+                        continue;
+                    }
+
+                    string version = updates.TargetFullRelease.Version?.ToString() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(localVersion)
+                        && string.Equals(localVersion, version, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    string note = updates.TargetFullRelease.NotesMarkdown ?? string.Empty;
+                    return UpdateCheckResult.WithUpdate(new AppUpdateInfo(
+                        feedUrl,
+                        version,
+                        note,
+                        mandatory: false,
+                        updates));
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex.Message;
+                }
             }
+
+            if (!string.IsNullOrWhiteSpace(lastError))
+            {
+                return UpdateCheckResult.WithError(lastError);
+            }
+
+            return UpdateCheckResult.NoUpdate();
         }
 
         public async Task ApplyAndRestartAsync(AppUpdateInfo pending)
         {
-            if (pending == null)
+            try
             {
-                throw new InvalidOperationException("Update topilmadi.");
-            }
+                if (pending == null)
+                {
+                    throw new InvalidOperationException("Update topilmadi.");
+                }
 
-            var manager = new UpdateManager(pending.FeedUrl);
-            await manager.DownloadUpdatesAsync(pending.InternalInfo);
-            manager.WaitExitThenApplyUpdates(pending.InternalInfo.TargetFullRelease, false, true, null);
+                var manager = new UpdateManager(pending.FeedUrl);
+                await manager.DownloadUpdatesAsync(pending.InternalInfo);
+                manager.WaitExitThenApplyUpdates(pending.InternalInfo.TargetFullRelease, false, true, null);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Update o'rnatishda xatolik: {ex.Message}", ex);
+            }
         }
 
-        private static string ResolveFeedUrl(string serverUrl)
+        private static List<string> ResolveFeedUrls(string serverUrl)
         {
+            var urls = new List<string>();
             string? explicitFeed = ConfigurationManager.AppSettings["VelopackFeedUrl"];
             if (!string.IsNullOrWhiteSpace(explicitFeed))
             {
-                return explicitFeed.Trim();
+                AddIfMissing(urls, explicitFeed.Trim());
             }
 
             string baseUrl = (serverUrl ?? string.Empty).Trim().TrimEnd('/');
-            if (string.IsNullOrWhiteSpace(baseUrl))
+            if (!string.IsNullOrWhiteSpace(baseUrl))
             {
-                return string.Empty;
+                AddIfMissing(urls, baseUrl + "/releases");
             }
 
-            return baseUrl + "/releases";
+            if (!string.IsNullOrWhiteSpace(explicitFeed))
+            {
+                string normalized = explicitFeed.Trim();
+                if (normalized.IndexOf("raw.githubusercontent.com/", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    // raw.githubusercontent fallback as-is can fail on private repo or tokenless access.
+                    // jsDelivr can serve public GitHub content with better edge caching.
+                    string jsdelivr = normalized
+                        .Replace("https://raw.githubusercontent.com/", "https://cdn.jsdelivr.net/gh/")
+                        .Replace("/main/", "@main/")
+                        .Replace("/master/", "@master/");
+                    AddIfMissing(urls, jsdelivr);
+                }
+            }
+
+            return urls;
+        }
+
+        private static void AddIfMissing(List<string> urls, string candidate)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return;
+            }
+
+            if (!urls.Any(x => string.Equals(x, candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                urls.Add(candidate);
+            }
         }
     }
 
     public sealed class UpdateCheckResult
     {
-        private UpdateCheckResult(bool hasUpdate, AppUpdateInfo? info)
+        private UpdateCheckResult(bool hasUpdate, AppUpdateInfo? info, string? errorMessage)
         {
             HasUpdate = hasUpdate;
             Info = info;
+            ErrorMessage = errorMessage;
         }
 
         public bool HasUpdate { get; }
         public AppUpdateInfo? Info { get; }
+        public string? ErrorMessage { get; }
 
-        public static UpdateCheckResult NoUpdate() => new UpdateCheckResult(false, null);
-        public static UpdateCheckResult WithUpdate(AppUpdateInfo info) => new UpdateCheckResult(true, info);
+        public static UpdateCheckResult NoUpdate() => new UpdateCheckResult(false, null, null);
+        public static UpdateCheckResult WithUpdate(AppUpdateInfo info) => new UpdateCheckResult(true, info, null);
+        public static UpdateCheckResult WithError(string error) => new UpdateCheckResult(false, null, error);
     }
 
     public sealed class AppUpdateInfo

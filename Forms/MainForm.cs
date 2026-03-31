@@ -62,6 +62,7 @@ namespace SantexnikaSRM.Forms
         private const int TileColumns = 3;
         private const int TileRowHeight = 186;
         private AppUpdateInfo? _pendingUpdate;
+        private string? _lastUpdateCheckError;
         private bool _isUpdateDownloading;
 
         public MainForm(AppUser currentUser)
@@ -767,6 +768,8 @@ namespace SantexnikaSRM.Forms
         {
             try
             {
+                _lastUpdateCheckError = null;
+
                 if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out _)
                     || activation == null
                     || string.IsNullOrWhiteSpace(activation.ServerUrl))
@@ -775,6 +778,12 @@ namespace SantexnikaSRM.Forms
                 }
 
                 UpdateCheckResult result = await _updateService.CheckAsync(activation.ServerUrl, Application.ProductVersion);
+                if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                {
+                    _lastUpdateCheckError = result.ErrorMessage;
+                    return;
+                }
+
                 if (!result.HasUpdate || result.Info == null)
                 {
                     return;
@@ -803,7 +812,10 @@ namespace SantexnikaSRM.Forms
         {
             if (_pendingUpdate == null)
             {
-                MessageBox.Show("Hozircha yangi update topilmadi.", "Ma'lumot", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string text = string.IsNullOrWhiteSpace(_lastUpdateCheckError)
+                    ? "Hozircha yangi update topilmadi."
+                    : $"Update tekshiruvda xato:\n{_lastUpdateCheckError}";
+                MessageBox.Show(text, "Ma'lumot", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
