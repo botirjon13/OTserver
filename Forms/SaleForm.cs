@@ -1708,12 +1708,39 @@ namespace SantexnikaSRM.Forms
             Image? actionImage = BrandingAssets.TryLoadAssetImage(iconFileName);
             if (actionImage != null)
             {
-                button.Image = actionImage;
+                button.Image = CreateFitIcon(actionImage, 24, 24);
                 button.Text = string.Empty;
                 button.ImageAlign = ContentAlignment.MiddleCenter;
             }
 
             return button;
+        }
+
+        private static Image CreateFitIcon(Image source, int maxWidth, int maxHeight)
+        {
+            if (source.Width <= maxWidth && source.Height <= maxHeight)
+            {
+                return source;
+            }
+
+            double ratioX = (double)maxWidth / source.Width;
+            double ratioY = (double)maxHeight / source.Height;
+            double ratio = Math.Min(ratioX, ratioY);
+
+            int width = Math.Max(1, (int)Math.Round(source.Width * ratio));
+            int height = Math.Max(1, (int)Math.Round(source.Height * ratio));
+            var resized = new Bitmap(width, height);
+            using (var g = Graphics.FromImage(resized))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.Clear(Color.Transparent);
+                g.DrawImage(source, 0, 0, width, height);
+            }
+
+            return resized;
         }
 
         private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
