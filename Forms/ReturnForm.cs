@@ -16,7 +16,7 @@ namespace SantexnikaSRM.Forms
         private readonly DateTimePicker _dtFrom = new DateTimePicker();
         private readonly DateTimePicker _dtTo = new DateTimePicker();
         private readonly TextBox _txtSaleId = new TextBox();
-        private readonly ListView _salesList = new ListView();
+        private readonly DataGridView _gridSales = new DataGridView();
         private readonly DataGridView _gridLines = new DataGridView();
         private readonly BindingSource _lineBinding = new BindingSource();
         private readonly TextBox _txtReason = new TextBox();
@@ -55,37 +55,16 @@ namespace SantexnikaSRM.Forms
             _dtTo.Value = DateTime.Today;
             _dtTo.SetBounds(246, 6, 130, 32);
 
-            Button btnLoadSales = new Button
-            {
-                Text = "Cheklarni ko'rish",
-                Left = 392,
-                Top = 6,
-                Width = 150,
-                Height = 32
-            };
+            Button btnLoadSales = new Button { Text = "Cheklarni ko'rish", Left = 392, Top = 6, Width = 150, Height = 32 };
             btnLoadSales.Click += (_, __) => LoadSales();
 
             var lblSaleId = new Label { Text = "Sotuv ID:", AutoSize = true, Left = 560, Top = 10 };
             _txtSaleId.SetBounds(632, 6, 100, 32);
 
-            Button btnOpenById = new Button
-            {
-                Text = "Ochish",
-                Left = 740,
-                Top = 6,
-                Width = 100,
-                Height = 32
-            };
+            Button btnOpenById = new Button { Text = "Ochish", Left = 740, Top = 6, Width = 100, Height = 32 };
             btnOpenById.Click += (_, __) => OpenSaleById();
 
-            Button btnToday = new Button
-            {
-                Text = "Bugun",
-                Left = 852,
-                Top = 6,
-                Width = 100,
-                Height = 32
-            };
+            Button btnToday = new Button { Text = "Bugun", Left = 852, Top = 6, Width = 100, Height = 32 };
             btnToday.Click += (_, __) =>
             {
                 _dtFrom.Value = DateTime.Today;
@@ -93,14 +72,7 @@ namespace SantexnikaSRM.Forms
                 LoadSales();
             };
 
-            Button btnMonth = new Button
-            {
-                Text = "Shu oy",
-                Left = 960,
-                Top = 6,
-                Width = 100,
-                Height = 32
-            };
+            Button btnMonth = new Button { Text = "Shu oy", Left = 960, Top = 6, Width = 100, Height = 32 };
             btnMonth.Click += (_, __) =>
             {
                 DateTime now = DateTime.Today;
@@ -127,14 +99,7 @@ namespace SantexnikaSRM.Forms
             btnApply.FlatAppearance.BorderSize = 0;
             btnApply.Click += ApplyReturn_Click;
 
-            Button btnClose = new Button
-            {
-                Text = "Yopish",
-                Left = 852,
-                Top = 50,
-                Width = 120,
-                Height = 36
-            };
+            Button btnClose = new Button { Text = "Yopish", Left = 852, Top = 50, Width = 120, Height = 36 };
             btnClose.Click += (_, __) => Close();
 
             _lblPreview.Left = 980;
@@ -160,30 +125,53 @@ namespace SantexnikaSRM.Forms
             };
             root.Controls.Add(split);
 
-            BuildSalesList();
+            BuildSalesGrid();
             BuildLinesGrid();
-            split.Panel1.Controls.Add(_salesList);
+            split.Panel1.Controls.Add(_gridSales);
             split.Panel2.Controls.Add(_gridLines);
         }
 
-        private void BuildSalesList()
+        private void BuildSalesGrid()
         {
-            _salesList.Dock = DockStyle.Fill;
-            _salesList.View = View.Details;
-            _salesList.FullRowSelect = true;
-            _salesList.GridLines = true;
-            _salesList.HideSelection = false;
-            _salesList.MultiSelect = false;
-            _salesList.HeaderStyle = ColumnHeaderStyle.Nonclickable;
-            _salesList.DoubleClick += (_, __) => OpenSelectedSale();
+            _gridSales.Dock = DockStyle.Fill;
+            _gridSales.ReadOnly = true;
+            _gridSales.AllowUserToAddRows = false;
+            _gridSales.AllowUserToDeleteRows = false;
+            _gridSales.AllowUserToResizeRows = false;
+            _gridSales.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            _gridSales.MultiSelect = false;
+            _gridSales.AutoGenerateColumns = false;
+            _gridSales.RowHeadersVisible = false;
+            _gridSales.BackgroundColor = Color.White;
+            _gridSales.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            _gridSales.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            _gridSales.RowTemplate.Height = 30;
+            _gridSales.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            _gridSales.ColumnHeadersHeight = 34;
+            _gridSales.ScrollBars = ScrollBars.Both;
+            _gridSales.CellDoubleClick += (_, __) => OpenSelectedSale();
 
-            _salesList.Columns.Add("Sotuv ID", 100);
-            _salesList.Columns.Add("Chek", 180);
-            _salesList.Columns.Add("Sana", 170);
-            _salesList.Columns.Add("To'lov", 170);
-            _salesList.Columns.Add("Jami (UZS)", 150);
-            _salesList.Columns.Add("Amal", 120);
-            _salesList.Resize += (_, __) => AdjustSalesColumns();
+            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sotuv ID", Name = "SaleId", FillWeight = 12 });
+            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Chek", Name = "ReceiptNumber", FillWeight = 18 });
+            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sana", Name = "IssuedAt", FillWeight = 18 });
+            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "To'lov", Name = "PaymentType", FillWeight = 16 });
+            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Jami (UZS)", Name = "Total", FillWeight = 16 });
+
+            var openBtn = new DataGridViewButtonColumn
+            {
+                HeaderText = "",
+                Text = "Tanlash",
+                UseColumnTextForButtonValue = true,
+                FillWeight = 12
+            };
+            _gridSales.Columns.Add(openBtn);
+            _gridSales.CellContentClick += (s, e) =>
+            {
+                if (e.RowIndex >= 0 && e.ColumnIndex == openBtn.Index)
+                {
+                    OpenSelectedSale();
+                }
+            };
         }
 
         private void BuildLinesGrid()
@@ -232,21 +220,21 @@ namespace SantexnikaSRM.Forms
                     })
                     .ToList();
 
-                _salesList.BeginUpdate();
-                _salesList.Items.Clear();
+                _gridSales.SuspendLayout();
+                _gridSales.Rows.Clear();
                 foreach (SaleRow row in rows)
                 {
-                    var li = new ListViewItem(row.SaleId.ToString());
-                    li.SubItems.Add(row.ReceiptNumber);
-                    li.SubItems.Add(row.IssuedAt);
-                    li.SubItems.Add(row.PaymentType);
-                    li.SubItems.Add(row.TotalText);
-                    li.SubItems.Add("Tanlash");
-                    li.Tag = row.SaleId;
-                    _salesList.Items.Add(li);
+                    _gridSales.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAt, row.PaymentType, row.TotalText, "Tanlash");
                 }
-                _salesList.EndUpdate();
-                AdjustSalesColumns();
+                _gridSales.ResumeLayout();
+
+                if (_gridSales.Rows.Count > 0)
+                {
+                    _gridSales.ClearSelection();
+                    _gridSales.FirstDisplayedScrollingRowIndex = 0;
+                    _gridSales.CurrentCell = _gridSales.Rows[0].Cells[0];
+                    _gridSales.Rows[0].Selected = true;
+                }
 
                 _activeSaleId = 0;
                 _txtSaleId.Text = string.Empty;
@@ -261,13 +249,13 @@ namespace SantexnikaSRM.Forms
 
         private void OpenSelectedSale()
         {
-            if (_salesList.SelectedItems.Count == 0)
+            if (_gridSales.CurrentRow == null)
             {
                 MessageBox.Show("Avval sotuv tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            int saleId = _salesList.SelectedItems[0].Tag is int id ? id : 0;
+            int saleId = Convert.ToInt32(_gridSales.CurrentRow.Cells[0].Value ?? 0);
             if (saleId <= 0)
             {
                 MessageBox.Show("Avval sotuv tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -394,22 +382,6 @@ namespace SantexnikaSRM.Forms
 
             double total = rows.Where(x => x.ReturnQty > 0).Sum(x => x.ReturnQty * x.UnitPriceUZS);
             _lblPreview.Text = $"Qaytarish:\n{total:N0} UZS";
-        }
-
-        private void AdjustSalesColumns()
-        {
-            if (_salesList.Columns.Count != 6)
-            {
-                return;
-            }
-
-            int width = Math.Max(900, _salesList.ClientSize.Width - 4);
-            _salesList.Columns[0].Width = 100;
-            _salesList.Columns[1].Width = 180;
-            _salesList.Columns[2].Width = 170;
-            _salesList.Columns[3].Width = 170;
-            _salesList.Columns[5].Width = 120;
-            _salesList.Columns[4].Width = Math.Max(120, width - (100 + 180 + 170 + 170 + 120));
         }
 
         private sealed class SaleRow
