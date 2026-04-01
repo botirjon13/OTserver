@@ -85,7 +85,6 @@ namespace SantexnikaSRM.Forms
             var header = BuildStaticHeader(
                 new[] { "Sotuv ID", "Chek raqami", "Sana", "To'lov turi", "Jami (UZS)" },
                 new[] { 14f, 26f, 24f, 20f, 20f });
-            root.Controls.Add(header);
 
             _grid.Dock = DockStyle.Fill;
             _grid.ReadOnly = true;
@@ -113,7 +112,10 @@ namespace SantexnikaSRM.Forms
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sana", Name = "IssuedAt", FillWeight = 24 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "To'lov turi", Name = "PaymentType", FillWeight = 20 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Jami (UZS)", Name = "Total", FillWeight = 20 });
-            root.Controls.Add(_grid);
+            Panel gridHost = new Panel { Dock = DockStyle.Fill };
+            gridHost.Controls.Add(_grid);
+            gridHost.Controls.Add(header);
+            root.Controls.Add(gridHost);
         }
 
         private void LoadHistory()
