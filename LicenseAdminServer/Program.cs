@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -57,6 +58,17 @@ string defaultSupportContact = Environment.GetEnvironmentVariable("DEFAULT_SUPPO
     ?? "Savdo bo'limi: +998 90 000 00 00 | Telegram: @your_support";
 string defaultFirstLoginUsername = Environment.GetEnvironmentVariable("CLIENT_BOOTSTRAP_USERNAME")?.Trim()
     ?? "admin";
+string releaseProxyBaseUrl = NormalizeReleaseProxyBaseUrl(
+    Environment.GetEnvironmentVariable("RELEASE_FEED_SOURCE_URL")?.Trim()
+    ?? "https://raw.githubusercontent.com/botirjon13/OTserver/main/releases");
+var releaseProxyHttpClient = new HttpClient(new HttpClientHandler
+{
+    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
+})
+{
+    Timeout = TimeSpan.FromMinutes(5)
+};
+releaseProxyHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Osontrack-LicenseAdminServer/1.0");
 Db.Initialize(dbPath);
 Db.ConfigureSecrets(signingKey, recoveryKey);
 string sqliteMigrationPath = Environment.GetEnvironmentVariable("SQLITE_MIGRATION_PATH")?.Trim()
@@ -1441,6 +1453,16 @@ app.MapPost("/api/heartbeat", (HeartbeatRequest req) =>
     return Results.Json(new { ok = true, at = DateTime.UtcNow.ToString("O") });
 });
 
+app.MapGet("/releases", async (HttpContext context) =>
+{
+    await ProxyReleaseAssetAsync(context, releaseProxyHttpClient, releaseProxyBaseUrl, "releases.stable.json");
+});
+
+app.MapGet("/releases/{**assetPath}", async (HttpContext context, string? assetPath) =>
+{
+    await ProxyReleaseAssetAsync(context, releaseProxyHttpClient, releaseProxyBaseUrl, assetPath);
+});
+
 app.Run();
 
 static bool TryRequireApiAdmin(HttpContext context, string dbPath, string adminUser, string adminPass, out IResult? unauthorized)
@@ -1593,6 +1615,111 @@ static bool IsProductionLikeEnvironment()
     return string.Equals(asp, "Production", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(dotnet, "Production", StringComparison.OrdinalIgnoreCase) ||
            !string.IsNullOrWhiteSpace(railway);
+}
+
+static string NormalizeReleaseProxyBaseUrl(string value)
+{
+    return (value ?? string.Empty).Trim().TrimEnd('/');
+}
+
+static bool IsSafeReleaseAssetPath(string path)
+{
+    if (string.IsNullOrWhiteSpace(path))
+    {
+        return false;
+    }
+
+    if (path.Contains("..", StringComparison.Ordinal) || path.Contains('\\'))
+    {
+        return false;
+    }
+
+    foreach (char ch in path)
+    {
+        bool ok = char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '/';
+        if (!ok)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static async Task ProxyReleaseAssetAsync(HttpContext context, HttpClient httpClient, string proxyBaseUrl, string? assetPath)
+{
+    if (string.IsNullOrWhiteSpace(proxyBaseUrl))
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { ok = false, error = "Release proxy manzili sozlanmagan." });
+        return;
+    }
+
+    string normalizedPath = (assetPath ?? string.Empty).Trim().TrimStart('/');
+    if (string.IsNullOrWhiteSpace(normalizedPath))
+    {
+        normalizedPath = "releases.stable.json";
+    }
+
+    if (!IsSafeReleaseAssetPath(normalizedPath))
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new { ok = false, error = "Noto'g'ri release asset path." });
+        return;
+    }
+
+    string targetUrl = $"{proxyBaseUrl}/{normalizedPath}";
+    try
+    {
+        using var upstream = await httpClient.GetAsync(targetUrl, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+        context.Response.StatusCode = (int)upstream.StatusCode;
+        context.Response.ContentType = upstream.Content.Headers.ContentType?.ToString() ?? GuessReleaseContentType(normalizedPath);
+        if (upstream.Content.Headers.ContentLength.HasValue)
+        {
+            context.Response.ContentLength = upstream.Content.Headers.ContentLength.Value;
+        }
+        if (upstream.Headers.ETag is not null)
+        {
+            context.Response.Headers.ETag = upstream.Headers.ETag.ToString();
+        }
+        if (upstream.Headers.CacheControl is not null)
+        {
+            context.Response.Headers.CacheControl = upstream.Headers.CacheControl.ToString();
+        }
+
+        await upstream.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[RELEASE_PROXY_ERROR] {targetUrl} => {ex.Message}");
+        context.Response.StatusCode = StatusCodes.Status502BadGateway;
+        await context.Response.WriteAsJsonAsync(new { ok = false, error = "Release serverga ulanishda xato." });
+    }
+}
+
+static string GuessReleaseContentType(string path)
+{
+    if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+    {
+        return "application/json; charset=utf-8";
+    }
+    if (path.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase))
+    {
+        return "application/octet-stream";
+    }
+    if (path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+    {
+        return "application/zip";
+    }
+    if (path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+    {
+        return "application/octet-stream";
+    }
+
+    return "application/octet-stream";
 }
 
 static bool IsRateLimited(ConcurrentDictionary<string, (int Count, DateTime WindowStartUtc)> store, string key, int limit, TimeSpan window)
