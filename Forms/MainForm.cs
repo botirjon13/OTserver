@@ -208,7 +208,7 @@ namespace SantexnikaSRM.Forms
             _picLicenseAction.Click += (s, e) => new LicenseStatusForm().ShowDialog(this);
 
             SetupActionImageBox(_picUpdateAction, "Dastur yangilash", Color.FromArgb(230, 150, 12), Color.FromArgb(204, 120, 0));
-            _picUpdateAction.Visible = true;
+            _picUpdateAction.Visible = false;
             _picUpdateAction.Click += UpdateAction_Click;
 
             _picThemeAction.Size = new Size(220, 44);
@@ -769,6 +769,8 @@ namespace SantexnikaSRM.Forms
             try
             {
                 _lastUpdateCheckError = null;
+                _pendingUpdate = null;
+                _picUpdateAction.Visible = false;
 
                 if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out _)
                     || activation == null
