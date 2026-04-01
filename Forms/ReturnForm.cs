@@ -142,6 +142,9 @@ namespace SantexnikaSRM.Forms
             _gridSales.MultiSelect = false;
             _gridSales.AutoGenerateColumns = false;
             _gridSales.RowHeadersVisible = false;
+            _gridSales.ColumnHeadersVisible = true;
+            _gridSales.EnableHeadersVisualStyles = false;
+            _gridSales.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             _gridSales.BackgroundColor = Color.White;
             _gridSales.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             _gridSales.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
@@ -165,6 +168,7 @@ namespace SantexnikaSRM.Forms
                 FillWeight = 12
             };
             _gridSales.Columns.Add(openBtn);
+            ApplyGridHeaderStyle(_gridSales);
             _gridSales.CellContentClick += (s, e) =>
             {
                 if (e.RowIndex >= 0 && e.ColumnIndex == openBtn.Index)
@@ -227,6 +231,7 @@ namespace SantexnikaSRM.Forms
                     _gridSales.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAt, row.PaymentType, row.TotalText, "Tanlash");
                 }
                 _gridSales.ResumeLayout();
+                EnsureHeaderVisible(_gridSales);
                 ResetGridTop(_gridSales);
 
                 _activeSaleId = 0;
@@ -412,6 +417,7 @@ namespace SantexnikaSRM.Forms
 
                 grid.ClearSelection();
                 grid.CurrentCell = null;
+                EnsureHeaderVisible(grid);
                 grid.FirstDisplayedScrollingColumnIndex = 0;
                 grid.FirstDisplayedScrollingRowIndex = 0;
                 grid.CurrentCell = grid.Rows[0].Cells[0];
@@ -426,6 +432,23 @@ namespace SantexnikaSRM.Forms
             {
                 Apply();
             }
+        }
+
+        private static void EnsureHeaderVisible(DataGridView grid)
+        {
+            grid.ColumnHeadersVisible = true;
+            if (grid.ColumnHeadersHeight < 30)
+            {
+                grid.ColumnHeadersHeight = 34;
+            }
+        }
+
+        private static void ApplyGridHeaderStyle(DataGridView grid)
+        {
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(233, 239, 248);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(24, 35, 48);
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold);
+            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
         }
     }
 }
