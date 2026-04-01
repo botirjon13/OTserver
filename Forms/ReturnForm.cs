@@ -256,8 +256,9 @@ namespace SantexnikaSRM.Forms
                         TotalText = $"{x.TotalUZS:N0}"
                     })
                     .ToList();
+                _salesBinding.DataSource = null;
                 _salesBinding.DataSource = rows;
-                ResetGridViewport(_gridSales);
+                BeginInvoke(new Action(() => ResetGridViewport(_gridSales)));
                 _activeSaleId = 0;
                 _txtSaleId.Text = string.Empty;
                 _lineBinding.DataSource = new List<LineRow>();
@@ -304,6 +305,7 @@ namespace SantexnikaSRM.Forms
 
                 _activeSaleId = saleId;
                 _txtSaleId.Text = saleId.ToString(CultureInfo.InvariantCulture);
+                _lineBinding.DataSource = null;
                 _lineBinding.DataSource = rows.Select(x => new LineRow
                 {
                     SaleItemId = x.SaleItemId,
@@ -314,7 +316,7 @@ namespace SantexnikaSRM.Forms
                     UnitPriceUZS = x.UnitPriceUZS,
                     ReturnQty = 0
                 }).ToList();
-                ResetGridViewport(_gridLines);
+                BeginInvoke(new Action(() => ResetGridViewport(_gridLines)));
                 UpdatePreview();
             }
             catch (Exception ex)

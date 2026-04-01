@@ -191,8 +191,9 @@ namespace SantexnikaSRM.Forms
                     TotalText = $"{x.TotalUZS:N0}"
                 }).ToList();
 
+                _binding.DataSource = null;
                 _binding.DataSource = rows;
-                ResetGridViewport(_grid);
+                BeginInvoke(new Action(() => ResetGridViewport(_grid)));
                 double total = items.Sum(x => x.TotalUZS);
                 _lblSummary.Text = $"Topildi: {items.Count} ta chek | Jami: {total:N0} UZS";
             }
