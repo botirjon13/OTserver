@@ -52,6 +52,8 @@ namespace SantexnikaSRM.Forms
         private readonly Label _lblSuggestedText = new Label();
         private readonly Label _lblSuggestedValue = new Label();
         private readonly Label _lblAutoFillState = new Label();
+        private readonly PictureBox _picSelectedProductPreview = new PictureBox();
+        private readonly Label _lblSelectedProductPreviewHint = new Label();
         private readonly DataGridView _gridBasket = new DataGridView();
         private Button _btnRemoveSelected = new Button();
         private readonly Panel _rightBody = new Panel();
@@ -331,12 +333,62 @@ namespace SantexnikaSRM.Forms
             _lstProducts.Resize += (s, e) => HideListScrollbars();
             listWrap.Controls.Add(_lstProducts);
 
+            Panel previewWrap = new Panel
+            {
+                Left = 0,
+                Top = 408,
+                Width = 100,
+                Height = 100,
+                BackColor = Color.White,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            previewWrap.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle bounds = new Rectangle(1, 1, Math.Max(1, previewWrap.Width - 3), Math.Max(1, previewWrap.Height - 3));
+                using SolidBrush brush = new SolidBrush(Color.FromArgb(246, 250, 255));
+                using Pen border = new Pen(Color.FromArgb(191, 206, 228), 1.6f);
+                using GraphicsPath path = RoundedRect(bounds, 12);
+                e.Graphics.FillPath(brush, path);
+                e.Graphics.DrawPath(border, path);
+            };
+
+            _picSelectedProductPreview.BackColor = Color.FromArgb(234, 242, 253);
+            _picSelectedProductPreview.BorderStyle = BorderStyle.FixedSingle;
+            _picSelectedProductPreview.SizeMode = PictureBoxSizeMode.Zoom;
+            _picSelectedProductPreview.Cursor = Cursors.Hand;
+            _picSelectedProductPreview.Click += SelectedProductPreview_Click;
+
+            _lblSelectedProductPreviewHint.AutoSize = false;
+            _lblSelectedProductPreviewHint.Font = new Font("Bahnschrift SemiBold", 11, FontStyle.Bold);
+            _lblSelectedProductPreviewHint.ForeColor = Color.FromArgb(72, 92, 122);
+            _lblSelectedProductPreviewHint.BackColor = Color.Transparent;
+            _lblSelectedProductPreviewHint.TextAlign = ContentAlignment.MiddleLeft;
+            _lblSelectedProductPreviewHint.Text = "Mahsulotni tanlang. Rasm shu yerda ko'rinadi.";
+            _lblSelectedProductPreviewHint.Cursor = Cursors.Hand;
+            _lblSelectedProductPreviewHint.Click += SelectedProductPreview_Click;
+
+            previewWrap.Controls.Add(_picSelectedProductPreview);
+            previewWrap.Controls.Add(_lblSelectedProductPreviewHint);
+            previewWrap.Resize += (s, e) =>
+            {
+                int pad = 10;
+                int imageSize = Math.Max(56, previewWrap.Height - (pad * 2));
+                _picSelectedProductPreview.SetBounds(pad, pad, imageSize, imageSize);
+                int hintLeft = _picSelectedProductPreview.Right + 12;
+                _lblSelectedProductPreviewHint.SetBounds(
+                    hintLeft,
+                    0,
+                    Math.Max(80, previewWrap.Width - hintLeft - pad),
+                    previewWrap.Height);
+            };
+
             Panel divider = new Panel
             {
                 Height = 1,
                 Left = 0,
                 Width = 100,
-                Top = 408,
+                Top = 520,
                 BackColor = Color.FromArgb(228, 234, 244),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
@@ -484,6 +536,7 @@ namespace SantexnikaSRM.Forms
 
             body.Controls.Add(searchWrap);
             body.Controls.Add(listWrap);
+            body.Controls.Add(previewWrap);
             body.Controls.Add(divider);
             body.Controls.Add(lblQty);
             body.Controls.Add(lblPrice);
@@ -501,6 +554,8 @@ namespace SantexnikaSRM.Forms
                 int searchH = 46;
                 int listTop = 92;
                 int listMinH = 150;
+                int previewGapTop = 12;
+                int previewH = 100;
                 int dividerGapTop = 14;
                 int dividerH = 1;
                 int labelGapTop = 14;
@@ -514,6 +569,7 @@ namespace SantexnikaSRM.Forms
                 int bottomPad = 6;
 
                 int fixedAfterList =
+                    previewGapTop + previewH +
                     dividerGapTop + dividerH +
                     labelGapTop + labelH +
                     inputGapTop + inputH +
@@ -531,7 +587,10 @@ namespace SantexnikaSRM.Forms
                 int listLeft = (bodyW - listW) / 2;
                 listWrap.SetBounds(listLeft, listTop, listW, listH);
 
-                int dividerTop = listTop + listH + dividerGapTop;
+                int previewTop = listTop + listH + previewGapTop;
+                previewWrap.SetBounds(listLeft, previewTop, listW, previewH);
+
+                int dividerTop = previewTop + previewH + dividerGapTop;
                 divider.SetBounds(listLeft, dividerTop, listW, dividerH);
 
                 int labelTop = dividerTop + dividerH + labelGapTop;
@@ -576,6 +635,7 @@ namespace SantexnikaSRM.Forms
             body.Resize += (s, e) => applyLeftLayout();
             body.SizeChanged += (s, e) => applyLeftLayout();
             applyLeftLayout();
+            SetSelectedProductPreview(null);
 
             card.Controls.Add(body);
             card.Controls.Add(titleBar);
@@ -1052,31 +1112,9 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.DrawLine(rowLine, rect.Left + 8, rect.Bottom - 1, rect.Right - 8, rect.Bottom - 1);
             }
 
-            Rectangle imageBox = new Rectangle(rect.X + 10, rect.Y + 8, 38, 38);
-            using (SolidBrush imageBg = new SolidBrush(isSelected ? Color.FromArgb(232, 241, 255) : Color.FromArgb(242, 247, 255)))
-            using (GraphicsPath imagePath = RoundedRect(imageBox, 8))
-            {
-                e.Graphics.FillPath(imageBg, imagePath);
-            }
-            Image? thumb = ProductImageStore.TryLoadPreview(product.ImagePath, 34, 34);
-            if (thumb != null)
-            {
-                e.Graphics.DrawImage(thumb, new Rectangle(imageBox.X + 2, imageBox.Y + 2, imageBox.Width - 4, imageBox.Height - 4));
-            }
-            else
-            {
-                TextRenderer.DrawText(
-                    e.Graphics,
-                    "\uECAA",
-                    UiTheme.IconFont(15),
-                    imageBox,
-                    isSelected ? Color.FromArgb(47, 97, 205) : Color.FromArgb(109, 132, 169),
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            }
-
             using (Brush nameBrush = new SolidBrush(isSelected ? Color.White : Color.FromArgb(43, 56, 80)))
             {
-                e.Graphics.DrawString(product.Name, new Font("Bahnschrift SemiBold", 12, FontStyle.Bold), nameBrush, rect.X + 56, rect.Y + 14);
+                e.Graphics.DrawString(product.Name, new Font("Bahnschrift SemiBold", 12, FontStyle.Bold), nameBrush, rect.X + 16, rect.Y + 14);
             }
 
             string qtyText = $"{FormatQuantity(product.QuantityUSD)} dona";
@@ -1556,6 +1594,7 @@ namespace SantexnikaSRM.Forms
                 _lblStockValue.Text = "-";
                 _lblPurchaseValue.Text = "-";
                 _lblSuggestedValue.Text = "-";
+                SetSelectedProductPreview(null);
                 return;
             }
 
@@ -1569,6 +1608,71 @@ namespace SantexnikaSRM.Forms
             if (_autoFillSuggestedPrice)
             {
                 _txtPrice.Text = Math.Ceiling(suggestedUzs).ToString(CultureInfo.InvariantCulture);
+            }
+
+            SetSelectedProductPreview(_selectedProduct);
+        }
+
+        private void SetSelectedProductPreview(Product? product)
+        {
+            Image? old = _picSelectedProductPreview.Image;
+            _picSelectedProductPreview.Image = null;
+            old?.Dispose();
+
+            if (product == null)
+            {
+                _lblSelectedProductPreviewHint.Text = "Mahsulotni tanlang. Rasm shu yerda ko'rinadi.";
+                _picSelectedProductPreview.Cursor = Cursors.Default;
+                _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
+                return;
+            }
+
+            Image? preview = ProductImageStore.TryLoadPreview(product.ImagePath, 220, 220);
+            if (preview == null)
+            {
+                _lblSelectedProductPreviewHint.Text = "Bu mahsulot uchun rasm yo'q.";
+                _picSelectedProductPreview.Cursor = Cursors.Default;
+                _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
+                return;
+            }
+
+            _picSelectedProductPreview.Image = preview;
+            _picSelectedProductPreview.Cursor = Cursors.Hand;
+            _lblSelectedProductPreviewHint.Cursor = Cursors.Hand;
+            _lblSelectedProductPreviewHint.Text = "Tanlangan mahsulot rasmi. Kattalashtirish uchun bosing.";
+        }
+
+        private void SelectedProductPreview_Click(object? sender, EventArgs e)
+        {
+            if (_selectedProduct == null || string.IsNullOrWhiteSpace(_selectedProduct.ImagePath))
+            {
+                return;
+            }
+
+            Image? fullImage = ProductImageStore.TryLoadPreview(_selectedProduct.ImagePath, 1600, 1600);
+            if (fullImage == null)
+            {
+                return;
+            }
+
+            using (fullImage)
+            using (Form viewer = new Form())
+            {
+                viewer.Text = $"{_selectedProduct.Name} - rasm";
+                viewer.StartPosition = FormStartPosition.CenterParent;
+                viewer.Size = new Size(900, 700);
+                viewer.MinimumSize = new Size(560, 420);
+                viewer.BackColor = Color.Black;
+
+                PictureBox pic = new PictureBox
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = Color.Black,
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    Image = fullImage
+                };
+                viewer.Controls.Add(pic);
+                viewer.ShowDialog(this);
             }
         }
 
