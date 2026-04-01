@@ -59,16 +59,38 @@ namespace SantexnikaSRM.Services
             connection.Open();
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-                SELECT s.Id,
-                       IFNULL(r.ReceiptNumber, 'CHK-' || printf('%06d', s.Id)),
-                       IFNULL(r.IssuedAt, s.Date),
-                       IFNULL(r.PaymentType, ''),
-                       s.TotalUZS
-                FROM Sales s
-                LEFT JOIN SaleReceipts r ON r.SaleId = s.Id
-                WHERE datetime(REPLACE(IFNULL(r.IssuedAt, s.Date), 'T', ' ')) >= datetime(@from)
-                  AND datetime(REPLACE(IFNULL(r.IssuedAt, s.Date), 'T', ' ')) < datetime(@toExclusive)
-                ORDER BY datetime(REPLACE(IFNULL(r.IssuedAt, s.Date), 'T', ' ')) DESC, s.Id DESC";
+                WITH base AS (
+                    SELECT s.Id AS SaleId,
+                           IFNULL(r.ReceiptNumber, 'CHK-' || printf('%06d', s.Id)) AS ReceiptNumber,
+                           IFNULL(r.IssuedAt, s.Date) AS RawIssuedAt,
+                           IFNULL(r.PaymentType, '') AS PaymentType,
+                           s.TotalUZS
+                    FROM Sales s
+                    LEFT JOIN SaleReceipts r ON r.SaleId = s.Id
+                ),
+                norm AS (
+                    SELECT SaleId,
+                           ReceiptNumber,
+                           RawIssuedAt,
+                           PaymentType,
+                           TotalUZS,
+                           CASE
+                               WHEN RawIssuedAt LIKE '__.__.____%' THEN
+                                   substr(RawIssuedAt, 7, 4) || '-' || substr(RawIssuedAt, 4, 2) || '-' || substr(RawIssuedAt, 1, 2) || substr(RawIssuedAt, 11)
+                               ELSE
+                                   REPLACE(REPLACE(RawIssuedAt, 'T', ' '), 'Z', '')
+                           END AS IssuedAtNorm
+                    FROM base
+                )
+                SELECT SaleId,
+                       ReceiptNumber,
+                       IssuedAtNorm,
+                       PaymentType,
+                       TotalUZS
+                FROM norm
+                WHERE datetime(IssuedAtNorm) >= datetime(@from)
+                  AND datetime(IssuedAtNorm) < datetime(@toExclusive)
+                ORDER BY datetime(IssuedAtNorm) DESC, SaleId DESC";
             cmd.Parameters.AddWithValue("@from", fromText);
             cmd.Parameters.AddWithValue("@toExclusive", toExclusiveText);
 
@@ -437,12 +459,41 @@ namespace SantexnikaSRM.Services
 
         private static DateTime ParseDateTime(string raw)
         {
-            if (DateTime.TryParseExact(raw, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsed))
+            string value = (raw ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return DateTime.MinValue;
+            }
+
+            string[] formats =
+            {
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd HH:mm",
+                "yyyy-MM-ddTHH:mm:ss",
+                "yyyy-MM-ddTHH:mm:ss.fff",
+                "yyyy-MM-ddTHH:mm:ss.fffffff",
+                "yyyy-MM-ddTHH:mm:ssZ",
+                "yyyy-MM-ddTHH:mm:ss.fffffffZ",
+                "dd.MM.yyyy HH:mm:ss",
+                "dd.MM.yyyy HH:mm"
+            };
+
+            if (DateTime.TryParseExact(value, formats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out DateTime parsed))
             {
                 return parsed;
             }
 
-            return DateTime.Parse(raw, CultureInfo.InvariantCulture);
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out parsed))
+            {
+                return parsed;
+            }
+
+            if (DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out parsed))
+            {
+                return parsed;
+            }
+
+            return DateTime.MinValue;
         }
 
         private static DateTime ParseDate(string raw)
