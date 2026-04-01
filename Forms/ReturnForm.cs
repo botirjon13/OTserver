@@ -40,11 +40,19 @@ namespace SantexnikaSRM.Forms
             BackColor = Color.White;
             Font = new Font("Bahnschrift", 11f);
 
-            Panel root = new Panel { Dock = DockStyle.Fill, Padding = new Padding(16) };
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16),
+                ColumnCount = 1,
+                RowCount = 2
+            };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118f));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             Controls.Add(root);
 
-            Panel top = new Panel { Dock = DockStyle.Top, Height = 118 };
-            root.Controls.Add(top);
+            Panel top = new Panel { Dock = DockStyle.Fill, Height = 118 };
 
             var lblDate = new Label { Text = "Sana:", AutoSize = true, Left = 0, Top = 10 };
             _dtFrom.Format = DateTimePickerFormat.Short;
@@ -124,7 +132,6 @@ namespace SantexnikaSRM.Forms
                 Orientation = Orientation.Horizontal,
                 SplitterDistance = 320
             };
-            root.Controls.Add(split);
 
             BuildSalesGrid();
             BuildLinesGrid();
@@ -135,6 +142,8 @@ namespace SantexnikaSRM.Forms
                 new[] { 12f, 18f, 18f, 16f, 16f, 12f }));
             split.Panel1.Controls.Add(salesHost);
             split.Panel2.Controls.Add(_gridLines);
+            root.Controls.Add(top, 0, 0);
+            root.Controls.Add(split, 0, 1);
         }
 
         private void BuildSalesGrid()

@@ -33,11 +33,19 @@ namespace SantexnikaSRM.Forms
             BackColor = Color.White;
             Font = new Font("Bahnschrift", 11f);
 
-            Panel root = new Panel { Dock = DockStyle.Fill, Padding = new Padding(16) };
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16),
+                ColumnCount = 1,
+                RowCount = 2
+            };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92f));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             Controls.Add(root);
 
-            Panel top = new Panel { Dock = DockStyle.Top, Height = 92 };
-            root.Controls.Add(top);
+            Panel top = new Panel { Dock = DockStyle.Fill, Height = 92 };
 
             var lblFrom = new Label { Text = "Dan:", AutoSize = true, Left = 0, Top = 10 };
             _dtFrom.Format = DateTimePickerFormat.Short;
@@ -115,7 +123,8 @@ namespace SantexnikaSRM.Forms
             Panel gridHost = new Panel { Dock = DockStyle.Fill };
             gridHost.Controls.Add(_grid);
             gridHost.Controls.Add(header);
-            root.Controls.Add(gridHost);
+            root.Controls.Add(top, 0, 0);
+            root.Controls.Add(gridHost, 0, 1);
         }
 
         private void LoadHistory()
