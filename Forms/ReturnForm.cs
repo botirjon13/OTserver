@@ -16,7 +16,7 @@ namespace SantexnikaSRM.Forms
         private readonly DateTimePicker _dtFrom = new DateTimePicker();
         private readonly DateTimePicker _dtTo = new DateTimePicker();
         private readonly TextBox _txtSaleId = new TextBox();
-        private readonly DataGridView _gridSales = new DataGridView();
+        private readonly ListView _salesList = new ListView();
         private readonly DataGridView _gridLines = new DataGridView();
         private readonly BindingSource _lineBinding = new BindingSource();
         private readonly TextBox _txtReason = new TextBox();
@@ -156,57 +156,34 @@ namespace SantexnikaSRM.Forms
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
-                SplitterDistance = 260
+                SplitterDistance = 320
             };
             root.Controls.Add(split);
 
-            BuildSalesGrid();
+            BuildSalesList();
             BuildLinesGrid();
-            split.Panel1.Controls.Add(_gridSales);
+            split.Panel1.Controls.Add(_salesList);
             split.Panel2.Controls.Add(_gridLines);
         }
 
-        private void BuildSalesGrid()
+        private void BuildSalesList()
         {
-            _gridSales.Dock = DockStyle.Fill;
-            _gridSales.ReadOnly = true;
-            _gridSales.AllowUserToAddRows = false;
-            _gridSales.AllowUserToDeleteRows = false;
-            _gridSales.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            _gridSales.MultiSelect = false;
-            _gridSales.AutoGenerateColumns = false;
-            _gridSales.RowHeadersVisible = false;
-            _gridSales.BackgroundColor = Color.White;
-            _gridSales.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            _gridSales.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            _gridSales.RowTemplate.Height = 30;
-            _gridSales.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            _gridSales.ColumnHeadersHeight = 34;
-            _gridSales.ScrollBars = ScrollBars.Both;
-            _gridSales.CellDoubleClick += (_, __) => OpenSelectedSale();
+            _salesList.Dock = DockStyle.Fill;
+            _salesList.View = View.Details;
+            _salesList.FullRowSelect = true;
+            _salesList.GridLines = true;
+            _salesList.HideSelection = false;
+            _salesList.MultiSelect = false;
+            _salesList.HeaderStyle = ColumnHeaderStyle.Nonclickable;
+            _salesList.DoubleClick += (_, __) => OpenSelectedSale();
 
-            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sotuv ID", DataPropertyName = nameof(SaleRow.SaleId), FillWeight = 12 });
-            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Chek", DataPropertyName = nameof(SaleRow.ReceiptNumber), FillWeight = 18 });
-            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sana", DataPropertyName = nameof(SaleRow.IssuedAt), FillWeight = 18 });
-            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "To'lov", DataPropertyName = nameof(SaleRow.PaymentType), FillWeight = 16 });
-            _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Jami (UZS)", DataPropertyName = nameof(SaleRow.TotalText), FillWeight = 16 });
-
-            var openBtn = new DataGridViewButtonColumn
-            {
-                HeaderText = "",
-                Text = "Tanlash",
-                UseColumnTextForButtonValue = true,
-                FillWeight = 12
-            };
-            _gridSales.Columns.Add(openBtn);
-            _gridSales.CellContentClick += (s, e) =>
-            {
-                if (e.RowIndex >= 0 && e.ColumnIndex == openBtn.Index)
-                {
-                    OpenSelectedSale();
-                }
-            };
-
+            _salesList.Columns.Add("Sotuv ID", 100);
+            _salesList.Columns.Add("Chek", 180);
+            _salesList.Columns.Add("Sana", 170);
+            _salesList.Columns.Add("To'lov", 170);
+            _salesList.Columns.Add("Jami (UZS)", 150);
+            _salesList.Columns.Add("Amal", 120);
+            _salesList.Resize += (_, __) => AdjustSalesColumns();
         }
 
         private void BuildLinesGrid()
@@ -254,7 +231,23 @@ namespace SantexnikaSRM.Forms
                         TotalText = $"{x.TotalUZS:N0}"
                     })
                     .ToList();
-                BindSalesRows(rows);
+
+                _salesList.BeginUpdate();
+                _salesList.Items.Clear();
+                foreach (SaleRow row in rows)
+                {
+                    var li = new ListViewItem(row.SaleId.ToString());
+                    li.SubItems.Add(row.ReceiptNumber);
+                    li.SubItems.Add(row.IssuedAt);
+                    li.SubItems.Add(row.PaymentType);
+                    li.SubItems.Add(row.TotalText);
+                    li.SubItems.Add("Tanlash");
+                    li.Tag = row.SaleId;
+                    _salesList.Items.Add(li);
+                }
+                _salesList.EndUpdate();
+                AdjustSalesColumns();
+
                 _activeSaleId = 0;
                 _txtSaleId.Text = string.Empty;
                 _lineBinding.DataSource = new List<LineRow>();
@@ -268,12 +261,13 @@ namespace SantexnikaSRM.Forms
 
         private void OpenSelectedSale()
         {
-            if (_gridSales.CurrentRow == null || _gridSales.CurrentRow.Cells.Count == 0)
+            if (_salesList.SelectedItems.Count == 0)
             {
                 MessageBox.Show("Avval sotuv tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            int saleId = Convert.ToInt32(_gridSales.CurrentRow.Cells[0].Value ?? 0);
+
+            int saleId = _salesList.SelectedItems[0].Tag is int id ? id : 0;
             if (saleId <= 0)
             {
                 MessageBox.Show("Avval sotuv tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -307,7 +301,6 @@ namespace SantexnikaSRM.Forms
 
                 _activeSaleId = saleId;
                 _txtSaleId.Text = saleId.ToString(CultureInfo.InvariantCulture);
-                _lineBinding.DataSource = null;
                 _lineBinding.DataSource = rows.Select(x => new LineRow
                 {
                     SaleItemId = x.SaleItemId,
@@ -318,7 +311,6 @@ namespace SantexnikaSRM.Forms
                     UnitPriceUZS = x.UnitPriceUZS,
                     ReturnQty = 0
                 }).ToList();
-                ScheduleGridViewportReset(_gridLines);
                 UpdatePreview();
             }
             catch (Exception ex)
@@ -404,6 +396,22 @@ namespace SantexnikaSRM.Forms
             _lblPreview.Text = $"Qaytarish:\n{total:N0} UZS";
         }
 
+        private void AdjustSalesColumns()
+        {
+            if (_salesList.Columns.Count != 6)
+            {
+                return;
+            }
+
+            int width = Math.Max(900, _salesList.ClientSize.Width - 4);
+            _salesList.Columns[0].Width = 100;
+            _salesList.Columns[1].Width = 180;
+            _salesList.Columns[2].Width = 170;
+            _salesList.Columns[3].Width = 170;
+            _salesList.Columns[5].Width = 120;
+            _salesList.Columns[4].Width = Math.Max(120, width - (100 + 180 + 170 + 170 + 120));
+        }
+
         private sealed class SaleRow
         {
             public int SaleId { get; set; }
@@ -426,54 +434,6 @@ namespace SantexnikaSRM.Forms
             public string ReturnedQtyText => $"{ReturnedQty:0.##}";
             public string AvailableQtyText => $"{AvailableQty:0.##}";
             public string UnitPriceText => $"{UnitPriceUZS:N0}";
-        }
-
-        private static void ResetGridViewport(DataGridView grid)
-        {
-            grid.ClearSelection();
-            if (grid.Rows.Count == 0)
-            {
-                return;
-            }
-
-            grid.FirstDisplayedScrollingRowIndex = 0;
-            DataGridViewCell? firstVisibleCell = grid.Rows[0].Cells
-                .Cast<DataGridViewCell>()
-                .FirstOrDefault(x => x.Visible);
-
-            if (firstVisibleCell != null)
-            {
-                grid.CurrentCell = firstVisibleCell;
-                firstVisibleCell.OwningRow.Selected = true;
-            }
-        }
-
-        private void ScheduleGridViewportReset(DataGridView grid)
-        {
-            if (IsDisposed || grid.IsDisposed)
-            {
-                return;
-            }
-
-            if (IsHandleCreated)
-            {
-                BeginInvoke(new Action(() => ResetGridViewport(grid)));
-                return;
-            }
-
-            ResetGridViewport(grid);
-        }
-
-        private void BindSalesRows(List<SaleRow> rows)
-        {
-            _gridSales.SuspendLayout();
-            _gridSales.Rows.Clear();
-            foreach (SaleRow row in rows)
-            {
-                _gridSales.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAt, row.PaymentType, row.TotalText, "Tanlash");
-            }
-            _gridSales.ResumeLayout();
-            ScheduleGridViewportReset(_gridSales);
         }
     }
 }
