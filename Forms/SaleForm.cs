@@ -232,11 +232,12 @@ namespace SantexnikaSRM.Forms
 
             selectedPreviewBadge.Controls.Add(_picSelectedProductPreview);
             selectedPreviewBadge.Controls.Add(_lblSelectedProductPreviewHint);
-            selectedPreviewBadge.Resize += (s, e) =>
+            Action layoutSelectedPreviewBadge = () =>
             {
                 _picSelectedProductPreview.SetBounds(7, 6, 30, 30);
                 _lblSelectedProductPreviewHint.SetBounds(44, 0, Math.Max(80, selectedPreviewBadge.Width - 52), selectedPreviewBadge.Height);
             };
+            selectedPreviewBadge.Resize += (s, e) => layoutSelectedPreviewBadge();
 
             Button btnReceiptHistory = NewHeaderIconButton("Chek tarixi", "sale-action-history.png", "\uE81C");
             btnReceiptHistory.Top = 10;
@@ -277,6 +278,7 @@ namespace SantexnikaSRM.Forms
             btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
             selectedPreviewBadge.Left = Math.Max(lblSub.Right + 12, btnReceiptHistory.Left - 8 - selectedPreviewBadge.Width);
             selectedPreviewBadge.Visible = selectedPreviewBadge.Left + selectedPreviewBadge.Width <= btnReceiptHistory.Left - 8;
+            layoutSelectedPreviewBadge();
 
             TableLayoutPanel main = new TableLayoutPanel
             {
@@ -1633,12 +1635,14 @@ namespace SantexnikaSRM.Forms
         {
             if (_selectedProduct == null || string.IsNullOrWhiteSpace(_selectedProduct.ImagePath))
             {
+                MessageBox.Show("Tanlangan mahsulot uchun rasm topilmadi.", "Ma'lumot", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             Image? fullImage = ProductImageStore.TryLoadPreview(_selectedProduct.ImagePath, 1600, 1600);
             if (fullImage == null)
             {
+                MessageBox.Show("Tanlangan mahsulot uchun rasm topilmadi.", "Ma'lumot", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
