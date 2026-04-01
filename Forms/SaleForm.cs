@@ -197,6 +197,47 @@ namespace SantexnikaSRM.Forms
             rateBadge.Controls.Add(lblDollar);
             rateBadge.Controls.Add(_lblRate);
 
+            Panel selectedPreviewBadge = new Panel
+            {
+                Width = 290,
+                Height = 42,
+                Top = 10,
+                BackColor = Color.FromArgb(232, 241, 255)
+            };
+            selectedPreviewBadge.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle bounds = new Rectangle(1, 1, Math.Max(1, selectedPreviewBadge.Width - 3), Math.Max(1, selectedPreviewBadge.Height - 3));
+                using SolidBrush brush = new SolidBrush(Color.FromArgb(232, 241, 255));
+                using Pen border = new Pen(Color.FromArgb(66, 118, 198), 1.6f);
+                using GraphicsPath path = RoundedRect(bounds, 12);
+                e.Graphics.FillPath(brush, path);
+                e.Graphics.DrawPath(border, path);
+            };
+
+            _picSelectedProductPreview.BackColor = Color.FromArgb(214, 228, 247);
+            _picSelectedProductPreview.BorderStyle = BorderStyle.FixedSingle;
+            _picSelectedProductPreview.SizeMode = PictureBoxSizeMode.Zoom;
+            _picSelectedProductPreview.Cursor = Cursors.Default;
+            _picSelectedProductPreview.Click += SelectedProductPreview_Click;
+
+            _lblSelectedProductPreviewHint.AutoSize = false;
+            _lblSelectedProductPreviewHint.Font = new Font("Bahnschrift SemiBold", 10, FontStyle.Bold);
+            _lblSelectedProductPreviewHint.ForeColor = Color.FromArgb(44, 70, 109);
+            _lblSelectedProductPreviewHint.BackColor = Color.Transparent;
+            _lblSelectedProductPreviewHint.TextAlign = ContentAlignment.MiddleLeft;
+            _lblSelectedProductPreviewHint.Text = "Mahsulot rasmi";
+            _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
+            _lblSelectedProductPreviewHint.Click += SelectedProductPreview_Click;
+
+            selectedPreviewBadge.Controls.Add(_picSelectedProductPreview);
+            selectedPreviewBadge.Controls.Add(_lblSelectedProductPreviewHint);
+            selectedPreviewBadge.Resize += (s, e) =>
+            {
+                _picSelectedProductPreview.SetBounds(7, 6, 30, 30);
+                _lblSelectedProductPreviewHint.SetBounds(44, 0, Math.Max(80, selectedPreviewBadge.Width - 52), selectedPreviewBadge.Height);
+            };
+
             Button btnReceiptHistory = NewHeaderIconButton("Chek tarixi", "sale-action-history.png", "\uE81C");
             btnReceiptHistory.Top = 10;
             btnReceiptHistory.Click += (_, __) =>
@@ -220,6 +261,7 @@ namespace SantexnikaSRM.Forms
             header.Controls.Add(icon);
             header.Controls.Add(lblSub);
             header.Controls.Add(rateBadge);
+            header.Controls.Add(selectedPreviewBadge);
             header.Controls.Add(btnReceiptHistory);
             header.Controls.Add(btnReturn);
             header.Resize += (s, e) =>
@@ -227,10 +269,14 @@ namespace SantexnikaSRM.Forms
                 rateBadge.Left = Math.Max(0, header.ClientSize.Width - rateBadge.Width);
                 btnReturn.Left = Math.Max(0, rateBadge.Left - 10 - btnReturn.Width);
                 btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
+                selectedPreviewBadge.Left = Math.Max(lblSub.Right + 12, btnReceiptHistory.Left - 8 - selectedPreviewBadge.Width);
+                selectedPreviewBadge.Visible = selectedPreviewBadge.Left + selectedPreviewBadge.Width <= btnReceiptHistory.Left - 8;
             };
             rateBadge.Left = Math.Max(0, header.ClientSize.Width - rateBadge.Width);
             btnReturn.Left = Math.Max(0, rateBadge.Left - 10 - btnReturn.Width);
             btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
+            selectedPreviewBadge.Left = Math.Max(lblSub.Right + 12, btnReceiptHistory.Left - 8 - selectedPreviewBadge.Width);
+            selectedPreviewBadge.Visible = selectedPreviewBadge.Left + selectedPreviewBadge.Width <= btnReceiptHistory.Left - 8;
 
             TableLayoutPanel main = new TableLayoutPanel
             {
@@ -333,62 +379,12 @@ namespace SantexnikaSRM.Forms
             _lstProducts.Resize += (s, e) => HideListScrollbars();
             listWrap.Controls.Add(_lstProducts);
 
-            Panel previewWrap = new Panel
-            {
-                Left = 0,
-                Top = 408,
-                Width = 100,
-                Height = 100,
-                BackColor = Color.White,
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-            };
-            previewWrap.Paint += (s, e) =>
-            {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                Rectangle bounds = new Rectangle(1, 1, Math.Max(1, previewWrap.Width - 3), Math.Max(1, previewWrap.Height - 3));
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(246, 250, 255));
-                using Pen border = new Pen(Color.FromArgb(191, 206, 228), 1.6f);
-                using GraphicsPath path = RoundedRect(bounds, 12);
-                e.Graphics.FillPath(brush, path);
-                e.Graphics.DrawPath(border, path);
-            };
-
-            _picSelectedProductPreview.BackColor = Color.FromArgb(234, 242, 253);
-            _picSelectedProductPreview.BorderStyle = BorderStyle.FixedSingle;
-            _picSelectedProductPreview.SizeMode = PictureBoxSizeMode.Zoom;
-            _picSelectedProductPreview.Cursor = Cursors.Hand;
-            _picSelectedProductPreview.Click += SelectedProductPreview_Click;
-
-            _lblSelectedProductPreviewHint.AutoSize = false;
-            _lblSelectedProductPreviewHint.Font = new Font("Bahnschrift SemiBold", 11, FontStyle.Bold);
-            _lblSelectedProductPreviewHint.ForeColor = Color.FromArgb(72, 92, 122);
-            _lblSelectedProductPreviewHint.BackColor = Color.Transparent;
-            _lblSelectedProductPreviewHint.TextAlign = ContentAlignment.MiddleLeft;
-            _lblSelectedProductPreviewHint.Text = "Mahsulotni tanlang. Rasm shu yerda ko'rinadi.";
-            _lblSelectedProductPreviewHint.Cursor = Cursors.Hand;
-            _lblSelectedProductPreviewHint.Click += SelectedProductPreview_Click;
-
-            previewWrap.Controls.Add(_picSelectedProductPreview);
-            previewWrap.Controls.Add(_lblSelectedProductPreviewHint);
-            previewWrap.Resize += (s, e) =>
-            {
-                int pad = 10;
-                int imageSize = Math.Max(56, previewWrap.Height - (pad * 2));
-                _picSelectedProductPreview.SetBounds(pad, pad, imageSize, imageSize);
-                int hintLeft = _picSelectedProductPreview.Right + 12;
-                _lblSelectedProductPreviewHint.SetBounds(
-                    hintLeft,
-                    0,
-                    Math.Max(80, previewWrap.Width - hintLeft - pad),
-                    previewWrap.Height);
-            };
-
             Panel divider = new Panel
             {
                 Height = 1,
                 Left = 0,
                 Width = 100,
-                Top = 520,
+                Top = 408,
                 BackColor = Color.FromArgb(228, 234, 244),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
@@ -536,7 +532,6 @@ namespace SantexnikaSRM.Forms
 
             body.Controls.Add(searchWrap);
             body.Controls.Add(listWrap);
-            body.Controls.Add(previewWrap);
             body.Controls.Add(divider);
             body.Controls.Add(lblQty);
             body.Controls.Add(lblPrice);
@@ -554,8 +549,6 @@ namespace SantexnikaSRM.Forms
                 int searchH = 46;
                 int listTop = 92;
                 int listMinH = 150;
-                int previewGapTop = 12;
-                int previewH = 100;
                 int dividerGapTop = 14;
                 int dividerH = 1;
                 int labelGapTop = 14;
@@ -569,7 +562,6 @@ namespace SantexnikaSRM.Forms
                 int bottomPad = 6;
 
                 int fixedAfterList =
-                    previewGapTop + previewH +
                     dividerGapTop + dividerH +
                     labelGapTop + labelH +
                     inputGapTop + inputH +
@@ -587,10 +579,7 @@ namespace SantexnikaSRM.Forms
                 int listLeft = (bodyW - listW) / 2;
                 listWrap.SetBounds(listLeft, listTop, listW, listH);
 
-                int previewTop = listTop + listH + previewGapTop;
-                previewWrap.SetBounds(listLeft, previewTop, listW, previewH);
-
-                int dividerTop = previewTop + previewH + dividerGapTop;
+                int dividerTop = listTop + listH + dividerGapTop;
                 divider.SetBounds(listLeft, dividerTop, listW, dividerH);
 
                 int labelTop = dividerTop + dividerH + labelGapTop;
@@ -1615,13 +1604,11 @@ namespace SantexnikaSRM.Forms
 
         private void SetSelectedProductPreview(Product? product)
         {
-            Image? old = _picSelectedProductPreview.Image;
             _picSelectedProductPreview.Image = null;
-            old?.Dispose();
 
             if (product == null)
             {
-                _lblSelectedProductPreviewHint.Text = "Mahsulotni tanlang. Rasm shu yerda ko'rinadi.";
+                _lblSelectedProductPreviewHint.Text = "Mahsulot rasmi";
                 _picSelectedProductPreview.Cursor = Cursors.Default;
                 _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
                 return;
@@ -1639,7 +1626,7 @@ namespace SantexnikaSRM.Forms
             _picSelectedProductPreview.Image = preview;
             _picSelectedProductPreview.Cursor = Cursors.Hand;
             _lblSelectedProductPreviewHint.Cursor = Cursors.Hand;
-            _lblSelectedProductPreviewHint.Text = "Tanlangan mahsulot rasmi. Kattalashtirish uchun bosing.";
+            _lblSelectedProductPreviewHint.Text = "Rasmni kattalashtirish uchun bosing";
         }
 
         private void SelectedProductPreview_Click(object? sender, EventArgs e)
@@ -1655,7 +1642,16 @@ namespace SantexnikaSRM.Forms
                 return;
             }
 
-            using (fullImage)
+            Image zoomImage;
+            try
+            {
+                zoomImage = new Bitmap(fullImage);
+            }
+            catch
+            {
+                return;
+            }
+
             using (Form viewer = new Form())
             {
                 viewer.Text = $"{_selectedProduct.Name} - rasm";
@@ -1669,8 +1665,9 @@ namespace SantexnikaSRM.Forms
                     Dock = DockStyle.Fill,
                     BackColor = Color.Black,
                     SizeMode = PictureBoxSizeMode.Zoom,
-                    Image = fullImage
+                    Image = zoomImage
                 };
+                viewer.FormClosed += (_, __) => pic.Image?.Dispose();
                 viewer.Controls.Add(pic);
                 viewer.ShowDialog(this);
             }
