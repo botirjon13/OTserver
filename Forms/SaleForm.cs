@@ -224,7 +224,7 @@ namespace SantexnikaSRM.Forms
             _lblSelectedProductPreviewHint.AutoSize = false;
             _lblSelectedProductPreviewHint.Font = new Font("Bahnschrift SemiBold", 10, FontStyle.Bold);
             _lblSelectedProductPreviewHint.ForeColor = Color.FromArgb(44, 70, 109);
-            _lblSelectedProductPreviewHint.BackColor = Color.Transparent;
+            _lblSelectedProductPreviewHint.BackColor = Color.FromArgb(232, 241, 255);
             _lblSelectedProductPreviewHint.TextAlign = ContentAlignment.MiddleLeft;
             _lblSelectedProductPreviewHint.Text = "Mahsulot rasmi";
             _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
@@ -236,6 +236,8 @@ namespace SantexnikaSRM.Forms
             {
                 _picSelectedProductPreview.SetBounds(7, 6, 30, 30);
                 _lblSelectedProductPreviewHint.SetBounds(44, 0, Math.Max(80, selectedPreviewBadge.Width - 52), selectedPreviewBadge.Height);
+                _picSelectedProductPreview.BringToFront();
+                _lblSelectedProductPreviewHint.BringToFront();
             };
             selectedPreviewBadge.Resize += (s, e) => layoutSelectedPreviewBadge();
 
@@ -1610,7 +1612,8 @@ namespace SantexnikaSRM.Forms
 
             if (product == null)
             {
-                _lblSelectedProductPreviewHint.Text = "Mahsulot rasmi";
+                _picSelectedProductPreview.Image = BrandingAssets.TryLoadAssetImage("tile-products.png");
+                _lblSelectedProductPreviewHint.Text = "Mahsulot tanlang";
                 _picSelectedProductPreview.Cursor = Cursors.Default;
                 _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
                 return;
@@ -1619,7 +1622,8 @@ namespace SantexnikaSRM.Forms
             Image? preview = ProductImageStore.TryLoadPreview(product.ImagePath, 220, 220);
             if (preview == null)
             {
-                _lblSelectedProductPreviewHint.Text = "Bu mahsulot uchun rasm yo'q.";
+                _picSelectedProductPreview.Image = BrandingAssets.TryLoadAssetImage("tile-products.png");
+                _lblSelectedProductPreviewHint.Text = $"{product.Name}: rasm biriktirilmagan";
                 _picSelectedProductPreview.Cursor = Cursors.Default;
                 _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
                 return;
@@ -1628,7 +1632,7 @@ namespace SantexnikaSRM.Forms
             _picSelectedProductPreview.Image = preview;
             _picSelectedProductPreview.Cursor = Cursors.Hand;
             _lblSelectedProductPreviewHint.Cursor = Cursors.Hand;
-            _lblSelectedProductPreviewHint.Text = "Rasmni kattalashtirish uchun bosing";
+            _lblSelectedProductPreviewHint.Text = $"{product.Name}: rasmni kattalashtirish uchun bosing";
         }
 
         private void SelectedProductPreview_Click(object? sender, EventArgs e)
