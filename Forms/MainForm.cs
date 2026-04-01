@@ -82,7 +82,7 @@ namespace SantexnikaSRM.Forms
             Height = 860;
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.Sizable;
-            MinimumSize = new Size(980, 700);
+            MinimumSize = new Size(900, 620);
             BackColor = Color.FromArgb(231, 237, 246);
             Font = UiTheme.BodyFont;
             DoubleBuffered = true;
@@ -161,7 +161,7 @@ namespace SantexnikaSRM.Forms
 
             _body.Dock = DockStyle.Fill;
             _body.Padding = new Padding(26, 20, 26, 12);
-            _body.AutoScroll = false;
+            _body.AutoScroll = true;
 
             _tilesGrid.Dock = DockStyle.Top;
             _tilesGrid.AutoSize = false;
@@ -996,8 +996,8 @@ namespace SantexnikaSRM.Forms
 
         private void UpdateBodyScrollArea()
         {
-            // Main oynada scrollni ko'rsatmaymiz.
-            _body.AutoScrollMinSize = Size.Empty;
+            int contentHeight = _tilesGrid.Height + _actionPanel.Height + _lblFooter.Height + _body.Padding.Top + _body.Padding.Bottom + 24;
+            _body.AutoScrollMinSize = new Size(0, contentHeight);
         }
 
         private static void UpdateCardRegion(Panel card)

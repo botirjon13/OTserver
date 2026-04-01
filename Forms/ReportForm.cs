@@ -46,13 +46,18 @@ namespace SantexnikaSRM.Forms
         {
             Text = "Oylik Hisobot va Tahlil";
             Size = new Size(1420, 880);
-            MinimumSize = new Size(1180, 760);
+            MinimumSize = new Size(940, 620);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(239, 242, 248);
             Font = new Font("Bahnschrift", 11, FontStyle.Regular);
             DoubleBuffered = true;
 
-            Panel canvas = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+            Panel canvas = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.Transparent,
+                AutoScroll = true
+            };
             _content.BackColor = Color.Transparent;
             canvas.Controls.Add(_content);
             Controls.Add(canvas);
@@ -119,9 +124,12 @@ namespace SantexnikaSRM.Forms
 
             Action applyLayout = () =>
             {
-                int w = Math.Min(1080, canvas.ClientSize.Width - 68);
+                int w = Math.Max(760, Math.Min(1080, canvas.ClientSize.Width - 68));
                 int x = (canvas.ClientSize.Width - w) / 2;
-                _content.SetBounds(Math.Max(12, x), 16, w, Math.Max(620, canvas.ClientSize.Height - 30));
+                int minContentHeight = 620;
+                int targetHeight = Math.Max(minContentHeight, canvas.ClientSize.Height - 30);
+                _content.SetBounds(Math.Max(12, x), 16, w, targetHeight);
+                canvas.AutoScrollMinSize = new Size(Math.Max(0, _content.Right + 14), _content.Bottom + 16);
 
                 header.SetBounds(0, 0, _content.Width, 88);
                 filterCard.SetBounds(0, 94, _content.Width, 166);

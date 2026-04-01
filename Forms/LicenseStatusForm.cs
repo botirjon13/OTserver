@@ -14,6 +14,7 @@ namespace SantexnikaSRM.Forms
         private readonly Label _lblDeviceId = new Label();
         private readonly Label _lblActivatedAt = new Label();
         private readonly Label _lblExpiresAt = new Label();
+        private readonly Label _lblProductInfo = new Label();
 
         public LicenseStatusForm()
         {
@@ -60,12 +61,27 @@ namespace SantexnikaSRM.Forms
             _lblActivatedAt.SetBounds(16, 150, 680, 24);
             _lblExpiresAt.SetBounds(16, 182, 680, 24);
 
+            Panel divider = new Panel
+            {
+                Left = 16,
+                Top = 216,
+                Width = 688,
+                Height = 1,
+                BackColor = Color.FromArgb(224, 232, 243)
+            };
+
+            _lblProductInfo.SetBounds(16, 228, 688, 24);
+            _lblProductInfo.Font = new Font("Bahnschrift SemiLight", 10f, FontStyle.Regular);
+            _lblProductInfo.ForeColor = Color.FromArgb(70, 88, 116);
+
             card.Controls.Add(title);
             card.Controls.Add(_lblState);
             card.Controls.Add(_lblLicenseKey);
             card.Controls.Add(_lblDeviceId);
             card.Controls.Add(_lblActivatedAt);
             card.Controls.Add(_lblExpiresAt);
+            card.Controls.Add(divider);
+            card.Controls.Add(_lblProductInfo);
 
             Button btnRefresh = new Button
             {
@@ -125,6 +141,8 @@ namespace SantexnikaSRM.Forms
 
         private void LoadState()
         {
+            _lblProductInfo.Text = BuildProductIdentityText();
+
             if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out string message) || activation == null)
             {
                 _lblState.Text = $"Holat: Aktiv emas ({message})";
@@ -157,6 +175,13 @@ namespace SantexnikaSRM.Forms
             }
 
             return value;
+        }
+
+        private static string BuildProductIdentityText()
+        {
+            string productName = string.IsNullOrWhiteSpace(Application.ProductName) ? "SantexnikaSRM" : Application.ProductName;
+            string productVersion = string.IsNullOrWhiteSpace(Application.ProductVersion) ? "-" : Application.ProductVersion;
+            return $"Product: {productName}    |    Version: {productVersion}";
         }
     }
 }

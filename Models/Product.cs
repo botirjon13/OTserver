@@ -9,5 +9,6 @@ namespace SantexnikaSRM.Models
         public double PurchasePriceUZS { get; set; }
         public double PurchasePriceUSD { get; set; }
         public double QuantityUSD { get; set; }
+        public string ImagePath { get; set; } = string.Empty;
     }
 }

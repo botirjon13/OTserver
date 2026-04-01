@@ -24,6 +24,7 @@ namespace SantexnikaSRM.Services
             source.Open();
             target.Open();
             source.BackupDatabase(target);
+            TryBackupProductImages(backupFilePath);
             return backupFilePath;
         }
 
@@ -70,6 +71,7 @@ namespace SantexnikaSRM.Services
             source.Open();
             target.Open();
             source.BackupDatabase(target);
+            TryRestoreProductImages(backupFilePath);
         }
 
         private static string GetBackupDirectory()
@@ -103,6 +105,91 @@ namespace SantexnikaSRM.Services
             };
 
             return builder.ToString();
+        }
+
+        private static void TryBackupProductImages(string backupFilePath)
+        {
+            try
+            {
+                BackupProductImages(backupFilePath);
+            }
+            catch
+            {
+                // DB backup muhim; rasm nusxasida muammo bo'lsa jarayonni to'xtatmaymiz.
+            }
+        }
+
+        private static void TryRestoreProductImages(string backupFilePath)
+        {
+            try
+            {
+                RestoreProductImages(backupFilePath);
+            }
+            catch
+            {
+                // DB restore muvaffaqiyatli bo'lsa ham rasm nusxasi bo'lmasligi mumkin.
+            }
+        }
+
+        private static void BackupProductImages(string backupFilePath)
+        {
+            string sourceImagesRoot = Path.Combine(Database.GetAppDataRoot(), "ProductImages");
+            if (!Directory.Exists(sourceImagesRoot))
+            {
+                return;
+            }
+
+            string sidecarRoot = GetBackupImagesSidecarRoot(backupFilePath);
+            string targetImagesRoot = Path.Combine(sidecarRoot, "ProductImages");
+
+            if (Directory.Exists(targetImagesRoot))
+            {
+                Directory.Delete(targetImagesRoot, recursive: true);
+            }
+
+            Directory.CreateDirectory(sidecarRoot);
+            CopyDirectory(sourceImagesRoot, targetImagesRoot);
+        }
+
+        private static void RestoreProductImages(string backupFilePath)
+        {
+            string sidecarRoot = GetBackupImagesSidecarRoot(backupFilePath);
+            string sourceImagesRoot = Path.Combine(sidecarRoot, "ProductImages");
+            if (!Directory.Exists(sourceImagesRoot))
+            {
+                return;
+            }
+
+            string targetImagesRoot = Path.Combine(Database.GetAppDataRoot(), "ProductImages");
+            if (Directory.Exists(targetImagesRoot))
+            {
+                Directory.Delete(targetImagesRoot, recursive: true);
+            }
+
+            CopyDirectory(sourceImagesRoot, targetImagesRoot);
+        }
+
+        private static string GetBackupImagesSidecarRoot(string backupFilePath)
+        {
+            string backupDir = Path.GetDirectoryName(backupFilePath) ?? GetBackupDirectory();
+            string backupName = Path.GetFileNameWithoutExtension(backupFilePath);
+            return Path.Combine(backupDir, backupName + "_assets");
+        }
+
+        private static void CopyDirectory(string sourceDir, string targetDir)
+        {
+            Directory.CreateDirectory(targetDir);
+            foreach (string file in Directory.GetFiles(sourceDir))
+            {
+                string targetFile = Path.Combine(targetDir, Path.GetFileName(file));
+                File.Copy(file, targetFile, overwrite: true);
+            }
+
+            foreach (string dir in Directory.GetDirectories(sourceDir))
+            {
+                string targetSubDir = Path.Combine(targetDir, Path.GetFileName(dir));
+                CopyDirectory(dir, targetSubDir);
+            }
         }
     }
 }

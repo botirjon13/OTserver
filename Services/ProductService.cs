@@ -24,8 +24,8 @@ namespace SantexnikaSRM.Services
 
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-                INSERT INTO Products (Name, PurchaseCurrency, PurchasePrice, PurchasePriceUZS, PurchasePriceUSD, QuantityUSD)
-                VALUES (@name, @currency, @purchasePrice, @purchasePriceUzs, @purchasePriceUsd, @qty)";
+                INSERT INTO Products (Name, PurchaseCurrency, PurchasePrice, PurchasePriceUZS, PurchasePriceUSD, QuantityUSD, ImagePath)
+                VALUES (@name, @currency, @purchasePrice, @purchasePriceUzs, @purchasePriceUsd, @qty, @imagePath)";
 
             cmd.Parameters.AddWithValue("@name", product.Name);
             cmd.Parameters.AddWithValue("@currency", currency);
@@ -33,6 +33,7 @@ namespace SantexnikaSRM.Services
             cmd.Parameters.AddWithValue("@purchasePriceUzs", purchasePriceUzs);
             cmd.Parameters.AddWithValue("@purchasePriceUsd", purchasePriceUsd);
             cmd.Parameters.AddWithValue("@qty", product.QuantityUSD);
+            cmd.Parameters.AddWithValue("@imagePath", product.ImagePath ?? string.Empty);
 
             cmd.ExecuteNonQuery();
         }
@@ -56,7 +57,14 @@ namespace SantexnikaSRM.Services
             return list;
         }
 
-        public void UpdateProduct(int productId, string? newName, double? newPurchasePrice, double? newQuantity, AppUser currentUser)
+        public void UpdateProduct(
+            int productId,
+            string? newName,
+            double? newPurchasePrice,
+            double? newQuantity,
+            AppUser currentUser,
+            bool updateImagePath = false,
+            string? newImagePath = null)
         {
             AuthorizationService.Require(
                 AuthorizationService.CanManageProducts(currentUser),
@@ -67,7 +75,7 @@ namespace SantexnikaSRM.Services
                 throw new Exception("Noto'g'ri mahsulot identifikatori.");
             }
 
-            if (newName == null && newPurchasePrice == null && newQuantity == null)
+            if (newName == null && newPurchasePrice == null && newQuantity == null && !updateImagePath)
             {
                 throw new Exception("Kamida bitta maydon tanlanishi kerak.");
             }
@@ -76,13 +84,14 @@ namespace SantexnikaSRM.Services
             connection.Open();
 
             var selectCmd = connection.CreateCommand();
-            selectCmd.CommandText = "SELECT Name, PurchaseCurrency, PurchasePrice, PurchasePriceUZS, PurchasePriceUSD, QuantityUSD FROM Products WHERE Id=@id";
+            selectCmd.CommandText = "SELECT Name, PurchaseCurrency, PurchasePrice, PurchasePriceUZS, PurchasePriceUSD, QuantityUSD, IFNULL(ImagePath, '') FROM Products WHERE Id=@id";
             selectCmd.Parameters.AddWithValue("@id", productId);
 
             string currentName;
             string currentCurrency;
             double currentPurchasePrice;
             double currentQty;
+            string currentImagePath;
 
             using (var reader = selectCmd.ExecuteReader())
             {
@@ -97,11 +106,13 @@ namespace SantexnikaSRM.Services
                 _ = reader.GetDouble(3);
                 _ = reader.GetDouble(4);
                 currentQty = reader.GetDouble(5);
+                currentImagePath = reader.GetString(6);
             }
 
             string nameToSave = newName == null ? currentName : newName.Trim();
             double enteredPriceToSave = newPurchasePrice ?? currentPurchasePrice;
             double qtyToSave = newQuantity ?? currentQty;
+            string imagePathToSave = updateImagePath ? (newImagePath ?? string.Empty) : currentImagePath;
             double rate = GetLatestRate(connection);
             (double purchasePriceToSave, double purchasePriceUzsToSave, double purchasePriceUsdToSave) =
                 NormalizePriceTuple(currentCurrency, enteredPriceToSave, rate);
@@ -128,13 +139,15 @@ namespace SantexnikaSRM.Services
                     PurchasePrice=@purchasePrice,
                     PurchasePriceUZS=@purchasePriceUzs,
                     PurchasePriceUSD=@purchasePriceUsd,
-                    QuantityUSD=@qty
+                    QuantityUSD=@qty,
+                    ImagePath=@imagePath
                 WHERE Id=@id";
             updateCmd.Parameters.AddWithValue("@name", nameToSave);
             updateCmd.Parameters.AddWithValue("@purchasePrice", purchasePriceToSave);
             updateCmd.Parameters.AddWithValue("@purchasePriceUzs", purchasePriceUzsToSave);
             updateCmd.Parameters.AddWithValue("@purchasePriceUsd", purchasePriceUsdToSave);
             updateCmd.Parameters.AddWithValue("@qty", qtyToSave);
+            updateCmd.Parameters.AddWithValue("@imagePath", imagePathToSave);
             updateCmd.Parameters.AddWithValue("@id", productId);
             updateCmd.ExecuteNonQuery();
         }
@@ -204,6 +217,7 @@ namespace SantexnikaSRM.Services
             int purchasePriceIndex = reader.GetOrdinal("PurchasePrice");
             int purchasePriceUzsIndex = reader.GetOrdinal("PurchasePriceUZS");
             int purchasePriceUsdIndex = reader.GetOrdinal("PurchasePriceUSD");
+            int imagePathIndex = reader.GetOrdinal("ImagePath");
 
             return new Product
             {
@@ -213,7 +227,8 @@ namespace SantexnikaSRM.Services
                 PurchasePrice = reader.IsDBNull(purchasePriceIndex) ? 0 : reader.GetDouble(purchasePriceIndex),
                 PurchasePriceUZS = reader.IsDBNull(purchasePriceUzsIndex) ? 0 : reader.GetDouble(purchasePriceUzsIndex),
                 PurchasePriceUSD = reader.IsDBNull(purchasePriceUsdIndex) ? 0 : reader.GetDouble(purchasePriceUsdIndex),
-                QuantityUSD = reader.GetDouble(qtyIndex)
+                QuantityUSD = reader.GetDouble(qtyIndex),
+                ImagePath = reader.IsDBNull(imagePathIndex) ? string.Empty : reader.GetString(imagePathIndex)
             };
         }
 

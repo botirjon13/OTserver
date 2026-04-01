@@ -49,7 +49,7 @@ namespace SantexnikaSRM.Forms
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
-            AutoScaleMode = AutoScaleMode.None;
+            AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(236, 241, 249);
             DoubleBuffered = true;
 
@@ -72,7 +72,7 @@ namespace SantexnikaSRM.Forms
                 Top = header.Height,
                 Width = ClientSize.Width,
                 Height = ClientSize.Height - header.Height,
-                AutoScroll = false,
+                AutoScroll = true,
                 Padding = new Padding(0, 12, 0, 16),
                 BackColor = Color.FromArgb(236, 241, 249),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right

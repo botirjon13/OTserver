@@ -26,7 +26,8 @@ namespace SantexnikaSRM.Data
                 PurchasePrice REAL NOT NULL CHECK(PurchasePrice > 0),
                 PurchasePriceUZS REAL NOT NULL CHECK(PurchasePriceUZS > 0),
                 PurchasePriceUSD REAL NOT NULL CHECK(PurchasePriceUSD > 0),
-                QuantityUSD REAL NOT NULL CHECK(QuantityUSD >= 0)
+                QuantityUSD REAL NOT NULL CHECK(QuantityUSD >= 0),
+                ImagePath TEXT NOT NULL DEFAULT ''
             );
 
             CREATE TABLE IF NOT EXISTS Sales (
@@ -140,6 +141,33 @@ namespace SantexnikaSRM.Data
                 QuickDiscountEnabled INTEGER NOT NULL DEFAULT 1
             );
 
+            CREATE TABLE IF NOT EXISTS Returns (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SaleId INTEGER NOT NULL,
+                ReturnDate TEXT NOT NULL,
+                Reason TEXT NOT NULL DEFAULT '',
+                SubtotalUZS REAL NOT NULL CHECK(SubtotalUZS >= 0),
+                DiscountUZS REAL NOT NULL CHECK(DiscountUZS >= 0),
+                TotalUZS REAL NOT NULL CHECK(TotalUZS >= 0),
+                ProfitReductionUZS REAL NOT NULL DEFAULT 0,
+                CreatedByUser TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS ReturnItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ReturnId INTEGER NOT NULL,
+                SaleItemId INTEGER NOT NULL,
+                ProductId INTEGER NOT NULL,
+                Quantity REAL NOT NULL CHECK(Quantity > 0),
+                UnitPriceUZS REAL NOT NULL CHECK(UnitPriceUZS >= 0),
+                DiscountUZS REAL NOT NULL CHECK(DiscountUZS >= 0),
+                LineTotalUZS REAL NOT NULL CHECK(LineTotalUZS >= 0),
+                FOREIGN KEY (ReturnId) REFERENCES Returns(Id) ON DELETE CASCADE,
+                FOREIGN KEY (SaleItemId) REFERENCES SaleItems(Id),
+                FOREIGN KEY (ProductId) REFERENCES Products(Id)
+            );
+
             ";
 
             command.ExecuteNonQuery();
@@ -163,6 +191,10 @@ namespace SantexnikaSRM.Data
                 CREATE INDEX IF NOT EXISTS IX_Debts_CustomerId ON Debts(CustomerId);
                 CREATE INDEX IF NOT EXISTS IX_DebtPayments_DebtId ON DebtPayments(DebtId);
                 CREATE INDEX IF NOT EXISTS IX_SaleCustomers_CustomerId ON SaleCustomers(CustomerId);
+                CREATE INDEX IF NOT EXISTS IX_Returns_SaleId ON Returns(SaleId);
+                CREATE INDEX IF NOT EXISTS IX_Returns_ReturnDate ON Returns(ReturnDate);
+                CREATE INDEX IF NOT EXISTS IX_ReturnItems_ReturnId ON ReturnItems(ReturnId);
+                CREATE INDEX IF NOT EXISTS IX_ReturnItems_SaleItemId ON ReturnItems(SaleItemId);
             ";
             cmd.ExecuteNonQuery();
 
@@ -188,9 +220,41 @@ namespace SantexnikaSRM.Data
             ExecuteIgnoreErrors(connection, "ALTER TABLE Sales ADD COLUMN DiscountValue REAL NOT NULL DEFAULT 0;");
             ExecuteIgnoreErrors(connection, "ALTER TABLE Sales ADD COLUMN DiscountUZS REAL NOT NULL DEFAULT 0;");
             ExecuteIgnoreErrors(connection, "ALTER TABLE SaleItems ADD COLUMN DiscountUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, @"
+                CREATE TABLE IF NOT EXISTS Returns (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    SaleId INTEGER NOT NULL,
+                    ReturnDate TEXT NOT NULL,
+                    Reason TEXT NOT NULL DEFAULT '',
+                    SubtotalUZS REAL NOT NULL CHECK(SubtotalUZS >= 0),
+                    DiscountUZS REAL NOT NULL CHECK(DiscountUZS >= 0),
+                    TotalUZS REAL NOT NULL CHECK(TotalUZS >= 0),
+                    ProfitReductionUZS REAL NOT NULL DEFAULT 0,
+                    CreatedByUser TEXT NOT NULL DEFAULT '',
+                    FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE
+                );");
+            ExecuteIgnoreErrors(connection, @"
+                CREATE TABLE IF NOT EXISTS ReturnItems (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ReturnId INTEGER NOT NULL,
+                    SaleItemId INTEGER NOT NULL,
+                    ProductId INTEGER NOT NULL,
+                    Quantity REAL NOT NULL CHECK(Quantity > 0),
+                    UnitPriceUZS REAL NOT NULL CHECK(UnitPriceUZS >= 0),
+                    DiscountUZS REAL NOT NULL CHECK(DiscountUZS >= 0),
+                    LineTotalUZS REAL NOT NULL CHECK(LineTotalUZS >= 0),
+                    FOREIGN KEY (ReturnId) REFERENCES Returns(Id) ON DELETE CASCADE,
+                    FOREIGN KEY (SaleItemId) REFERENCES SaleItems(Id),
+                    FOREIGN KEY (ProductId) REFERENCES Products(Id)
+                );");
+            ExecuteIgnoreErrors(connection, "CREATE INDEX IF NOT EXISTS IX_Returns_SaleId ON Returns(SaleId);");
+            ExecuteIgnoreErrors(connection, "CREATE INDEX IF NOT EXISTS IX_Returns_ReturnDate ON Returns(ReturnDate);");
+            ExecuteIgnoreErrors(connection, "CREATE INDEX IF NOT EXISTS IX_ReturnItems_ReturnId ON ReturnItems(ReturnId);");
+            ExecuteIgnoreErrors(connection, "CREATE INDEX IF NOT EXISTS IX_ReturnItems_SaleItemId ON ReturnItems(SaleItemId);");
             ExecuteIgnoreErrors(connection, "ALTER TABLE Products ADD COLUMN PurchaseCurrency TEXT NOT NULL DEFAULT 'USD';");
             ExecuteIgnoreErrors(connection, "ALTER TABLE Products ADD COLUMN PurchasePrice REAL NOT NULL DEFAULT 0;");
             ExecuteIgnoreErrors(connection, "ALTER TABLE Products ADD COLUMN PurchasePriceUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE Products ADD COLUMN ImagePath TEXT NOT NULL DEFAULT '';");
             ExecuteIgnoreErrors(connection, "UPDATE Products SET PurchaseCurrency='USD' WHERE PurchaseCurrency IS NULL OR TRIM(PurchaseCurrency) = '';");
             ExecuteIgnoreErrors(connection, "UPDATE Products SET PurchasePrice=PurchasePriceUSD WHERE PurchasePrice <= 0;");
             ExecuteIgnoreErrors(connection, @"

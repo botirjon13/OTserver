@@ -87,7 +87,7 @@ namespace SantexnikaSRM.Forms
         {
             Text = "Yangi Sotuv Operatsiyasi";
             Size = new Size(1360, 850);
-            MinimumSize = new Size(1100, 720);
+            MinimumSize = new Size(940, 620);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(237, 242, 250);
             Font = new Font("Bahnschrift", 11, FontStyle.Regular);
@@ -259,7 +259,13 @@ namespace SantexnikaSRM.Forms
             Panel titleBar = NewBar("Mahsulot qidirish", Color.FromArgb(44, 103, 246), Color.FromArgb(52, 127, 233), "\uECAA", "tile-products.png");
             titleBar.Dock = DockStyle.Top;
 
-            Panel body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(22, 18, 22, 22), BackColor = Color.White };
+            Panel body = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(22, 18, 22, 22),
+                BackColor = Color.White,
+                AutoScroll = true
+            };
 
             Panel searchWrap = NewInputWrap();
             searchWrap.SetBounds(0, 0, 100, 46);
@@ -488,8 +494,8 @@ namespace SantexnikaSRM.Forms
 
             Action applyLeftLayout = () =>
             {
-                int bodyW = body.ClientSize.Width;
-                int bodyH = body.ClientSize.Height;
+                int bodyW = Math.Max(420, body.ClientSize.Width);
+                int bodyH = Math.Max(560, body.ClientSize.Height);
 
                 int searchTop = 10;
                 int searchH = 46;
@@ -564,6 +570,8 @@ namespace SantexnikaSRM.Forms
                 btnAdd.Width = infoWrap.Width;
                 btnAdd.Top = btnTop;
                 btnAdd.Height = btnH;
+
+                body.AutoScrollMinSize = new Size(0, btnTop + btnH + bottomPad + 10);
             };
             body.Resize += (s, e) => applyLeftLayout();
             body.SizeChanged += (s, e) => applyLeftLayout();
@@ -585,6 +593,7 @@ namespace SantexnikaSRM.Forms
             _rightBody.Dock = DockStyle.Fill;
             _rightBody.BackColor = Color.White;
             _rightBody.Padding = new Padding(18, 16, 18, 18);
+            _rightBody.AutoScroll = true;
 
             _gridBasket.Dock = DockStyle.Top;
             _gridBasket.Height = 390;
@@ -845,8 +854,8 @@ namespace SantexnikaSRM.Forms
 
             Action applyRightLayout = () =>
             {
-                int w = _rightBody.ClientSize.Width;
-                int h = _rightBody.ClientSize.Height;
+                int w = Math.Max(360, _rightBody.ClientSize.Width);
+                int h = Math.Max(360, _rightBody.ClientSize.Height);
 
                 int btnH = 50;
                 int totalH = 96;
@@ -865,7 +874,8 @@ namespace SantexnikaSRM.Forms
 
                     int rightStackH = totalH + gap + btnH;
                     int blockH = Math.Max(discountH, rightStackH);
-                    int blockTop = h - bottomPad - blockH;
+                    int layoutHeight = Math.Max(h, blockH + removeH + 140 + gap + 36);
+                    int blockTop = layoutHeight - bottomPad - blockH;
 
                     int removeTop = blockTop - gap - removeH;
                     int removeW = Math.Min(240, w);
@@ -880,7 +890,8 @@ namespace SantexnikaSRM.Forms
                 }
                 else
                 {
-                    int blockTop = h - bottomPad - (totalH + gap + btnH);
+                    int layoutHeight = Math.Max(h, totalH + btnH + removeH + (gap * 2) + 176);
+                    int blockTop = layoutHeight - bottomPad - (totalH + gap + btnH);
                     int btnW = Math.Min(340, w);
                     int btnLeft = (w - btnW) / 2;
                     int btnTop = blockTop + totalH + gap;
@@ -904,6 +915,7 @@ namespace SantexnikaSRM.Forms
                 _lblEmptyIcon.SetBounds(0, emptyIconTop, w, 120);
                 _lblEmpty.SetBounds(0, _lblEmptyIcon.Bottom + 4, w, 40);
                 _lblEmptyHint.SetBounds(0, _lblEmpty.Bottom + 2, w, 24);
+                _rightBody.AutoScrollMinSize = new Size(0, Math.Max(h, dividerTop + 180));
             };
             _applyRightLayout = applyRightLayout;
             _rightBody.Resize += (s, e) => applyRightLayout();
@@ -1040,9 +1052,31 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.DrawLine(rowLine, rect.Left + 8, rect.Bottom - 1, rect.Right - 8, rect.Bottom - 1);
             }
 
+            Rectangle imageBox = new Rectangle(rect.X + 10, rect.Y + 8, 38, 38);
+            using (SolidBrush imageBg = new SolidBrush(isSelected ? Color.FromArgb(232, 241, 255) : Color.FromArgb(242, 247, 255)))
+            using (GraphicsPath imagePath = RoundedRect(imageBox, 8))
+            {
+                e.Graphics.FillPath(imageBg, imagePath);
+            }
+            Image? thumb = ProductImageStore.TryLoadPreview(product.ImagePath, 34, 34);
+            if (thumb != null)
+            {
+                e.Graphics.DrawImage(thumb, new Rectangle(imageBox.X + 2, imageBox.Y + 2, imageBox.Width - 4, imageBox.Height - 4));
+            }
+            else
+            {
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    "\uECAA",
+                    UiTheme.IconFont(15),
+                    imageBox,
+                    isSelected ? Color.FromArgb(47, 97, 205) : Color.FromArgb(109, 132, 169),
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+
             using (Brush nameBrush = new SolidBrush(isSelected ? Color.White : Color.FromArgb(43, 56, 80)))
             {
-                e.Graphics.DrawString(product.Name, new Font("Bahnschrift SemiBold", 12, FontStyle.Bold), nameBrush, rect.X + 14, rect.Y + 14);
+                e.Graphics.DrawString(product.Name, new Font("Bahnschrift SemiBold", 12, FontStyle.Bold), nameBrush, rect.X + 56, rect.Y + 14);
             }
 
             string qtyText = $"{FormatQuantity(product.QuantityUSD)} dona";

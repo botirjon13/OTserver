@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using SantexnikaSRM.Data;
@@ -37,12 +38,16 @@ namespace SantexnikaSRM.Forms
         private readonly Panel _priceUsdBox = new Panel();
         private readonly Panel _qtyBox = new Panel();
         private readonly Panel _priceUzsBox = new Panel();
+        private readonly Panel _imageBox = new Panel();
         private readonly Label _lblRate = new Label();
         private readonly Label _lblStatProducts = new Label();
         private readonly Label _lblStatQty = new Label();
         private readonly Label _lblStatValue = new Label();
         private readonly Label _lblFooter = new Label();
         private readonly Panel _rateBadge = new Panel();
+        private readonly PictureBox _picNewProductImage = new PictureBox();
+        private readonly Button _btnSelectImage = new Button();
+        private readonly Button _btnClearImage = new Button();
 
         private readonly Panel _cardProducts = new Panel();
         private readonly Panel _cardQty = new Panel();
@@ -56,6 +61,7 @@ namespace SantexnikaSRM.Forms
         private double _usdRate;
         private bool _priceSyncInProgress;
         private bool _initialQuickFilterApplied;
+        private string _pendingNewProductImagePath = string.Empty;
         private const string EditColumnName = "EditAction";
         private const string RemoveColumnName = "RemoveAction";
         private string _sortColumn = "MahsulotNomi";
@@ -233,7 +239,7 @@ namespace SantexnikaSRM.Forms
             Panel inputs = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 62,
+                Height = 118,
                 Padding = new Padding(0, 14, 0, 0)
             };
 
@@ -242,6 +248,7 @@ namespace SantexnikaSRM.Forms
             PrepareInputContainer(_priceUsdBox, _txtPriceUsd, "Narx USD");
             PrepareInputContainer(_qtyBox, _txtQty, "Soni");
             PrepareInputContainer(_priceUzsBox, _txtPriceUzs, "Narx UZS");
+            _imageBox.BackColor = Color.Transparent;
 
             _cmbPriceCurrency.DropDownStyle = ComboBoxStyle.DropDownList;
             _cmbPriceCurrency.FlatStyle = FlatStyle.Flat;
@@ -267,11 +274,48 @@ namespace SantexnikaSRM.Forms
             };
             _currencyBox.Controls.Add(_btnCurrencyToggle);
 
+            _picNewProductImage.BackColor = Color.FromArgb(247, 250, 255);
+            _picNewProductImage.BorderStyle = BorderStyle.FixedSingle;
+            _picNewProductImage.SizeMode = PictureBoxSizeMode.Zoom;
+            _picNewProductImage.SetBounds(0, 0, 70, 70);
+            SetNewProductImagePreview(null);
+
+            _btnSelectImage.Text = "Rasm yuklash";
+            _btnSelectImage.Width = 122;
+            _btnSelectImage.Height = 32;
+            _btnSelectImage.Enabled = _canManageProducts;
+            _btnSelectImage.FlatStyle = FlatStyle.Flat;
+            _btnSelectImage.FlatAppearance.BorderSize = 0;
+            _btnSelectImage.BackColor = Color.FromArgb(56, 104, 216);
+            _btnSelectImage.ForeColor = Color.White;
+            _btnSelectImage.Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold);
+            _btnSelectImage.Click += (_, __) => SelectNewProductImage();
+
+            _btnClearImage.Text = "Olib tashlash";
+            _btnClearImage.Width = 122;
+            _btnClearImage.Height = 32;
+            _btnClearImage.Enabled = _canManageProducts;
+            _btnClearImage.FlatStyle = FlatStyle.Flat;
+            _btnClearImage.FlatAppearance.BorderSize = 0;
+            _btnClearImage.BackColor = Color.FromArgb(133, 149, 173);
+            _btnClearImage.ForeColor = Color.White;
+            _btnClearImage.Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold);
+            _btnClearImage.Click += (_, __) =>
+            {
+                _pendingNewProductImagePath = string.Empty;
+                SetNewProductImagePreview(null);
+            };
+
+            _imageBox.Controls.Add(_picNewProductImage);
+            _imageBox.Controls.Add(_btnSelectImage);
+            _imageBox.Controls.Add(_btnClearImage);
+
             inputs.Controls.Add(_nameBox);
             inputs.Controls.Add(_currencyBox);
             inputs.Controls.Add(_priceUsdBox);
             inputs.Controls.Add(_qtyBox);
             inputs.Controls.Add(_priceUzsBox);
+            inputs.Controls.Add(_imageBox);
 
             Panel searchRow = new Panel
             {
@@ -357,6 +401,7 @@ namespace SantexnikaSRM.Forms
             {
                 "Hammasi",
                 "Kam qolgan",
+                "Suratsizlar",
                 "Narxi yuqori",
                 "Narxi past"
             });
@@ -727,6 +772,10 @@ namespace SantexnikaSRM.Forms
             _priceUsdBox.SetBounds(310, 10, 130, 40);
             _qtyBox.SetBounds(450, 10, 120, 40);
             _priceUzsBox.SetBounds(580, 10, 150, 40);
+            _imageBox.SetBounds(0, 58, Math.Max(420, fullWidth - 20), 48);
+            _picNewProductImage.SetBounds(0, 0, 46, 46);
+            _btnSelectImage.SetBounds(58, 7, 132, 32);
+            _btnClearImage.SetBounds(198, 7, 132, 32);
             _btnCurrencyToggle.SetBounds(7, 6, 66, 28);
 
             Panel searchWrap = searchRow.Controls.OfType<Panel>().FirstOrDefault() ?? new Panel();
@@ -785,6 +834,17 @@ namespace SantexnikaSRM.Forms
                 Name = "ProductId",
                 DataPropertyName = "ProductId",
                 Visible = false
+            });
+
+            _grid.Columns.Add(new DataGridViewImageColumn
+            {
+                Name = "Rasm",
+                DataPropertyName = "PreviewImage",
+                HeaderText = "Rasm",
+                Width = 64,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                ImageLayout = DataGridViewImageCellLayout.Zoom,
+                DefaultCellStyle = { NullValue = null }
             });
 
             _grid.Columns.Add(new DataGridViewTextBoxColumn
@@ -908,22 +968,77 @@ namespace SantexnikaSRM.Forms
                 return;
             }
 
-            _service.Add(new Product
+            string savedImagePath = string.Empty;
+            try
             {
-                Name = name,
-                PurchaseCurrency = currency,
-                PurchasePrice = enteredPrice,
-                PurchasePriceUZS = currency == "USD" ? enteredPrice * _usdRate : enteredPrice,
-                PurchasePriceUSD = currency == "USD" ? enteredPrice : enteredPrice / (_usdRate > 0 ? _usdRate : 12500),
-                QuantityUSD = qty
-            }, _currentUser);
+                if (!string.IsNullOrWhiteSpace(_pendingNewProductImagePath))
+                {
+                    savedImagePath = ProductImageStore.SaveFromSource(_pendingNewProductImagePath);
+                }
 
-            _txtName.Clear();
-            _txtPriceUsd.Clear();
-            _txtQty.Clear();
-            _txtPriceUzs.Clear();
-            _cmbPriceCurrency.SelectedItem = "USD";
-            LoadData();
+                _service.Add(new Product
+                {
+                    Name = name,
+                    PurchaseCurrency = currency,
+                    PurchasePrice = enteredPrice,
+                    PurchasePriceUZS = currency == "USD" ? enteredPrice * _usdRate : enteredPrice,
+                    PurchasePriceUSD = currency == "USD" ? enteredPrice : enteredPrice / (_usdRate > 0 ? _usdRate : 12500),
+                    QuantityUSD = qty,
+                    ImagePath = savedImagePath
+                }, _currentUser);
+
+                _txtName.Clear();
+                _txtPriceUsd.Clear();
+                _txtQty.Clear();
+                _txtPriceUzs.Clear();
+                _cmbPriceCurrency.SelectedItem = "USD";
+                _pendingNewProductImagePath = string.Empty;
+                SetNewProductImagePreview(null);
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                if (!string.IsNullOrWhiteSpace(savedImagePath))
+                {
+                    ProductImageStore.DeleteImage(savedImagePath);
+                }
+                MessageBox.Show($"Mahsulotni saqlashda xato: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void SelectNewProductImage()
+        {
+            using OpenFileDialog ofd = new OpenFileDialog
+            {
+                Filter = "Rasm fayllari|*.jpg;*.jpeg;*.png;*.bmp;*.webp",
+                Title = "Mahsulot rasmi"
+            };
+            if (ofd.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            _pendingNewProductImagePath = ofd.FileName;
+            SetNewProductImagePreview(_pendingNewProductImagePath);
+        }
+
+        private void SetNewProductImagePreview(string? sourcePath)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            {
+                _picNewProductImage.Image = BrandingAssets.TryLoadAssetImage("tile-products.png");
+                return;
+            }
+
+            try
+            {
+                using Bitmap loaded = new Bitmap(sourcePath);
+                _picNewProductImage.Image = new Bitmap(loaded);
+            }
+            catch
+            {
+                _picNewProductImage.Image = null;
+            }
         }
 
         private void Grid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
@@ -963,18 +1078,34 @@ namespace SantexnikaSRM.Forms
                 return;
             }
 
-            if (!TryCollectProductUpdates(selected, out string? newName, out double? newPurchasePrice, out double? newQuantity))
+            if (!TryCollectProductUpdates(
+                    selected,
+                    out string? newName,
+                    out double? newPurchasePrice,
+                    out double? newQuantity,
+                    out bool updateImagePath,
+                    out string? newImagePath,
+                    out string? oldImagePathToDelete,
+                    out string? newImagePathToRollback))
             {
                 return;
             }
 
             try
             {
-                _service.UpdateProduct(selected.Id, newName, newPurchasePrice, newQuantity, _currentUser);
+                _service.UpdateProduct(selected.Id, newName, newPurchasePrice, newQuantity, _currentUser, updateImagePath, newImagePath);
+                if (!string.IsNullOrWhiteSpace(oldImagePathToDelete))
+                {
+                    ProductImageStore.DeleteImage(oldImagePathToDelete);
+                }
                 LoadData();
             }
             catch (Exception ex)
             {
+                if (!string.IsNullOrWhiteSpace(newImagePathToRollback))
+                {
+                    ProductImageStore.DeleteImage(newImagePathToRollback);
+                }
                 MessageBox.Show($"Tahrirlash xatosi: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -1004,14 +1135,33 @@ namespace SantexnikaSRM.Forms
             }
         }
 
-        private bool TryCollectProductUpdates(Product product, out string? newName, out double? newPurchasePrice, out double? newQuantity)
+        private bool TryCollectProductUpdates(
+            Product product,
+            out string? newName,
+            out double? newPurchasePrice,
+            out double? newQuantity,
+            out bool updateImagePath,
+            out string? newImagePath,
+            out string? oldImagePathToDelete,
+            out string? newImagePathToRollback)
         {
             newName = null;
             newPurchasePrice = null;
             newQuantity = null;
+            updateImagePath = false;
+            newImagePath = null;
+            oldImagePathToDelete = null;
+            newImagePathToRollback = null;
             string? candidateName = null;
             double? candidatePurchasePrice = null;
             double? candidateQuantity = null;
+            bool candidateUpdateImagePath = false;
+            string? candidateImagePath = null;
+            string? candidateOldImagePathToDelete = null;
+            string? candidateNewImagePathToRollback = null;
+            string? selectedImageSourcePath = null;
+            bool removeImage = false;
+            bool imageTouched = false;
 
             using Form dialog = new Form
             {
@@ -1021,7 +1171,7 @@ namespace SantexnikaSRM.Forms
                 MaximizeBox = false,
                 MinimizeBox = false,
                 ShowInTaskbar = false,
-                ClientSize = new Size(620, 360),
+                ClientSize = new Size(620, 472),
                 BackColor = Color.FromArgb(236, 242, 251),
                 Font = UiTheme.BodyFont
             };
@@ -1070,7 +1220,7 @@ namespace SantexnikaSRM.Forms
                 Left = 16,
                 Top = 94,
                 Width = 588,
-                Height = 200,
+                Height = 312,
                 BackColor = Color.FromArgb(236, 242, 251)
             };
             card.Paint += (s, e) =>
@@ -1168,15 +1318,122 @@ namespace SantexnikaSRM.Forms
             Panel wrapQty = CreateEditInputWrap(txtQty);
             wrapQty.SetBounds(186, 128, 384, 36);
 
+            Label lblImage = new Label
+            {
+                Left = 18,
+                Top = 188,
+                Width = 96,
+                Height = 24,
+                Text = "Rasm",
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            CheckBox chkImage = new CheckBox
+            {
+                Left = 116,
+                Top = 186,
+                Width = 56,
+                Height = 28,
+                Text = string.Empty
+            };
+            PictureBox picImage = new PictureBox
+            {
+                Left = 186,
+                Top = 184,
+                Width = 74,
+                Height = 74,
+                BackColor = Color.FromArgb(247, 250, 255),
+                BorderStyle = BorderStyle.FixedSingle,
+                SizeMode = PictureBoxSizeMode.Zoom
+            };
+            Button btnPickImage = new Button
+            {
+                Text = "Rasm yuklash",
+                Left = 272,
+                Top = 186,
+                Width = 138,
+                Height = 32,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(56, 104, 216),
+                ForeColor = Color.White,
+                Enabled = false
+            };
+            btnPickImage.FlatAppearance.BorderSize = 0;
+            Button btnRemoveImage = new Button
+            {
+                Text = "Rasmni olib tashlash",
+                Left = 420,
+                Top = 186,
+                Width = 150,
+                Height = 32,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(133, 149, 173),
+                ForeColor = Color.White,
+                Enabled = false
+            };
+            btnRemoveImage.FlatAppearance.BorderSize = 0;
+
+            Image? currentPreview = ProductImageStore.TryLoadPreview(product.ImagePath, picImage.Width - 8, picImage.Height - 8);
+            picImage.Image = currentPreview;
+
+            chkImage.CheckedChanged += (_, __) =>
+            {
+                bool enabled = chkImage.Checked;
+                btnPickImage.Enabled = enabled;
+                btnRemoveImage.Enabled = enabled;
+                if (!enabled)
+                {
+                    selectedImageSourcePath = null;
+                    removeImage = false;
+                    imageTouched = false;
+                    picImage.Image = ProductImageStore.TryLoadPreview(product.ImagePath, picImage.Width - 8, picImage.Height - 8);
+                }
+            };
+
+            btnPickImage.Click += (_, __) =>
+            {
+                using OpenFileDialog ofd = new OpenFileDialog
+                {
+                    Filter = "Rasm fayllari|*.jpg;*.jpeg;*.png;*.bmp;*.webp",
+                    Title = "Mahsulot rasmi"
+                };
+                if (ofd.ShowDialog(dialog) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                selectedImageSourcePath = ofd.FileName;
+                removeImage = false;
+                imageTouched = true;
+                try
+                {
+                    using Bitmap preview = new Bitmap(selectedImageSourcePath);
+                    picImage.Image = new Bitmap(preview);
+                }
+                catch
+                {
+                    picImage.Image = null;
+                }
+            };
+
+            btnRemoveImage.Click += (_, __) =>
+            {
+                selectedImageSourcePath = null;
+                removeImage = true;
+                imageTouched = true;
+                picImage.Image = null;
+            };
+
             StyleEditInput(txtName);
             StyleEditInput(txtPrice);
             StyleEditInput(txtQty);
             StyleEditSwitch(chkName);
             StyleEditSwitch(chkPrice);
             StyleEditSwitch(chkQty);
+            StyleEditSwitch(chkImage);
             StyleEditFieldLabel(lblName);
             StyleEditFieldLabel(lblPrice);
             StyleEditFieldLabel(lblQty);
+            StyleEditFieldLabel(lblImage);
 
             chkName.CheckedChanged += (_, __) => SetEditInputEnabled(txtName, chkName.Checked);
             chkPrice.CheckedChanged += (_, __) => SetEditInputEnabled(txtPrice, chkPrice.Checked);
@@ -1186,7 +1443,7 @@ namespace SantexnikaSRM.Forms
             {
                 Text = "Saqlash",
                 Left = 390,
-                Top = 296,
+                Top = 408,
                 Width = 102,
                 Height = 38,
                 FlatStyle = FlatStyle.Flat,
@@ -1197,7 +1454,7 @@ namespace SantexnikaSRM.Forms
             {
                 Text = "Bekor",
                 Left = 502,
-                Top = 296,
+                Top = 408,
                 Width = 102,
                 Height = 38,
                 FlatStyle = FlatStyle.Flat,
@@ -1215,7 +1472,7 @@ namespace SantexnikaSRM.Forms
 
             btnSave.Click += (_, __) =>
             {
-                if (!chkName.Checked && !chkPrice.Checked && !chkQty.Checked)
+                if (!chkName.Checked && !chkPrice.Checked && !chkQty.Checked && !chkImage.Checked)
                 {
                     MessageBox.Show("Kamida bitta maydonni belgilang.", "Ogohlantirish", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
@@ -1264,10 +1521,44 @@ namespace SantexnikaSRM.Forms
                     }
                 }
 
-                if (candidateName == null && candidatePurchasePrice == null && candidateQuantity == null)
+                if (chkImage.Checked)
+                {
+                    if (removeImage)
+                    {
+                        candidateUpdateImagePath = true;
+                        candidateImagePath = string.Empty;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(selectedImageSourcePath))
+                    {
+                        try
+                        {
+                            string saved = ProductImageStore.SaveFromSource(selectedImageSourcePath);
+                            candidateUpdateImagePath = true;
+                            candidateImagePath = saved;
+                            candidateNewImagePathToRollback = saved;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Rasmni saqlashda xato: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+                    }
+                    else if (imageTouched)
+                    {
+                        candidateUpdateImagePath = true;
+                        candidateImagePath = removeImage ? string.Empty : product.ImagePath;
+                    }
+                }
+
+                if (candidateName == null && candidatePurchasePrice == null && candidateQuantity == null && !candidateUpdateImagePath)
                 {
                     MessageBox.Show("O'zgarish aniqlanmadi.", "Ma'lumot", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
+                }
+
+                if (candidateUpdateImagePath && !string.IsNullOrWhiteSpace(product.ImagePath) && !string.Equals(product.ImagePath, candidateImagePath ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+                {
+                    candidateOldImagePathToDelete = product.ImagePath;
                 }
 
                 dialog.DialogResult = DialogResult.OK;
@@ -1283,6 +1574,11 @@ namespace SantexnikaSRM.Forms
             card.Controls.Add(lblQty);
             card.Controls.Add(chkQty);
             card.Controls.Add(wrapQty);
+            card.Controls.Add(lblImage);
+            card.Controls.Add(chkImage);
+            card.Controls.Add(picImage);
+            card.Controls.Add(btnPickImage);
+            card.Controls.Add(btnRemoveImage);
 
             dialog.Controls.Add(header);
             dialog.Controls.Add(card);
@@ -1299,6 +1595,10 @@ namespace SantexnikaSRM.Forms
             newName = candidateName;
             newPurchasePrice = candidatePurchasePrice;
             newQuantity = candidateQuantity;
+            updateImagePath = candidateUpdateImagePath;
+            newImagePath = candidateImagePath;
+            oldImagePathToDelete = candidateOldImagePathToDelete;
+            newImagePathToRollback = candidateNewImagePathToRollback;
             return true;
         }
 
@@ -1487,6 +1787,10 @@ namespace SantexnikaSRM.Forms
             {
                 filtered = filtered.Where(p => p.QuantityUSD <= 5);
             }
+            else if (mode == "Suratsizlar")
+            {
+                filtered = filtered.Where(p => string.IsNullOrWhiteSpace(p.ImagePath));
+            }
             else if (mode == "Narxi yuqori")
             {
                 _sortColumn = "NarxiUZS";
@@ -1531,6 +1835,7 @@ namespace SantexnikaSRM.Forms
             List<ProductGridRow> rows = products.Select(p => new ProductGridRow
             {
                 ProductId = p.Id,
+                PreviewImage = ProductImageStore.TryLoadPreview(p.ImagePath, 38, 38),
                 MahsulotNomi = p.Name,
                 Soni = p.QuantityUSD,
                 NarxiUSD = p.PurchasePriceUSD,
@@ -1771,6 +2076,7 @@ namespace SantexnikaSRM.Forms
         private sealed class ProductGridRow
         {
             public int ProductId { get; set; }
+            public Image? PreviewImage { get; set; }
             public string MahsulotNomi { get; set; } = string.Empty;
             public double Soni { get; set; }
             public double NarxiUSD { get; set; }

@@ -45,7 +45,7 @@ namespace SantexnikaSRM.Forms
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
-            AutoScaleMode = AutoScaleMode.None;
+            AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(668, 760);
             BackColor = Color.FromArgb(236, 241, 239);
             DoubleBuffered = true;
