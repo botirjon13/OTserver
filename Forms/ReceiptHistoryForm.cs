@@ -82,6 +82,11 @@ namespace SantexnikaSRM.Forms
 
             top.Controls.AddRange(new Control[] { lblFrom, _dtFrom, lblTo, _dtTo, btnFilter, btnToday, btnMonth, btnReprint, btnClose, _lblSummary });
 
+            var header = BuildStaticHeader(
+                new[] { "Sotuv ID", "Chek raqami", "Sana", "To'lov turi", "Jami (UZS)" },
+                new[] { 14f, 26f, 24f, 20f, 20f });
+            root.Controls.Add(header);
+
             _grid.Dock = DockStyle.Fill;
             _grid.ReadOnly = true;
             _grid.AllowUserToAddRows = false;
@@ -91,7 +96,7 @@ namespace SantexnikaSRM.Forms
             _grid.MultiSelect = false;
             _grid.AutoGenerateColumns = false;
             _grid.RowHeadersVisible = false;
-            _grid.ColumnHeadersVisible = true;
+            _grid.ColumnHeadersVisible = false;
             _grid.EnableHeadersVisualStyles = false;
             _grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             _grid.BackgroundColor = Color.White;
@@ -108,8 +113,6 @@ namespace SantexnikaSRM.Forms
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sana", Name = "IssuedAt", FillWeight = 24 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "To'lov turi", Name = "PaymentType", FillWeight = 20 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Jami (UZS)", Name = "Total", FillWeight = 20 });
-            ApplyGridHeaderStyle(_grid);
-
             root.Controls.Add(_grid);
         }
 
@@ -128,7 +131,6 @@ namespace SantexnikaSRM.Forms
                     _grid.Rows.Add(x.SaleId, x.ReceiptNumber, x.IssuedAt.ToString("yyyy-MM-dd HH:mm"), x.PaymentType, $"{x.TotalUZS:N0}");
                 }
                 _grid.ResumeLayout();
-                EnsureHeaderVisible(_grid);
                 ResetGridTop(_grid);
 
                 double total = items.Sum(x => x.TotalUZS);
@@ -184,7 +186,6 @@ namespace SantexnikaSRM.Forms
 
                 grid.ClearSelection();
                 grid.CurrentCell = null;
-                EnsureHeaderVisible(grid);
                 grid.FirstDisplayedScrollingColumnIndex = 0;
                 grid.FirstDisplayedScrollingRowIndex = 0;
                 grid.CurrentCell = grid.Rows[0].Cells[0];
@@ -201,21 +202,35 @@ namespace SantexnikaSRM.Forms
             }
         }
 
-        private static void EnsureHeaderVisible(DataGridView grid)
+        private static TableLayoutPanel BuildStaticHeader(string[] titles, float[] widths)
         {
-            grid.ColumnHeadersVisible = true;
-            if (grid.ColumnHeadersHeight < 30)
+            var panel = new TableLayoutPanel
             {
-                grid.ColumnHeadersHeight = 34;
-            }
-        }
+                Dock = DockStyle.Top,
+                Height = 32,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
+                BackColor = Color.FromArgb(212, 222, 236),
+                ColumnCount = titles.Length,
+                RowCount = 1
+            };
 
-        private static void ApplyGridHeaderStyle(DataGridView grid)
-        {
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(233, 239, 248);
-            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(24, 35, 48);
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold);
-            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            for (int i = 0; i < titles.Length; i++)
+            {
+                panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, widths[i]));
+                var lbl = new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = titles[i],
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(24, 35, 48),
+                    BackColor = Color.FromArgb(233, 239, 248),
+                    Padding = new Padding(6, 0, 0, 0)
+                };
+                panel.Controls.Add(lbl, i, 0);
+            }
+
+            return panel;
         }
     }
 }

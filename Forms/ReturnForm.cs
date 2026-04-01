@@ -13,6 +13,7 @@ namespace SantexnikaSRM.Forms
     {
         private readonly AppUser _currentUser;
         private readonly ReturnService _returnService = new ReturnService();
+        private readonly ReceiptService _receiptService = new ReceiptService();
         private readonly DateTimePicker _dtFrom = new DateTimePicker();
         private readonly DateTimePicker _dtTo = new DateTimePicker();
         private readonly TextBox _txtSaleId = new TextBox();
@@ -127,7 +128,12 @@ namespace SantexnikaSRM.Forms
 
             BuildSalesGrid();
             BuildLinesGrid();
-            split.Panel1.Controls.Add(_gridSales);
+            Panel salesHost = new Panel { Dock = DockStyle.Fill };
+            salesHost.Controls.Add(_gridSales);
+            salesHost.Controls.Add(BuildStaticHeader(
+                new[] { "Sotuv ID", "Chek", "Sana", "To'lov", "Jami (UZS)", "Amal" },
+                new[] { 12f, 18f, 18f, 16f, 16f, 12f }));
+            split.Panel1.Controls.Add(salesHost);
             split.Panel2.Controls.Add(_gridLines);
         }
 
@@ -142,7 +148,7 @@ namespace SantexnikaSRM.Forms
             _gridSales.MultiSelect = false;
             _gridSales.AutoGenerateColumns = false;
             _gridSales.RowHeadersVisible = false;
-            _gridSales.ColumnHeadersVisible = true;
+            _gridSales.ColumnHeadersVisible = false;
             _gridSales.EnableHeadersVisualStyles = false;
             _gridSales.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             _gridSales.BackgroundColor = Color.White;
@@ -168,7 +174,6 @@ namespace SantexnikaSRM.Forms
                 FillWeight = 12
             };
             _gridSales.Columns.Add(openBtn);
-            ApplyGridHeaderStyle(_gridSales);
             _gridSales.CellContentClick += (s, e) =>
             {
                 if (e.RowIndex >= 0 && e.ColumnIndex == openBtn.Index)
@@ -213,7 +218,7 @@ namespace SantexnikaSRM.Forms
             {
                 DateTime from = _dtFrom.Value.Date;
                 DateTime to = _dtTo.Value.Date.AddHours(23).AddMinutes(59).AddSeconds(59);
-                var rows = _returnService.GetSales(from, to)
+                var rows = _receiptService.GetHistory(from, to)
                     .Select(x => new SaleRow
                     {
                         SaleId = x.SaleId,
@@ -231,7 +236,6 @@ namespace SantexnikaSRM.Forms
                     _gridSales.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAt, row.PaymentType, row.TotalText, "Tanlash");
                 }
                 _gridSales.ResumeLayout();
-                EnsureHeaderVisible(_gridSales);
                 ResetGridTop(_gridSales);
 
                 _activeSaleId = 0;
@@ -417,7 +421,6 @@ namespace SantexnikaSRM.Forms
 
                 grid.ClearSelection();
                 grid.CurrentCell = null;
-                EnsureHeaderVisible(grid);
                 grid.FirstDisplayedScrollingColumnIndex = 0;
                 grid.FirstDisplayedScrollingRowIndex = 0;
                 grid.CurrentCell = grid.Rows[0].Cells[0];
@@ -434,21 +437,35 @@ namespace SantexnikaSRM.Forms
             }
         }
 
-        private static void EnsureHeaderVisible(DataGridView grid)
+        private static TableLayoutPanel BuildStaticHeader(string[] titles, float[] widths)
         {
-            grid.ColumnHeadersVisible = true;
-            if (grid.ColumnHeadersHeight < 30)
+            var panel = new TableLayoutPanel
             {
-                grid.ColumnHeadersHeight = 34;
-            }
-        }
+                Dock = DockStyle.Top,
+                Height = 32,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
+                BackColor = Color.FromArgb(212, 222, 236),
+                ColumnCount = titles.Length,
+                RowCount = 1
+            };
 
-        private static void ApplyGridHeaderStyle(DataGridView grid)
-        {
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(233, 239, 248);
-            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(24, 35, 48);
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold);
-            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            for (int i = 0; i < titles.Length; i++)
+            {
+                panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, widths[i]));
+                var lbl = new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = titles[i],
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(24, 35, 48),
+                    BackColor = Color.FromArgb(233, 239, 248),
+                    Padding = new Padding(6, 0, 0, 0)
+                };
+                panel.Controls.Add(lbl, i, 0);
+            }
+
+            return panel;
         }
     }
 }
