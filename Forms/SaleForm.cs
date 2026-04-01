@@ -197,50 +197,6 @@ namespace SantexnikaSRM.Forms
             rateBadge.Controls.Add(lblDollar);
             rateBadge.Controls.Add(_lblRate);
 
-            Panel selectedPreviewBadge = new Panel
-            {
-                Width = 290,
-                Height = 42,
-                Top = 10,
-                BackColor = Color.FromArgb(232, 241, 255)
-            };
-            selectedPreviewBadge.Paint += (s, e) =>
-            {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                Rectangle bounds = new Rectangle(1, 1, Math.Max(1, selectedPreviewBadge.Width - 3), Math.Max(1, selectedPreviewBadge.Height - 3));
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(232, 241, 255));
-                using Pen border = new Pen(Color.FromArgb(66, 118, 198), 1.6f);
-                using GraphicsPath path = RoundedRect(bounds, 12);
-                e.Graphics.FillPath(brush, path);
-                e.Graphics.DrawPath(border, path);
-            };
-
-            _picSelectedProductPreview.BackColor = Color.FromArgb(214, 228, 247);
-            _picSelectedProductPreview.BorderStyle = BorderStyle.FixedSingle;
-            _picSelectedProductPreview.SizeMode = PictureBoxSizeMode.Zoom;
-            _picSelectedProductPreview.Cursor = Cursors.Default;
-            _picSelectedProductPreview.Click += SelectedProductPreview_Click;
-
-            _lblSelectedProductPreviewHint.AutoSize = false;
-            _lblSelectedProductPreviewHint.Font = new Font("Bahnschrift SemiBold", 10, FontStyle.Bold);
-            _lblSelectedProductPreviewHint.ForeColor = Color.FromArgb(44, 70, 109);
-            _lblSelectedProductPreviewHint.BackColor = Color.FromArgb(232, 241, 255);
-            _lblSelectedProductPreviewHint.TextAlign = ContentAlignment.MiddleLeft;
-            _lblSelectedProductPreviewHint.Text = "Mahsulot rasmi";
-            _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
-            _lblSelectedProductPreviewHint.Click += SelectedProductPreview_Click;
-
-            selectedPreviewBadge.Controls.Add(_picSelectedProductPreview);
-            selectedPreviewBadge.Controls.Add(_lblSelectedProductPreviewHint);
-            Action layoutSelectedPreviewBadge = () =>
-            {
-                _picSelectedProductPreview.SetBounds(7, 6, 30, 30);
-                _lblSelectedProductPreviewHint.SetBounds(44, 0, Math.Max(80, selectedPreviewBadge.Width - 52), selectedPreviewBadge.Height);
-                _picSelectedProductPreview.BringToFront();
-                _lblSelectedProductPreviewHint.BringToFront();
-            };
-            selectedPreviewBadge.Resize += (s, e) => layoutSelectedPreviewBadge();
-
             Button btnReceiptHistory = NewHeaderIconButton("Chek tarixi", "sale-action-history.png", "\uE81C");
             btnReceiptHistory.Top = 10;
             btnReceiptHistory.Click += (_, __) =>
@@ -264,7 +220,6 @@ namespace SantexnikaSRM.Forms
             header.Controls.Add(icon);
             header.Controls.Add(lblSub);
             header.Controls.Add(rateBadge);
-            header.Controls.Add(selectedPreviewBadge);
             header.Controls.Add(btnReceiptHistory);
             header.Controls.Add(btnReturn);
             header.Resize += (s, e) =>
@@ -272,15 +227,10 @@ namespace SantexnikaSRM.Forms
                 rateBadge.Left = Math.Max(0, header.ClientSize.Width - rateBadge.Width);
                 btnReturn.Left = Math.Max(0, rateBadge.Left - 10 - btnReturn.Width);
                 btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
-                selectedPreviewBadge.Left = Math.Max(lblSub.Right + 12, btnReceiptHistory.Left - 8 - selectedPreviewBadge.Width);
-                selectedPreviewBadge.Visible = selectedPreviewBadge.Left + selectedPreviewBadge.Width <= btnReceiptHistory.Left - 8;
             };
             rateBadge.Left = Math.Max(0, header.ClientSize.Width - rateBadge.Width);
             btnReturn.Left = Math.Max(0, rateBadge.Left - 10 - btnReturn.Width);
             btnReceiptHistory.Left = Math.Max(0, btnReturn.Left - 8 - btnReceiptHistory.Width);
-            selectedPreviewBadge.Left = Math.Max(lblSub.Right + 12, btnReceiptHistory.Left - 8 - selectedPreviewBadge.Width);
-            selectedPreviewBadge.Visible = selectedPreviewBadge.Left + selectedPreviewBadge.Width <= btnReceiptHistory.Left - 8;
-            layoutSelectedPreviewBadge();
 
             TableLayoutPanel main = new TableLayoutPanel
             {
@@ -895,11 +845,51 @@ namespace SantexnikaSRM.Forms
             _btnRemoveSelected.Enabled = false;
             _btnRemoveSelected.Click += RemoveSelectedBasketItem_Click;
 
+            Panel selectedPreviewCard = new Panel
+            {
+                Height = 42,
+                BackColor = Color.FromArgb(232, 241, 255)
+            };
+            selectedPreviewCard.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle bounds = new Rectangle(1, 1, Math.Max(1, selectedPreviewCard.Width - 3), Math.Max(1, selectedPreviewCard.Height - 3));
+                using SolidBrush brush = new SolidBrush(Color.FromArgb(232, 241, 255));
+                using Pen border = new Pen(Color.FromArgb(66, 118, 198), 1.6f);
+                using GraphicsPath path = RoundedRect(bounds, 10);
+                e.Graphics.FillPath(brush, path);
+                e.Graphics.DrawPath(border, path);
+            };
+
+            _picSelectedProductPreview.BackColor = Color.FromArgb(214, 228, 247);
+            _picSelectedProductPreview.BorderStyle = BorderStyle.FixedSingle;
+            _picSelectedProductPreview.SizeMode = PictureBoxSizeMode.Zoom;
+            _picSelectedProductPreview.Cursor = Cursors.Default;
+            _picSelectedProductPreview.Click += SelectedProductPreview_Click;
+
+            _lblSelectedProductPreviewHint.AutoSize = false;
+            _lblSelectedProductPreviewHint.Font = new Font("Bahnschrift SemiBold", 9.5f, FontStyle.Bold);
+            _lblSelectedProductPreviewHint.ForeColor = Color.FromArgb(44, 70, 109);
+            _lblSelectedProductPreviewHint.BackColor = Color.FromArgb(232, 241, 255);
+            _lblSelectedProductPreviewHint.TextAlign = ContentAlignment.MiddleLeft;
+            _lblSelectedProductPreviewHint.Text = "Mahsulot tanlang";
+            _lblSelectedProductPreviewHint.Cursor = Cursors.Default;
+            _lblSelectedProductPreviewHint.Click += SelectedProductPreview_Click;
+
+            selectedPreviewCard.Controls.Add(_picSelectedProductPreview);
+            selectedPreviewCard.Controls.Add(_lblSelectedProductPreviewHint);
+            selectedPreviewCard.Resize += (s, e) =>
+            {
+                _picSelectedProductPreview.SetBounds(7, 6, 30, 30);
+                _lblSelectedProductPreviewHint.SetBounds(44, 0, Math.Max(80, selectedPreviewCard.Width - 52), selectedPreviewCard.Height);
+            };
+
             _rightBody.Controls.Add(_gridBasket);
             _rightBody.Controls.Add(_lblEmpty);
             _rightBody.Controls.Add(_lblEmptyIcon);
             _rightBody.Controls.Add(_lblEmptyHint);
             _rightBody.Controls.Add(divider);
+            _rightBody.Controls.Add(selectedPreviewCard);
             _rightBody.Controls.Add(_discountCard);
             _rightBody.Controls.Add(_btnRemoveSelected);
             _rightBody.Controls.Add(totalCard);
@@ -934,6 +924,9 @@ namespace SantexnikaSRM.Forms
                     int removeW = Math.Min(240, w);
                     int removeLeft = w - removeW;
                     _btnRemoveSelected.SetBounds(removeLeft, removeTop, removeW, removeH);
+                    int previewLeft = 0;
+                    int previewWidth = Math.Max(180, removeLeft - 12);
+                    selectedPreviewCard.SetBounds(previewLeft, removeTop, previewWidth, removeH);
 
                     _discountCard.SetBounds(leftX, blockTop, colW, discountH);
                     totalCard.SetBounds(rightX, blockTop, colW, totalH);
@@ -955,6 +948,7 @@ namespace SantexnikaSRM.Forms
 
                     int removeTop = totalTop - gap - removeH;
                     _btnRemoveSelected.SetBounds(btnLeft, removeTop, btnW, removeH);
+                    selectedPreviewCard.SetBounds(0, removeTop, Math.Max(180, btnLeft - 12), removeH);
                     dividerTop = removeTop - 14;
                 }
 
