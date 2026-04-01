@@ -193,7 +193,7 @@ namespace SantexnikaSRM.Forms
 
                 _binding.DataSource = null;
                 _binding.DataSource = rows;
-                BeginInvoke(new Action(() => ResetGridViewport(_grid)));
+                ScheduleGridViewportReset(_grid);
                 double total = items.Sum(x => x.TotalUZS);
                 _lblSummary.Text = $"Topildi: {items.Count} ta chek | Jami: {total:N0} UZS";
             }
@@ -257,6 +257,22 @@ namespace SantexnikaSRM.Forms
                 grid.CurrentCell = firstVisibleCell;
                 firstVisibleCell.OwningRow.Selected = true;
             }
+        }
+
+        private void ScheduleGridViewportReset(DataGridView grid)
+        {
+            if (IsDisposed || grid.IsDisposed)
+            {
+                return;
+            }
+
+            if (IsHandleCreated)
+            {
+                BeginInvoke(new Action(() => ResetGridViewport(grid)));
+                return;
+            }
+
+            ResetGridViewport(grid);
         }
     }
 }

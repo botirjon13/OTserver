@@ -258,7 +258,7 @@ namespace SantexnikaSRM.Forms
                     .ToList();
                 _salesBinding.DataSource = null;
                 _salesBinding.DataSource = rows;
-                BeginInvoke(new Action(() => ResetGridViewport(_gridSales)));
+                ScheduleGridViewportReset(_gridSales);
                 _activeSaleId = 0;
                 _txtSaleId.Text = string.Empty;
                 _lineBinding.DataSource = new List<LineRow>();
@@ -316,7 +316,7 @@ namespace SantexnikaSRM.Forms
                     UnitPriceUZS = x.UnitPriceUZS,
                     ReturnQty = 0
                 }).ToList();
-                BeginInvoke(new Action(() => ResetGridViewport(_gridLines)));
+                ScheduleGridViewportReset(_gridLines);
                 UpdatePreview();
             }
             catch (Exception ex)
@@ -444,6 +444,22 @@ namespace SantexnikaSRM.Forms
                 grid.CurrentCell = firstVisibleCell;
                 firstVisibleCell.OwningRow.Selected = true;
             }
+        }
+
+        private void ScheduleGridViewportReset(DataGridView grid)
+        {
+            if (IsDisposed || grid.IsDisposed)
+            {
+                return;
+            }
+
+            if (IsHandleCreated)
+            {
+                BeginInvoke(new Action(() => ResetGridViewport(grid)));
+                return;
+            }
+
+            ResetGridViewport(grid);
         }
     }
 }
