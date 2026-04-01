@@ -15,7 +15,6 @@ namespace SantexnikaSRM.Forms
         private readonly DateTimePicker _dtFrom = new DateTimePicker();
         private readonly DateTimePicker _dtTo = new DateTimePicker();
         private readonly DataGridView _grid = new DataGridView();
-        private readonly BindingSource _binding = new BindingSource();
         private readonly Label _lblSummary = new Label();
 
         public ReceiptHistoryForm(AppUser currentUser)
@@ -169,7 +168,6 @@ namespace SantexnikaSRM.Forms
                 FillWeight = 20
             });
 
-            _grid.DataSource = _binding;
             root.Controls.Add(_grid);
         }
 
@@ -191,11 +189,9 @@ namespace SantexnikaSRM.Forms
                     TotalText = $"{x.TotalUZS:N0}"
                 }).ToList();
 
-                _binding.DataSource = null;
-                _binding.DataSource = rows;
-                ScheduleGridViewportReset(_grid);
+                BindHistoryRows(rows);
                 double total = items.Sum(x => x.TotalUZS);
-                _lblSummary.Text = $"Topildi: {items.Count} ta chek | Jami: {total:N0} UZS";
+                _lblSummary.Text = $"Topildi: {rows.Count} ta chek | Ko'rindi: {_grid.Rows.Count} ta | Jami: {total:N0} UZS";
             }
             catch (Exception ex)
             {
@@ -205,7 +201,13 @@ namespace SantexnikaSRM.Forms
 
         private void ReprintSelected_Click(object? sender, EventArgs e)
         {
-            if (_grid.CurrentRow?.DataBoundItem is not ReceiptRow row)
+            if (_grid.CurrentRow == null || _grid.CurrentRow.Cells.Count == 0)
+            {
+                MessageBox.Show("Qayta chop etish uchun chek tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            int saleId = Convert.ToInt32(_grid.CurrentRow.Cells[0].Value ?? 0);
+            if (saleId <= 0)
             {
                 MessageBox.Show("Qayta chop etish uchun chek tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
@@ -213,7 +215,7 @@ namespace SantexnikaSRM.Forms
 
             try
             {
-                SaleReceipt? receipt = _receiptService.GetBySaleId(row.SaleId);
+                SaleReceipt? receipt = _receiptService.GetBySaleId(saleId);
                 if (receipt == null)
                 {
                     MessageBox.Show("Tanlangan sotuv bo'yicha chek topilmadi.", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -273,6 +275,18 @@ namespace SantexnikaSRM.Forms
             }
 
             ResetGridViewport(grid);
+        }
+
+        private void BindHistoryRows(List<ReceiptRow> rows)
+        {
+            _grid.SuspendLayout();
+            _grid.Rows.Clear();
+            foreach (ReceiptRow row in rows)
+            {
+                _grid.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAtText, row.PaymentType, row.TotalText);
+            }
+            _grid.ResumeLayout();
+            ScheduleGridViewportReset(_grid);
         }
     }
 }

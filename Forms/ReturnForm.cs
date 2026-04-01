@@ -18,7 +18,6 @@ namespace SantexnikaSRM.Forms
         private readonly TextBox _txtSaleId = new TextBox();
         private readonly DataGridView _gridSales = new DataGridView();
         private readonly DataGridView _gridLines = new DataGridView();
-        private readonly BindingSource _salesBinding = new BindingSource();
         private readonly BindingSource _lineBinding = new BindingSource();
         private readonly TextBox _txtReason = new TextBox();
         private readonly Label _lblPreview = new Label();
@@ -208,7 +207,6 @@ namespace SantexnikaSRM.Forms
                 }
             };
 
-            _gridSales.DataSource = _salesBinding;
         }
 
         private void BuildLinesGrid()
@@ -256,9 +254,7 @@ namespace SantexnikaSRM.Forms
                         TotalText = $"{x.TotalUZS:N0}"
                     })
                     .ToList();
-                _salesBinding.DataSource = null;
-                _salesBinding.DataSource = rows;
-                ScheduleGridViewportReset(_gridSales);
+                BindSalesRows(rows);
                 _activeSaleId = 0;
                 _txtSaleId.Text = string.Empty;
                 _lineBinding.DataSource = new List<LineRow>();
@@ -272,13 +268,19 @@ namespace SantexnikaSRM.Forms
 
         private void OpenSelectedSale()
         {
-            if (_gridSales.CurrentRow?.DataBoundItem is not SaleRow row)
+            if (_gridSales.CurrentRow == null || _gridSales.CurrentRow.Cells.Count == 0)
+            {
+                MessageBox.Show("Avval sotuv tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            int saleId = Convert.ToInt32(_gridSales.CurrentRow.Cells[0].Value ?? 0);
+            if (saleId <= 0)
             {
                 MessageBox.Show("Avval sotuv tanlang.", "Diqqat", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            OpenSaleLines(row.SaleId);
+            OpenSaleLines(saleId);
         }
 
         private void OpenSaleById()
@@ -460,6 +462,18 @@ namespace SantexnikaSRM.Forms
             }
 
             ResetGridViewport(grid);
+        }
+
+        private void BindSalesRows(List<SaleRow> rows)
+        {
+            _gridSales.SuspendLayout();
+            _gridSales.Rows.Clear();
+            foreach (SaleRow row in rows)
+            {
+                _gridSales.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAt, row.PaymentType, row.TotalText, "Tanlash");
+            }
+            _gridSales.ResumeLayout();
+            ScheduleGridViewportReset(_gridSales);
         }
     }
 }
