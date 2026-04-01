@@ -179,6 +179,11 @@ namespace SantexnikaSRM.Forms
             _gridSales.RowHeadersVisible = false;
             _gridSales.BackgroundColor = Color.White;
             _gridSales.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            _gridSales.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            _gridSales.RowTemplate.Height = 30;
+            _gridSales.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            _gridSales.ColumnHeadersHeight = 34;
+            _gridSales.ScrollBars = ScrollBars.Both;
             _gridSales.CellDoubleClick += (_, __) => OpenSelectedSale();
 
             _gridSales.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sotuv ID", DataPropertyName = nameof(SaleRow.SaleId), FillWeight = 12 });
@@ -217,6 +222,11 @@ namespace SantexnikaSRM.Forms
             _gridLines.RowHeadersVisible = false;
             _gridLines.BackgroundColor = Color.White;
             _gridLines.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            _gridLines.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            _gridLines.RowTemplate.Height = 30;
+            _gridLines.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            _gridLines.ColumnHeadersHeight = 34;
+            _gridLines.ScrollBars = ScrollBars.Both;
             _gridLines.CellEndEdit += (_, __) => UpdatePreview();
 
             _gridLines.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "SaleItemId", DataPropertyName = nameof(LineRow.SaleItemId), Visible = false });
@@ -247,6 +257,7 @@ namespace SantexnikaSRM.Forms
                     })
                     .ToList();
                 _salesBinding.DataSource = rows;
+                ResetGridViewport(_gridSales);
             }
             catch (Exception ex)
             {
@@ -299,6 +310,7 @@ namespace SantexnikaSRM.Forms
                     UnitPriceUZS = x.UnitPriceUZS,
                     ReturnQty = 0
                 }).ToList();
+                ResetGridViewport(_gridLines);
                 UpdatePreview();
             }
             catch (Exception ex)
@@ -406,6 +418,26 @@ namespace SantexnikaSRM.Forms
             public string ReturnedQtyText => $"{ReturnedQty:0.##}";
             public string AvailableQtyText => $"{AvailableQty:0.##}";
             public string UnitPriceText => $"{UnitPriceUZS:N0}";
+        }
+
+        private static void ResetGridViewport(DataGridView grid)
+        {
+            grid.ClearSelection();
+            if (grid.Rows.Count == 0)
+            {
+                return;
+            }
+
+            grid.FirstDisplayedScrollingRowIndex = 0;
+            DataGridViewCell? firstVisibleCell = grid.Rows[0].Cells
+                .Cast<DataGridViewCell>()
+                .FirstOrDefault(x => x.Visible);
+
+            if (firstVisibleCell != null)
+            {
+                grid.CurrentCell = firstVisibleCell;
+                firstVisibleCell.OwningRow.Selected = true;
+            }
         }
     }
 }

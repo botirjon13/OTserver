@@ -131,6 +131,11 @@ namespace SantexnikaSRM.Forms
             _grid.RowHeadersVisible = false;
             _grid.BackgroundColor = Color.White;
             _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            _grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            _grid.RowTemplate.Height = 30;
+            _grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            _grid.ColumnHeadersHeight = 34;
+            _grid.ScrollBars = ScrollBars.Both;
             _grid.DoubleClick += ReprintSelected_Click;
 
             _grid.Columns.Add(new DataGridViewTextBoxColumn
@@ -187,6 +192,7 @@ namespace SantexnikaSRM.Forms
                 }).ToList();
 
                 _binding.DataSource = rows;
+                ResetGridViewport(_grid);
                 double total = items.Sum(x => x.TotalUZS);
                 _lblSummary.Text = $"Topildi: {items.Count} ta chek | Jami: {total:N0} UZS";
             }
@@ -230,6 +236,26 @@ namespace SantexnikaSRM.Forms
             public string IssuedAtText { get; set; } = "";
             public string PaymentType { get; set; } = "";
             public string TotalText { get; set; } = "";
+        }
+
+        private static void ResetGridViewport(DataGridView grid)
+        {
+            grid.ClearSelection();
+            if (grid.Rows.Count == 0)
+            {
+                return;
+            }
+
+            grid.FirstDisplayedScrollingRowIndex = 0;
+            DataGridViewCell? firstVisibleCell = grid.Rows[0].Cells
+                .Cast<DataGridViewCell>()
+                .FirstOrDefault(x => x.Visible);
+
+            if (firstVisibleCell != null)
+            {
+                grid.CurrentCell = firstVisibleCell;
+                firstVisibleCell.OwningRow.Selected = true;
+            }
         }
     }
 }
