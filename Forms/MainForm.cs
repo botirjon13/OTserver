@@ -208,7 +208,7 @@ namespace SantexnikaSRM.Forms
             _picLicenseAction.Click += (s, e) => new LicenseStatusForm().ShowDialog(this);
 
             SetupActionImageBox(_picUpdateAction, "Dastur yangilash", Color.FromArgb(230, 150, 12), Color.FromArgb(204, 120, 0));
-            _picUpdateAction.Visible = false;
+            _picUpdateAction.Visible = true;
             _picUpdateAction.Click += UpdateAction_Click;
 
             _picThemeAction.Size = new Size(220, 44);
