@@ -13,6 +13,7 @@ namespace SantexnikaSRM.Services
         {
             string? lastError = null;
             List<string> feeds = ResolveFeedUrls(serverUrl);
+            bool hasSuccessfulCheck = false;
 
             if (feeds.Count == 0)
             {
@@ -27,6 +28,7 @@ namespace SantexnikaSRM.Services
                 {
                     var manager = new UpdateManager(feedUrl);
                     Velopack.UpdateInfo? updates = await manager.CheckForUpdatesAsync();
+                    hasSuccessfulCheck = true;
                     if (updates == null || updates.TargetFullRelease == null)
                     {
                         continue;
@@ -51,6 +53,11 @@ namespace SantexnikaSRM.Services
                 {
                     lastError = ex.Message;
                 }
+            }
+
+            if (hasSuccessfulCheck)
+            {
+                return UpdateCheckResult.NoUpdate();
             }
 
             if (!string.IsNullOrWhiteSpace(lastError))
@@ -98,6 +105,15 @@ namespace SantexnikaSRM.Services
             if (!string.IsNullOrWhiteSpace(explicitFeed))
             {
                 string normalized = explicitFeed.Trim();
+                if (normalized.IndexOf("cdn.jsdelivr.net/gh/", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    string raw = normalized
+                        .Replace("https://cdn.jsdelivr.net/gh/", "https://raw.githubusercontent.com/")
+                        .Replace("@main/", "/main/")
+                        .Replace("@master/", "/master/");
+                    AddIfMissing(urls, raw);
+                }
+
                 if (normalized.IndexOf("raw.githubusercontent.com/", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     // raw.githubusercontent fallback as-is can fail on private repo or tokenless access.
