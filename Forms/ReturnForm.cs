@@ -227,14 +227,7 @@ namespace SantexnikaSRM.Forms
                     _gridSales.Rows.Add(row.SaleId, row.ReceiptNumber, row.IssuedAt, row.PaymentType, row.TotalText, "Tanlash");
                 }
                 _gridSales.ResumeLayout();
-
-                if (_gridSales.Rows.Count > 0)
-                {
-                    _gridSales.ClearSelection();
-                    _gridSales.FirstDisplayedScrollingRowIndex = 0;
-                    _gridSales.CurrentCell = _gridSales.Rows[0].Cells[0];
-                    _gridSales.Rows[0].Selected = true;
-                }
+                ResetGridTop(_gridSales);
 
                 _activeSaleId = 0;
                 _txtSaleId.Text = string.Empty;
@@ -406,6 +399,33 @@ namespace SantexnikaSRM.Forms
             public string ReturnedQtyText => $"{ReturnedQty:0.##}";
             public string AvailableQtyText => $"{AvailableQty:0.##}";
             public string UnitPriceText => $"{UnitPriceUZS:N0}";
+        }
+
+        private static void ResetGridTop(DataGridView grid)
+        {
+            void Apply()
+            {
+                if (grid.IsDisposed || grid.Rows.Count == 0)
+                {
+                    return;
+                }
+
+                grid.ClearSelection();
+                grid.CurrentCell = null;
+                grid.FirstDisplayedScrollingColumnIndex = 0;
+                grid.FirstDisplayedScrollingRowIndex = 0;
+                grid.CurrentCell = grid.Rows[0].Cells[0];
+                grid.Rows[0].Selected = true;
+            }
+
+            if (grid.IsHandleCreated)
+            {
+                grid.BeginInvoke((Action)Apply);
+            }
+            else
+            {
+                Apply();
+            }
         }
     }
 }

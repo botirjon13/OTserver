@@ -124,14 +124,7 @@ namespace SantexnikaSRM.Forms
                     _grid.Rows.Add(x.SaleId, x.ReceiptNumber, x.IssuedAt.ToString("yyyy-MM-dd HH:mm"), x.PaymentType, $"{x.TotalUZS:N0}");
                 }
                 _grid.ResumeLayout();
-
-                if (_grid.Rows.Count > 0)
-                {
-                    _grid.ClearSelection();
-                    _grid.FirstDisplayedScrollingRowIndex = 0;
-                    _grid.CurrentCell = _grid.Rows[0].Cells[0];
-                    _grid.Rows[0].Selected = true;
-                }
+                ResetGridTop(_grid);
 
                 double total = items.Sum(x => x.TotalUZS);
                 _lblSummary.Text = $"Topildi: {items.Count} ta chek | Ko'rindi: {_grid.Rows.Count} ta | Jami: {total:N0} UZS";
@@ -172,6 +165,33 @@ namespace SantexnikaSRM.Forms
             catch (Exception ex)
             {
                 MessageBox.Show($"Chekni ochishda xatolik: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private static void ResetGridTop(DataGridView grid)
+        {
+            void Apply()
+            {
+                if (grid.IsDisposed || grid.Rows.Count == 0)
+                {
+                    return;
+                }
+
+                grid.ClearSelection();
+                grid.CurrentCell = null;
+                grid.FirstDisplayedScrollingColumnIndex = 0;
+                grid.FirstDisplayedScrollingRowIndex = 0;
+                grid.CurrentCell = grid.Rows[0].Cells[0];
+                grid.Rows[0].Selected = true;
+            }
+
+            if (grid.IsHandleCreated)
+            {
+                grid.BeginInvoke((Action)Apply);
+            }
+            else
+            {
+                Apply();
             }
         }
     }

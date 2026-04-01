@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.2.26",
+    [string]$Version = "1.2.27",
     [string]$Runtime = "win-x64",
     [string]$Channel = "stable",
     [string]$OutputDir = "ReleaseBundles\velopack"
