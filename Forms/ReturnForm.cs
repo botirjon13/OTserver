@@ -258,6 +258,10 @@ namespace SantexnikaSRM.Forms
                     .ToList();
                 _salesBinding.DataSource = rows;
                 ResetGridViewport(_gridSales);
+                _activeSaleId = 0;
+                _txtSaleId.Text = string.Empty;
+                _lineBinding.DataSource = new List<LineRow>();
+                _lblPreview.Text = "Qaytarish: 0 UZS";
             }
             catch (Exception ex)
             {

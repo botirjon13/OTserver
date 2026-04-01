@@ -79,7 +79,15 @@ namespace SantexnikaSRM.Services
                                    substr(RawIssuedAt, 7, 4) || '-' || substr(RawIssuedAt, 4, 2) || '-' || substr(RawIssuedAt, 1, 2) || substr(RawIssuedAt, 11)
                                ELSE
                                    REPLACE(REPLACE(RawIssuedAt, 'T', ' '), 'Z', '')
-                           END AS IssuedAtNorm
+                           END AS IssuedAtNorm,
+                           CASE
+                               WHEN RawIssuedAt LIKE '__.__.____%' THEN
+                                   substr(RawIssuedAt, 7, 4) || '-' || substr(RawIssuedAt, 4, 2) || '-' || substr(RawIssuedAt, 1, 2)
+                               WHEN RawIssuedAt LIKE '____-__-__%' THEN
+                                   substr(RawIssuedAt, 1, 10)
+                               ELSE
+                                   date(REPLACE(REPLACE(RawIssuedAt, 'T', ' '), 'Z', ''))
+                           END AS IssuedDateIso
                     FROM base
                 )
                 SELECT SaleId,
@@ -88,9 +96,10 @@ namespace SantexnikaSRM.Services
                        PaymentType,
                        TotalUZS
                 FROM norm
-                WHERE datetime(IssuedAtNorm) >= datetime(@from)
-                  AND datetime(IssuedAtNorm) < datetime(@toExclusive)
-                ORDER BY datetime(IssuedAtNorm) DESC, SaleId DESC";
+                WHERE IssuedDateIso IS NOT NULL
+                  AND IssuedDateIso >= date(@from)
+                  AND IssuedDateIso < date(@toExclusive)
+                ORDER BY IssuedDateIso DESC, SaleId DESC";
             cmd.Parameters.AddWithValue("@from", fromText);
             cmd.Parameters.AddWithValue("@toExclusive", toExclusiveText);
 
