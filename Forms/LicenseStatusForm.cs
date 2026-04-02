@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Reflection;
 using System.Windows.Forms;
 using SantexnikaSRM.Services;
 
@@ -180,8 +182,35 @@ namespace SantexnikaSRM.Forms
         private static string BuildProductIdentityText()
         {
             string productName = string.IsNullOrWhiteSpace(Application.ProductName) ? "SantexnikaSRM" : Application.ProductName;
-            string productVersion = string.IsNullOrWhiteSpace(Application.ProductVersion) ? "-" : Application.ProductVersion;
-            return $"Product: {productName}    |    Version: {productVersion}";
+            string appVersion = string.IsNullOrWhiteSpace(Application.ProductVersion) ? "-" : Application.ProductVersion;
+            string fileVersion = "-";
+            string assemblyVersion = "-";
+
+            try
+            {
+                FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(Application.ExecutablePath);
+                if (!string.IsNullOrWhiteSpace(fvi.FileVersion))
+                {
+                    fileVersion = fvi.FileVersion;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                Version? v = Assembly.GetExecutingAssembly().GetName().Version;
+                if (v != null)
+                {
+                    assemblyVersion = v.ToString();
+                }
+            }
+            catch
+            {
+            }
+
+            return $"Product: {productName}    |    App: {appVersion}    |    File: {fileVersion}    |    Assembly: {assemblyVersion}";
         }
     }
 }

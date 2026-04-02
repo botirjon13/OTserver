@@ -268,7 +268,7 @@ namespace SantexnikaSRM.Forms
             _recentList.SuspendLayout();
             _recentList.Controls.Clear();
 
-            List<Expense> recent = _service.GetLatest(3, _currentUser);
+            List<Expense> recent = _service.GetLatest(10, _currentUser);
             if (recent.Count == 0)
             {
                 Label empty = new Label
@@ -372,16 +372,66 @@ namespace SantexnikaSRM.Forms
                 BackColor = Color.Transparent
             };
 
+            Button btnEdit = NewMiniButton("Tahrirlash", Color.FromArgb(71, 130, 224), Color.FromArgb(53, 112, 208));
+            Button btnDelete = NewMiniButton("O'chirish", Color.FromArgb(224, 88, 88), Color.FromArgb(207, 67, 67));
+
+            btnEdit.Click += (s, e) =>
+            {
+                if (ShowExpenseEditDialog(item, out Expense? updated) && updated != null)
+                {
+                    try
+                    {
+                        _service.Update(updated, _currentUser);
+                        LoadRecentExpenses();
+                        MessageBox.Show("Rasxod tahrirlandi.", "Tayyor", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Rasxodni tahrirlashda xato: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            };
+
+            btnDelete.Click += (s, e) =>
+            {
+                DialogResult confirm = MessageBox.Show(
+                    $"Ushbu rasxodni o'chirasizmi?\n\n{item.Type} - {item.AmountUZS:N0} UZS",
+                    "Tasdiqlash",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirm != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                try
+                {
+                    _service.Delete(item.Id, _currentUser);
+                    LoadRecentExpenses();
+                    MessageBox.Show("Rasxod o'chirildi.", "Tayyor", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Rasxodni o'chirishda xato: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
             panel.Controls.Add(lblType);
             panel.Controls.Add(lblDate);
             panel.Controls.Add(lblDesc);
             panel.Controls.Add(divider);
             panel.Controls.Add(lblAmount);
+            panel.Controls.Add(btnEdit);
+            panel.Controls.Add(btnDelete);
 
             panel.Resize += (s, e) =>
             {
                 lblDesc.Width = panel.Width - 32;
                 divider.Width = panel.Width - 32;
+                int right = panel.Width - 16;
+                btnDelete.SetBounds(right - 98, 12, 98, 30);
+                btnEdit.SetBounds(btnDelete.Left - 8 - 98, 12, 98, 30);
                 lblAmount.Left = panel.Width - lblAmount.Width - 16;
             };
             lblAmount.Left = panel.Width - lblAmount.Width - 16;
@@ -605,6 +655,139 @@ namespace SantexnikaSRM.Forms
             };
             b.Resize += (s, e) => b.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, b.Width), Math.Max(1, b.Height)), 10));
             return b;
+        }
+
+        private static Button NewMiniButton(string text, Color c1, Color c2)
+        {
+            Button b = new Button
+            {
+                Text = text,
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                Font = new Font("Bahnschrift SemiBold", 10.5f, FontStyle.Bold),
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            b.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using LinearGradientBrush brush = new LinearGradientBrush(b.ClientRectangle, c1, c2, 0f);
+                using GraphicsPath path = RoundedRect(b.ClientRectangle, 8);
+                e.Graphics.FillPath(brush, path);
+                TextRenderer.DrawText(e.Graphics, b.Text, b.Font, b.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+            b.Resize += (s, e) => b.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, b.Width), Math.Max(1, b.Height)), 8));
+            return b;
+        }
+
+        private bool ShowExpenseEditDialog(Expense source, out Expense? updated)
+        {
+            updated = null;
+            using Form dialog = new Form
+            {
+                Text = "Rasxodni tahrirlash",
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MinimizeBox = false,
+                MaximizeBox = false,
+                ClientSize = new Size(520, 300),
+                BackColor = Color.FromArgb(245, 248, 252),
+                Font = new Font("Bahnschrift", 10.5f, FontStyle.Regular)
+            };
+
+            Label lblDate = new Label { Text = "Sana", Left = 18, Top = 18, Width = 120 };
+            DateTimePicker dtDate = new DateTimePicker
+            {
+                Left = 18,
+                Top = 40,
+                Width = 220,
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "dd.MM.yyyy HH:mm",
+                Value = source.Date
+            };
+
+            Label lblType = new Label { Text = "Turi", Left = 18, Top = 78, Width = 120 };
+            TextBox txtType = new TextBox { Left = 18, Top = 100, Width = 484, Text = source.Type };
+
+            Label lblDesc = new Label { Text = "Izoh", Left = 18, Top = 138, Width = 120 };
+            TextBox txtDesc = new TextBox { Left = 18, Top = 160, Width = 484, Text = source.Description };
+
+            Label lblAmount = new Label { Text = "Summa (UZS)", Left = 18, Top = 198, Width = 140 };
+            TextBox txtAmount = new TextBox
+            {
+                Left = 18,
+                Top = 220,
+                Width = 220,
+                Text = source.AmountUZS.ToString(CultureInfo.InvariantCulture)
+            };
+
+            Button btnOk = new Button
+            {
+                Text = "Saqlash",
+                Left = 296,
+                Top = 252,
+                Width = 100,
+                Height = 32,
+                DialogResult = DialogResult.OK
+            };
+            Button btnCancel = new Button
+            {
+                Text = "Bekor",
+                Left = 402,
+                Top = 252,
+                Width = 100,
+                Height = 32,
+                DialogResult = DialogResult.Cancel
+            };
+
+            dialog.Controls.Add(lblDate);
+            dialog.Controls.Add(dtDate);
+            dialog.Controls.Add(lblType);
+            dialog.Controls.Add(txtType);
+            dialog.Controls.Add(lblDesc);
+            dialog.Controls.Add(txtDesc);
+            dialog.Controls.Add(lblAmount);
+            dialog.Controls.Add(txtAmount);
+            dialog.Controls.Add(btnOk);
+            dialog.Controls.Add(btnCancel);
+            dialog.AcceptButton = btnOk;
+            dialog.CancelButton = btnCancel;
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return false;
+            }
+
+            string type = txtType.Text.Trim();
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                MessageBox.Show("Rasxod turi bo'sh bo'lmasligi kerak.", "Ogohlantirish", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (!double.TryParse(txtAmount.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double amount) &&
+                !double.TryParse(txtAmount.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out amount))
+            {
+                MessageBox.Show("Summa noto'g'ri formatda.", "Ogohlantirish", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (amount <= 0)
+            {
+                MessageBox.Show("Summa musbat son bo'lishi kerak.", "Ogohlantirish", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            updated = new Expense
+            {
+                Id = source.Id,
+                Date = dtDate.Value,
+                Type = type,
+                Description = txtDesc.Text.Trim(),
+                AmountUZS = amount
+            };
+
+            return true;
         }
 
         private static GraphicsPath RoundedRect(Rectangle bounds, int radius)

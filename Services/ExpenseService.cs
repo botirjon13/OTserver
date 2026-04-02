@@ -104,6 +104,61 @@ namespace SantexnikaSRM.Services
             return list;
         }
 
+        public void Update(Expense expense, AppUser currentUser)
+        {
+            AuthorizationService.Require(
+                AuthorizationService.CanManageExpenses(currentUser),
+                "Rasxodni tahrirlash huquqi mavjud emas.");
+
+            using (var connection = Database.GetConnection())
+            {
+                connection.Open();
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = @"
+UPDATE Expenses
+SET Date=@date,
+    Type=@type,
+    Description=@desc,
+    AmountUZS=@amount
+WHERE Id=@id";
+                    cmd.Parameters.AddWithValue("@id", expense.Id);
+                    cmd.Parameters.AddWithValue("@date", expense.Date.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@type", expense.Type ?? "");
+                    cmd.Parameters.AddWithValue("@desc", expense.Description ?? "");
+                    cmd.Parameters.AddWithValue("@amount", expense.AmountUZS);
+
+                    int affected = cmd.ExecuteNonQuery();
+                    if (affected <= 0)
+                    {
+                        throw new Exception("Tahrirlanadigan rasxod topilmadi.");
+                    }
+                }
+            }
+        }
+
+        public void Delete(int expenseId, AppUser currentUser)
+        {
+            AuthorizationService.Require(
+                AuthorizationService.CanManageExpenses(currentUser),
+                "Rasxodni o'chirish huquqi mavjud emas.");
+
+            using (var connection = Database.GetConnection())
+            {
+                connection.Open();
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = "DELETE FROM Expenses WHERE Id=@id";
+                    cmd.Parameters.AddWithValue("@id", expenseId);
+                    int affected = cmd.ExecuteNonQuery();
+                    if (affected <= 0)
+                    {
+                        throw new Exception("O'chiriladigan rasxod topilmadi.");
+                    }
+                }
+            }
+        }
+
         private static DateTime ParseDateTime(string raw)
         {
             if (DateTime.TryParseExact(raw, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsed))
