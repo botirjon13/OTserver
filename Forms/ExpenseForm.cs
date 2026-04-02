@@ -320,24 +320,29 @@ namespace SantexnikaSRM.Forms
 
             Label lblType = new Label
             {
-                AutoSize = true,
+                AutoSize = false,
                 Left = 16,
                 Top = 18,
+                Height = 30,
                 Text = item.Type,
                 Font = new Font("Bahnschrift SemiBold", 15, FontStyle.Bold),
                 ForeColor = Color.FromArgb(44, 57, 76),
-                BackColor = Color.Transparent
+                BackColor = Color.Transparent,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true
             };
 
             Label lblDate = new Label
             {
-                AutoSize = true,
-                Left = 16 + TextRenderer.MeasureText(item.Type + "  ", lblType.Font).Width,
+                AutoSize = false,
                 Top = 22,
+                Height = 22,
+                Width = 92,
                 Text = item.Date.ToString("yyyy-MM-dd"),
                 Font = new Font("Bahnschrift", 10, FontStyle.Regular),
                 ForeColor = Color.FromArgb(122, 135, 156),
-                BackColor = Color.Transparent
+                BackColor = Color.Transparent,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             Label lblDesc = new Label
@@ -431,8 +436,21 @@ namespace SantexnikaSRM.Forms
                 int right = panel.Width - 16;
                 btnDelete.SetBounds(right - 98, 12, 98, 30);
                 btnEdit.SetBounds(btnDelete.Left - 8 - 98, 12, 98, 30);
+                int dateLeft = btnEdit.Left - 8 - lblDate.Width;
+                lblDate.Left = Math.Max(16, dateLeft);
+                int typeWidth = Math.Max(120, lblDate.Left - 10 - 16);
+                lblType.SetBounds(16, 18, typeWidth, 30);
                 lblAmount.Left = panel.Width - lblAmount.Width - 16;
             };
+            {
+                int right = panel.Width - 16;
+                btnDelete.SetBounds(right - 98, 12, 98, 30);
+                btnEdit.SetBounds(btnDelete.Left - 8 - 98, 12, 98, 30);
+                int dateLeft = btnEdit.Left - 8 - lblDate.Width;
+                lblDate.Left = Math.Max(16, dateLeft);
+                int typeWidth = Math.Max(120, lblDate.Left - 10 - 16);
+                lblType.SetBounds(16, 18, typeWidth, 30);
+            }
             lblAmount.Left = panel.Width - lblAmount.Width - 16;
 
             return panel;
