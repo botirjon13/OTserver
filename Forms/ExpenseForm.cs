@@ -202,11 +202,10 @@ namespace SantexnikaSRM.Forms
 
             Panel body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 18, 24, 24), BackColor = Color.White };
 
-            _recentList.Dock = DockStyle.Top;
-            _recentList.Height = 486;
+            _recentList.Dock = DockStyle.Fill;
             _recentList.FlowDirection = FlowDirection.TopDown;
             _recentList.WrapContents = false;
-            _recentList.AutoScroll = false;
+            _recentList.AutoScroll = true;
             _recentList.BackColor = Color.White;
             _recentList.Padding = new Padding(0);
             _recentList.Margin = new Padding(0);
