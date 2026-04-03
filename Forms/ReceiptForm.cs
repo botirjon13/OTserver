@@ -20,6 +20,9 @@ namespace SantexnikaSRM.Forms
         private readonly PictureBox _qrPreview = new PictureBox();
         private readonly Panel _receiptPaper = new Panel();
         private readonly PrintDocument _printDocument = new PrintDocument();
+        private string[] _printLines = Array.Empty<string>();
+        private int _printLineIndex;
+        private bool _printQrPrinted;
 
         public ReceiptForm(SaleReceipt receipt, AppUser user)
         {
@@ -202,6 +205,7 @@ namespace SantexnikaSRM.Forms
             root.Controls.Add(header);
 
             _printDocument.PrintPage += PrintDocument_PrintPage;
+            _printDocument.BeginPrint += PrintDocument_BeginPrint;
             _printDocument.DocumentName = $"Chek_{_receipt.ReceiptNumber}";
         }
 
@@ -286,6 +290,15 @@ namespace SantexnikaSRM.Forms
             }
         }
 
+        private void PrintDocument_BeginPrint(object? sender, PrintEventArgs e)
+        {
+            int mm = GetPaperWidthMm();
+            int chars = mm >= 80 ? 38 : 30;
+            _printLines = BuildReceiptText(chars).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            _printLineIndex = 0;
+            _printQrPrinted = false;
+        }
+
         private void PrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
         {
             if (e.Graphics == null)
@@ -293,23 +306,41 @@ namespace SantexnikaSRM.Forms
                 return;
             }
 
-            int mm = GetPaperWidthMm();
-            int chars = mm >= 80 ? 38 : 30;
-            string[] lines = BuildReceiptText(chars).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             using Font font = new Font("Consolas", 8.8f, FontStyle.Regular);
             float y = e.MarginBounds.Top;
             float lineH = e.Graphics.MeasureString("A", font).Height + 2;
             float x = e.MarginBounds.Left;
+            float bottom = e.MarginBounds.Bottom;
 
-            foreach (string line in lines)
+            while (_printLineIndex < _printLines.Length)
             {
+                if (y + lineH > bottom)
+                {
+                    e.HasMorePages = true;
+                    return;
+                }
+
+                string line = _printLines[_printLineIndex];
                 e.Graphics.DrawString(line, font, Brushes.Black, x, y);
                 y += lineH;
+                _printLineIndex++;
             }
 
-            using Image qr = BuildPseudoQr(_receipt.QrData, 110, 110);
-            float qrX = x + (e.MarginBounds.Width - qr.Width) / 2f;
-            e.Graphics.DrawImage(qr, qrX, y + 6);
+            if (!_printQrPrinted)
+            {
+                using Image qr = BuildPseudoQr(_receipt.QrData, 110, 110);
+                float qrTop = y + 6;
+                if (qrTop + qr.Height > bottom)
+                {
+                    e.HasMorePages = true;
+                    return;
+                }
+
+                float qrX = x + (e.MarginBounds.Width - qr.Width) / 2f;
+                e.Graphics.DrawImage(qr, qrX, qrTop);
+                _printQrPrinted = true;
+            }
+
             e.HasMorePages = false;
         }
 
