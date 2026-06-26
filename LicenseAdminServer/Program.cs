@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Data.Sqlite;
 using Npgsql;
 
@@ -58,6 +59,8 @@ string defaultSupportContact = Environment.GetEnvironmentVariable("DEFAULT_SUPPO
     ?? "Savdo bo'limi: +998 90 000 00 00 | Telegram: @your_support";
 string defaultFirstLoginUsername = Environment.GetEnvironmentVariable("CLIENT_BOOTSTRAP_USERNAME")?.Trim()
     ?? "admin";
+long maxClientBackupBytes = GetLongEnv("CLIENT_BACKUP_MAX_BYTES", 50L * 1024 * 1024);
+string[] allowedClientBackupExtensions = new[] { ".db", ".sqlite", ".sqlite3" };
 string releaseProxyBaseUrl = NormalizeReleaseProxyBaseUrl(
     Environment.GetEnvironmentVariable("RELEASE_FEED_SOURCE_URL")?.Trim()
     ?? "https://raw.githubusercontent.com/botirjon13/OTserver/main/releases");
@@ -1223,13 +1226,18 @@ app.MapGet("/api/admin/client/backups/{id:int}/download", (HttpContext context, 
     return Results.NotFound(new { ok = false, error = "Backup fayli topilmadi." });
 });
 
-app.MapPost("/api/client/telemetry/users", (ClientUserTelemetryRequest req) =>
+app.MapPost("/api/client/telemetry/users", (HttpContext context, ClientUserTelemetryRequest req) =>
 {
     string licenseKey = req.LicenseKey?.Trim() ?? string.Empty;
     string deviceId = req.DeviceId?.Trim() ?? string.Empty;
     if (string.IsNullOrWhiteSpace(licenseKey) || string.IsNullOrWhiteSpace(deviceId))
     {
         return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
+    }
+
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
     }
 
     if (!Db.IsClientAllowed(dbPath, licenseKey, deviceId))
@@ -1246,13 +1254,33 @@ app.MapPost("/api/client/telemetry/users", (ClientUserTelemetryRequest req) =>
 
 app.MapPost("/api/client/backups/upload", async (HttpContext context) =>
 {
-    var form = await context.Request.ReadFormAsync();
+    var maxBodyFeature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+    if (maxBodyFeature != null && !maxBodyFeature.IsReadOnly)
+    {
+        maxBodyFeature.MaxRequestBodySize = maxClientBackupBytes + 1024 * 1024;
+    }
+
+    IFormCollection form;
+    try
+    {
+        form = await context.Request.ReadFormAsync();
+    }
+    catch (BadHttpRequestException)
+    {
+        return Results.Json(new { ok = false, error = "Backup fayli juda katta." }, statusCode: StatusCodes.Status413PayloadTooLarge);
+    }
+
     string licenseKey = form["licenseKey"].ToString().Trim();
     string deviceId = form["deviceId"].ToString().Trim();
     string appVersion = form["appVersion"].ToString().Trim();
     if (string.IsNullOrWhiteSpace(licenseKey) || string.IsNullOrWhiteSpace(deviceId))
     {
         return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
+    }
+
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
     }
 
     if (!Db.IsClientAllowed(dbPath, licenseKey, deviceId))
@@ -1266,11 +1294,27 @@ app.MapPost("/api/client/backups/upload", async (HttpContext context) =>
         return Results.BadRequest(new { ok = false, error = "Backup fayli topilmadi." });
     }
 
+    if (file.Length > maxClientBackupBytes)
+    {
+        return Results.Json(new { ok = false, error = $"Backup fayli limiti: {maxClientBackupBytes / 1024 / 1024} MB." }, statusCode: StatusCodes.Status413PayloadTooLarge);
+    }
+
+    string extension = Path.GetExtension(file.FileName);
+    if (!allowedClientBackupExtensions.Any(x => string.Equals(x, extension, StringComparison.OrdinalIgnoreCase)))
+    {
+        return Results.BadRequest(new { ok = false, error = "Faqat SQLite backup fayllari (.db, .sqlite, .sqlite3) qabul qilinadi." });
+    }
+
     byte[] fileData;
-    await using (var stream = new MemoryStream())
+    await using (var stream = new MemoryStream((int)Math.Min(file.Length, int.MaxValue)))
     {
         await file.CopyToAsync(stream);
         fileData = stream.ToArray();
+    }
+
+    if (!LooksLikeSqliteDatabase(fileData))
+    {
+        return Results.BadRequest(new { ok = false, error = "Backup fayli SQLite database formatida emas." });
     }
 
     Db.InsertClientBackup(dbPath, licenseKey, deviceId, appVersion, file.FileName, null, fileData, file.Length);
@@ -1336,6 +1380,10 @@ app.MapGet("/api/client/password-resets/pending", (HttpContext context) =>
     {
         return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
     }
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
+    }
     if (!Db.IsClientAllowed(dbPath, licenseKey, deviceId))
     {
         return Results.Unauthorized();
@@ -1345,13 +1393,17 @@ app.MapGet("/api/client/password-resets/pending", (HttpContext context) =>
     return Results.Json(new { ok = true, items });
 });
 
-app.MapPost("/api/client/password-resets/{id:int}/ack", (int id, ClientPasswordResetAckRequest req) =>
+app.MapPost("/api/client/password-resets/{id:int}/ack", (HttpContext context, int id, ClientPasswordResetAckRequest req) =>
 {
     string licenseKey = req.LicenseKey?.Trim() ?? string.Empty;
     string deviceId = req.DeviceId?.Trim() ?? string.Empty;
     if (string.IsNullOrWhiteSpace(licenseKey) || string.IsNullOrWhiteSpace(deviceId))
     {
         return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
+    }
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
     }
     if (!Db.IsClientAllowed(dbPath, licenseKey, deviceId))
     {
@@ -1425,13 +1477,17 @@ app.MapPost("/api/activate", (HttpContext context, ActivationRequest req) =>
     }
 });
 
-app.MapPost("/api/client/first-login/{id:int}/ack", (int id, ClientFirstLoginAckRequest req) =>
+app.MapPost("/api/client/first-login/{id:int}/ack", (HttpContext context, int id, ClientFirstLoginAckRequest req) =>
 {
     string licenseKey = req.LicenseKey?.Trim() ?? string.Empty;
     string deviceId = req.DeviceId?.Trim() ?? string.Empty;
     if (string.IsNullOrWhiteSpace(licenseKey) || string.IsNullOrWhiteSpace(deviceId))
     {
         return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
+    }
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
     }
     if (!Db.IsClientAllowed(dbPath, licenseKey, deviceId))
     {
@@ -1442,14 +1498,21 @@ app.MapPost("/api/client/first-login/{id:int}/ack", (int id, ClientFirstLoginAck
     return Results.Json(new { ok = true });
 });
 
-app.MapPost("/api/heartbeat", (HeartbeatRequest req) =>
+app.MapPost("/api/heartbeat", (HttpContext context, HeartbeatRequest req) =>
 {
     if (string.IsNullOrWhiteSpace(req.LicenseKey) || string.IsNullOrWhiteSpace(req.DeviceId))
     {
         return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
     }
 
-    Db.Heartbeat(dbPath, req.LicenseKey.Trim(), req.DeviceId.Trim(), req.AppVersion?.Trim() ?? "-");
+    string licenseKey = req.LicenseKey.Trim();
+    string deviceId = req.DeviceId.Trim();
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
+    }
+
+    Db.Heartbeat(dbPath, licenseKey, deviceId, req.AppVersion?.Trim() ?? "-");
     return Results.Json(new { ok = true, at = DateTime.UtcNow.ToString("O") });
 });
 
@@ -1505,6 +1568,76 @@ static bool TryRequireApiAdmin(HttpContext context, string dbPath, string adminU
 
     context.Items["admin_username"] = admin.Username;
     context.Items["admin_role"] = admin.Role;
+
+    return true;
+}
+
+static bool TryRequireClientToken(HttpContext context, string licenseKey, string deviceId, string signingKey, out IResult? unauthorized)
+{
+    unauthorized = null;
+    string auth = context.Request.Headers.Authorization.ToString();
+    if (string.IsNullOrWhiteSpace(auth) || !auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        unauthorized = Results.Unauthorized();
+        return false;
+    }
+
+    string token = auth["Bearer ".Length..].Trim();
+    int separator = token.IndexOf('.');
+    if (separator <= 0 || separator >= token.Length - 1)
+    {
+        unauthorized = Results.Unauthorized();
+        return false;
+    }
+
+    string payloadPart = token[..separator];
+    string signature = token[(separator + 1)..].Trim();
+    string payloadJson;
+    try
+    {
+        payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(payloadPart));
+    }
+    catch
+    {
+        unauthorized = Results.Unauthorized();
+        return false;
+    }
+
+    string expectedSignature = Sign(payloadJson, signingKey);
+    if (!FixedTimeEqualsHex(signature, expectedSignature))
+    {
+        unauthorized = Results.Unauthorized();
+        return false;
+    }
+
+    try
+    {
+        using JsonDocument doc = JsonDocument.Parse(payloadJson);
+        JsonElement root = doc.RootElement;
+        string tokenLicenseKey = root.TryGetProperty("license_key", out JsonElement lk) ? lk.GetString() ?? string.Empty : string.Empty;
+        string tokenDeviceId = root.TryGetProperty("device_id", out JsonElement did) ? did.GetString() ?? string.Empty : string.Empty;
+        string? expiresAt = root.TryGetProperty("expires_at", out JsonElement exp) ? exp.GetString() : null;
+
+        if (!string.Equals(tokenLicenseKey, licenseKey, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(tokenDeviceId, deviceId, StringComparison.OrdinalIgnoreCase))
+        {
+            unauthorized = Results.Unauthorized();
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(expiresAt) &&
+            DateTime.TryParse(expiresAt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTime parsedExpiry) &&
+            DateTime.UtcNow.Date > parsedExpiry.ToUniversalTime().Date)
+        {
+            unauthorized = Results.Unauthorized();
+            return false;
+        }
+    }
+    catch
+    {
+        unauthorized = Results.Unauthorized();
+        return false;
+    }
 
     return true;
 }
@@ -1588,12 +1721,58 @@ static string? NormalizeDate(string? raw)
         : null;
 }
 
+static long GetLongEnv(string key, long fallback)
+{
+    string? raw = Environment.GetEnvironmentVariable(key);
+    return long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out long parsed) && parsed > 0
+        ? parsed
+        : fallback;
+}
+
+static bool LooksLikeSqliteDatabase(byte[] data)
+{
+    byte[] header = Encoding.ASCII.GetBytes("SQLite format 3\0");
+    if (data.Length < header.Length)
+    {
+        return false;
+    }
+
+    for (int i = 0; i < header.Length; i++)
+    {
+        if (data[i] != header[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static string Sign(string payload, string key)
 {
     byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
     byte[] keyBytes = Encoding.UTF8.GetBytes(key);
     using var hmac = new HMACSHA256(keyBytes);
     return Convert.ToHexString(hmac.ComputeHash(payloadBytes));
+}
+
+static bool FixedTimeEqualsHex(string actualHex, string expectedHex)
+{
+    if (actualHex.Length != expectedHex.Length)
+    {
+        return false;
+    }
+
+    try
+    {
+        byte[] actual = Convert.FromHexString(actualHex);
+        byte[] expected = Convert.FromHexString(expectedHex);
+        return CryptographicOperations.FixedTimeEquals(actual, expected);
+    }
+    catch
+    {
+        return false;
+    }
 }
 
 static string CsvEscape(string value)

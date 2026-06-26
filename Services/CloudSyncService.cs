@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -49,7 +50,9 @@ namespace SantexnikaSRM.Services
             {
                 string baseUrl = activation.ServerUrl.TrimEnd('/');
                 string url = $"{baseUrl}/api/client/password-resets/pending?licenseKey={Uri.EscapeDataString(activation.LicenseKey)}&deviceId={Uri.EscapeDataString(activation.DeviceId)}";
-                using var response = await Http.GetAsync(url);
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", activation.Token ?? string.Empty);
+                using var response = await Http.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
                     return;
@@ -86,7 +89,12 @@ namespace SantexnikaSRM.Services
                         applied,
                         note
                     };
-                    using var ackRes = await Http.PostAsJsonAsync($"{baseUrl}/api/client/password-resets/{item.Id}/ack", ack);
+                    using var ackRequest = ActivationService.CreateAuthorizedJsonRequest(
+                        HttpMethod.Post,
+                        $"{baseUrl}/api/client/password-resets/{item.Id}/ack",
+                        activation.Token ?? string.Empty,
+                        ack);
+                    using var ackRes = await Http.SendAsync(ackRequest);
                     _ = ackRes.IsSuccessStatusCode;
                 }
             }
@@ -110,7 +118,12 @@ namespace SantexnikaSRM.Services
                     usernames = users.Select(u => u.Username ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
                 };
 
-                using var response = await Http.PostAsJsonAsync($"{activation.ServerUrl.TrimEnd('/')}/api/client/telemetry/users", payload);
+                using var request = ActivationService.CreateAuthorizedJsonRequest(
+                    HttpMethod.Post,
+                    $"{activation.ServerUrl.TrimEnd('/')}/api/client/telemetry/users",
+                    activation.Token,
+                    payload);
+                using var response = await Http.SendAsync(request);
                 _ = response.IsSuccessStatusCode;
             }
             catch
@@ -144,7 +157,12 @@ namespace SantexnikaSRM.Services
                 var fileContent = new StreamContent(fs);
                 form.Add(fileContent, "file", Path.GetFileName(backupPath));
 
-                using var response = await Http.PostAsync($"{activation.ServerUrl.TrimEnd('/')}/api/client/backups/upload", form);
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"{activation.ServerUrl.TrimEnd('/')}/api/client/backups/upload")
+                {
+                    Content = form
+                };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", activation.Token ?? string.Empty);
+                using var response = await Http.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
                     File.WriteAllText(markerPath, currentMonth);

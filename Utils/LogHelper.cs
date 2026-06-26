@@ -1,12 +1,11 @@
 using System;
 using System.IO;
-using SantexnikaSRM.Data;
 
 namespace SantexnikaSRM.Utils
 {
     public static class LogHelper
     {
-        private static readonly string logFilePath = Path.Combine(Database.GetAppDataRoot(), "log.txt");
+        private static readonly string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log.txt");
 
         public static void WriteLog(string message)
         {

@@ -38,10 +38,8 @@ namespace SantexnikaSRM.Services
                     try
                     {
                         double totalProfit = 0;
-                        double lineTotalSales = 0;
-                        double subtotalSales = sale.SubtotalUZS > 0 ? sale.SubtotalUZS : sale.Items.Sum(x => x.Quantity * x.SellPriceUZS);
-                        double totalDiscount = sale.DiscountUZS > 0 ? sale.DiscountUZS : sale.Items.Sum(x => x.DiscountUZS);
-                        double requestedFinalTotal = sale.TotalUZS > 0 ? sale.TotalUZS : Math.Max(0, subtotalSales - totalDiscount);
+                        double netLineTotal = 0;
+                        double itemDiscountTotal = 0;
 
                         foreach (var item in sale.Items)
                         {
@@ -75,9 +73,16 @@ namespace SantexnikaSRM.Services
                                 throw new Exception($"Mahsulot yetarli emas (Id={item.ProductId}). Omborda: {currentQuantity}, so'ralgan: {item.Quantity}.");
                             }
 
+                            if (item.DiscountUZS < 0)
+                            {
+                                throw new Exception("Chegirma manfiy bo'lmasligi kerak.");
+                            }
+
+                            double lineNetTotal = item.SellPriceUZS * item.Quantity;
                             double profitPerItem = item.SellPriceUZS - purchasePriceUZS;
-                            
-                            lineTotalSales += (item.SellPriceUZS * item.Quantity);
+
+                            netLineTotal += lineNetTotal;
+                            itemDiscountTotal += item.DiscountUZS;
                             totalProfit += (profitPerItem * item.Quantity);
 
                             var updateQtyCmd = connection.CreateCommand();
@@ -88,7 +93,23 @@ namespace SantexnikaSRM.Services
                             updateQtyCmd.ExecuteNonQuery();
                         }
 
-                        if (Math.Abs(lineTotalSales - requestedFinalTotal) > 1.0)
+                        double totalDiscount = sale.DiscountUZS > 0 ? sale.DiscountUZS : itemDiscountTotal;
+                        double subtotalSales = sale.SubtotalUZS > 0 ? sale.SubtotalUZS : netLineTotal + totalDiscount;
+                        double requestedFinalTotal = sale.TotalUZS > 0 ? sale.TotalUZS : netLineTotal;
+                        double calculatedFinalTotal = Math.Max(0, subtotalSales - totalDiscount);
+
+                        if (subtotalSales + 0.000001 < totalDiscount)
+                        {
+                            throw new Exception("Chegirma jami summadan oshmasligi kerak.");
+                        }
+
+                        if (Math.Abs(itemDiscountTotal - totalDiscount) > 1.0)
+                        {
+                            throw new Exception("Umumiy chegirma va item chegirmalari mos emas. Sotuv qayta hisoblab ko'ring.");
+                        }
+
+                        if (Math.Abs(netLineTotal - requestedFinalTotal) > 1.0 ||
+                            Math.Abs(calculatedFinalTotal - requestedFinalTotal) > 1.0)
                         {
                             throw new Exception("Jami summa va item summalari mos emas. Sotuv qayta hisoblab ko'ring.");
                         }

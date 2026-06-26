@@ -3,8 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SantexnikaSRM", "SantexnikaSRM.csproj", "{B4C980BF-AAA4-7F7D-DEB4-676BEEF6FB54}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7E9D66F8-8AE6-4FE7-B3A3-622A3A0B1401} = {7E9D66F8-8AE6-4FE7-B3A3-622A3A0B1401}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LicenseAdminServer", "LicenseAdminServer\LicenseAdminServer.csproj", "{7E9D66F8-8AE6-4FE7-B3A3-622A3A0B1401}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C4FDDF85-0E95-447A-B713-BB75AB8E00EE} = {C4FDDF85-0E95-447A-B713-BB75AB8E00EE}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LicenseAdminClient", "LicenseAdminClient\LicenseAdminClient.csproj", "{C4FDDF85-0E95-447A-B713-BB75AB8E00EE}"
 EndProject

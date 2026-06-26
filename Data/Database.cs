@@ -32,9 +32,12 @@ namespace SantexnikaSRM.Data
 
         public static string GetAppDataRoot()
         {
-            string root = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                AppDataFolderName);
+            string? overrideRoot = Environment.GetEnvironmentVariable("OSONTRACK_APPDATA_ROOT");
+            string root = string.IsNullOrWhiteSpace(overrideRoot)
+                ? Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    AppDataFolderName)
+                : overrideRoot.Trim();
             Directory.CreateDirectory(root);
             return root;
         }

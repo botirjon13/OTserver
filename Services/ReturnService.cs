@@ -291,15 +291,16 @@ namespace SantexnikaSRM.Services
                         throw new Exception($"\"{line.ProductName}\" bo'yicha qaytarish miqdori katta. Maksimal: {line.AvailableQty:0.##}");
                     }
 
+                    double netUnitPrice = line.UnitPriceUZS;
                     double perUnitDiscount = line.SoldQty > 0 ? line.LineDiscountUZS / line.SoldQty : 0;
                     double lineDiscount = perUnitDiscount * qty;
-                    double lineTotal = line.UnitPriceUZS * qty;
-                    double lineSubtotal = lineTotal + lineDiscount;
+                    double lineNetTotal = netUnitPrice * qty;
+                    double lineGrossSubtotal = lineNetTotal + lineDiscount;
 
-                    returnSubtotal += lineSubtotal;
+                    returnSubtotal += lineGrossSubtotal;
                     returnDiscount += lineDiscount;
-                    returnTotal += lineTotal;
-                    profitReduction += (line.UnitPriceUZS - line.PurchasePriceUZS) * qty;
+                    returnTotal += lineNetTotal;
+                    profitReduction += (netUnitPrice - line.PurchasePriceUZS) * qty;
                 }
 
                 if (returnTotal <= 0)
@@ -319,7 +320,7 @@ namespace SantexnikaSRM.Services
                 insertHead.Parameters.AddWithValue("@subtotal", returnSubtotal);
                 insertHead.Parameters.AddWithValue("@discount", returnDiscount);
                 insertHead.Parameters.AddWithValue("@total", returnTotal);
-                insertHead.Parameters.AddWithValue("@profitReduction", Math.Max(0, profitReduction));
+                insertHead.Parameters.AddWithValue("@profitReduction", profitReduction);
                 insertHead.Parameters.AddWithValue("@user", currentUser.Username ?? string.Empty);
                 int returnId = Convert.ToInt32(insertHead.ExecuteScalar(), CultureInfo.InvariantCulture);
 
@@ -330,9 +331,10 @@ namespace SantexnikaSRM.Services
                         continue;
                     }
 
+                    double netUnitPrice = line.UnitPriceUZS;
                     double perUnitDiscount = line.SoldQty > 0 ? line.LineDiscountUZS / line.SoldQty : 0;
                     double lineDiscount = perUnitDiscount * qty;
-                    double lineTotal = line.UnitPriceUZS * qty;
+                    double lineNetTotal = netUnitPrice * qty;
 
                     var insertLine = connection.CreateCommand();
                     insertLine.Transaction = tx;
@@ -343,9 +345,9 @@ namespace SantexnikaSRM.Services
                     insertLine.Parameters.AddWithValue("@saleItemId", saleItemId);
                     insertLine.Parameters.AddWithValue("@productId", line.ProductId);
                     insertLine.Parameters.AddWithValue("@qty", qty);
-                    insertLine.Parameters.AddWithValue("@unitPrice", line.UnitPriceUZS);
+                    insertLine.Parameters.AddWithValue("@unitPrice", netUnitPrice);
                     insertLine.Parameters.AddWithValue("@discount", lineDiscount);
-                    insertLine.Parameters.AddWithValue("@lineTotal", lineTotal);
+                    insertLine.Parameters.AddWithValue("@lineTotal", lineNetTotal);
                     insertLine.ExecuteNonQuery();
 
                     var stockUpdate = connection.CreateCommand();

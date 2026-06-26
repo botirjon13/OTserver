@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -293,7 +294,12 @@ namespace SantexnikaSRM.Services
                             applied = firstLoginApplied,
                             note = firstLoginNote
                         };
-                        _ = await Http.PostAsJsonAsync($"{serverUrl}/api/client/first-login/{firstLoginId.Value}/ack", ackPayload);
+                        using var ackRequest = CreateAuthorizedJsonRequest(
+                            HttpMethod.Post,
+                            $"{serverUrl}/api/client/first-login/{firstLoginId.Value}/ack",
+                            record.Token,
+                            ackPayload);
+                        _ = await Http.SendAsync(ackRequest);
                     }
                     catch
                     {
@@ -363,7 +369,12 @@ namespace SantexnikaSRM.Services
 
             try
             {
-                using var response = await Http.PostAsJsonAsync($"{activation.ServerUrl.TrimEnd('/')}/api/heartbeat", payload);
+                using var request = CreateAuthorizedJsonRequest(
+                    HttpMethod.Post,
+                    $"{activation.ServerUrl.TrimEnd('/')}/api/heartbeat",
+                    activation.Token,
+                    payload);
+                using var response = await Http.SendAsync(request);
                 _ = response.IsSuccessStatusCode;
             }
             catch
@@ -378,6 +389,16 @@ namespace SantexnikaSRM.Services
             byte[] json = JsonSerializer.SerializeToUtf8Bytes(record);
             byte[] encrypted = ProtectedData.Protect(json, null, DataProtectionScope.CurrentUser);
             File.WriteAllBytes(file, encrypted);
+        }
+
+        internal static HttpRequestMessage CreateAuthorizedJsonRequest<T>(HttpMethod method, string url, string token, T payload)
+        {
+            var request = new HttpRequestMessage(method, url)
+            {
+                Content = JsonContent.Create(payload)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token ?? string.Empty);
+            return request;
         }
 
         private static string ReadMachineGuid()
