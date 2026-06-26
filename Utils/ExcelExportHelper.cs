@@ -59,9 +59,30 @@ namespace SantexnikaSRM.Utils
             List<SaleReportRow> sales,
             List<Expense> expenses,
             double usdRate,
-            string filePath)
+            string filePath,
+            double summarySalesUzs,
+            double summaryProfitUzs,
+            double summaryExpensesUzs,
+            double summaryNetProfitUzs)
         {
             using var workbook = new XLWorkbook();
+
+            var summarySheet = workbook.Worksheets.Add("Xulosa");
+            summarySheet.Cell(1, 1).Value = "Ko'rsatkich";
+            summarySheet.Cell(1, 2).Value = "Summa UZS";
+            summarySheet.Range(1, 1, 1, 2).Style.Font.Bold = true;
+
+            summarySheet.Cell(2, 1).Value = "Jami sotuv";
+            summarySheet.Cell(2, 2).Value = summarySalesUzs;
+            summarySheet.Cell(3, 1).Value = "Jami foyda";
+            summarySheet.Cell(3, 2).Value = summaryProfitUzs;
+            summarySheet.Cell(4, 1).Value = "Jami xarajat";
+            summarySheet.Cell(4, 2).Value = summaryExpensesUzs;
+            summarySheet.Cell(5, 1).Value = "Sof foyda";
+            summarySheet.Cell(5, 2).Value = summaryNetProfitUzs;
+            summarySheet.Range(5, 1, 5, 2).Style.Font.Bold = true;
+            summarySheet.Column(2).Style.NumberFormat.Format = "#,##0";
+            summarySheet.Columns().AdjustToContents();
 
             var salesSheet = workbook.Worksheets.Add("Savdo");
             salesSheet.Cell(1, 1).Value = "Mahsulot nomi";

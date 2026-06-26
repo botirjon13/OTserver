@@ -210,10 +210,22 @@ namespace SantexnikaSRM.Services
             string endDate = to.Date.ToString("yyyy-MM-dd 23:59:59");
 
             cmd.CommandText = @"
-                SELECT p.Name, si.Quantity, si.SellPriceUZS, p.PurchasePriceUZS
+                WITH returned AS (
+                    SELECT ri.SaleItemId,
+                           SUM(ri.Quantity) AS ReturnedQuantity
+                    FROM ReturnItems ri
+                    INNER JOIN Returns r ON r.Id = ri.ReturnId
+                    GROUP BY ri.SaleItemId
+                )
+                SELECT p.Name,
+                       si.Quantity,
+                       IFNULL(returned.ReturnedQuantity, 0),
+                       si.SellPriceUZS,
+                       p.PurchasePriceUZS
                 FROM SaleItems si
                 INNER JOIN Sales s ON s.Id = si.SaleId
                 INNER JOIN Products p ON p.Id = si.ProductId
+                LEFT JOIN returned ON returned.SaleItemId = si.Id
                 WHERE s.Date BETWEEN @from AND @to
                 ORDER BY s.Date DESC";
 
@@ -225,20 +237,22 @@ namespace SantexnikaSRM.Services
             {
                 string productName = reader.GetString(0);
                 double quantity = reader.GetDouble(1);
-                double sellPriceUzs = reader.GetDouble(2);
-                double purchasePriceUzs = reader.GetDouble(3);
+                double returnedQuantity = reader.GetDouble(2);
+                double sellPriceUzs = reader.GetDouble(3);
+                double purchasePriceUzs = reader.GetDouble(4);
+                double netQuantity = Math.Max(0, quantity - returnedQuantity);
 
-                double soldAmountUzs = sellPriceUzs * quantity;
+                double soldAmountUzs = sellPriceUzs * netQuantity;
                 double soldAmountUsd = usdRate > 0 ? soldAmountUzs / usdRate : 0;
 
-                double purchaseAmountUzs = purchasePriceUzs * quantity;
+                double purchaseAmountUzs = purchasePriceUzs * netQuantity;
                 double profitUzs = soldAmountUzs - purchaseAmountUzs;
                 double profitUsd = usdRate > 0 ? profitUzs / usdRate : 0;
 
                 rows.Add(new SaleReportRow
                 {
                     ProductName = productName,
-                    Quantity = quantity,
+                    Quantity = netQuantity,
                     SoldAmountUSD = soldAmountUsd,
                     SoldAmountUZS = soldAmountUzs,
                     ProfitUSD = profitUsd,

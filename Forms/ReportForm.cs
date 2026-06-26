@@ -654,6 +654,7 @@ namespace SantexnikaSRM.Forms
             {
                 DateTime startDate = _dtFrom.Value.Date;
                 DateTime endDate = _dtTo.Value.Date.AddDays(1).AddSeconds(-1);
+                var result = _service.GetMonthlyReport(startDate, _dtTo.Value.Date, _currentUser);
                 double usdRate = _saleService.GetCurrentRate();
                 var sales = _saleService.GetSaleReportRows(startDate, endDate, usdRate, _currentUser);
                 var expenses = _expenseService.GetByDateRange(startDate, endDate, _currentUser);
@@ -673,7 +674,11 @@ namespace SantexnikaSRM.Forms
                     sales,
                     expenses,
                     usdRate,
-                    dialog.FileName);
+                    dialog.FileName,
+                    result.totalSales,
+                    result.totalProfit,
+                    result.totalExpenses,
+                    result.netProfit);
 
                 MessageBox.Show("Hisobot Excel fayliga eksport qilindi.", "Tayyor", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
