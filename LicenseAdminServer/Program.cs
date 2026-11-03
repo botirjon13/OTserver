@@ -107,141 +107,93 @@ app.Use(async (context, next) =>
 
 app.MapGet("/", () => Results.Redirect("/admin"));
 
+// Shared Modern CSS Style Block
+const string SharedCss = """
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+body { background: #0b0f19; color: #f1f5f9; min-height: 100vh; padding: 24px 16px; }
+.wrap { max-width: 1200px; margin: 0 auto; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.header-title h2 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header-title p { font-size: 13px; color: #64748b; margin-top: 2px; }
+.card { background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+.card h3 { font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 14px; padding: 18px; position: relative; overflow: hidden; }
+.stat-card .k { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; }
+.stat-card .v { font-size: 28px; font-weight: 800; color: #fff; margin-top: 8px; }
+.actions-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.nav-link { text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #94a3b8; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s; }
+.nav-link:hover, .nav-link.active { background: #3b82f6; color: #fff; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th { background: rgba(30, 41, 59, 0.8); color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+td { font-size: 13px; color: #cbd5e1; padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); vertical-align: middle; }
+tr:hover td { background: rgba(255, 255, 255, 0.02); }
+input, textarea { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 13px; outline: none; transition: 0.2s; }
+input:focus, textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+button, .btn { background: #3b82f6; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+button:hover, .btn:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
+.btn-success { background: #10b981; } .btn-success:hover { background: #059669; }
+.back-link { display: inline-flex; align-items: center; color: #38bdf8; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+.back-link:hover { text-decoration: underline; }
+.row-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+</style>
+""";
+
 app.MapGet("/admin/login", (HttpContext context) =>
 {
     string csrf = EnsureCsrfToken(context);
     string html = """
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>Admin Login</title>
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:32px}
-.card{max-width:420px;margin:40px auto;background:#fff;border-radius:14px;padding:24px;box-shadow:0 8px 24px rgba(32,56,85,.12)}
-h2{margin:0 0 18px;color:#233a5a} label{display:block;font-size:13px;color:#4a607f;margin:10px 0 6px}
-input{width:100%;padding:10px 12px;border:1px solid #cad6e6;border-radius:10px;font-size:14px}
-button{margin-top:14px;width:100%;padding:10px;border:none;border-radius:10px;background:#2f6fd8;color:#fff;font-weight:700;cursor:pointer}
-p{font-size:12px;color:#6f84a2}
-
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
-<body><div class="card">
-<h2>License Admin Login</h2>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Plus Jakarta Sans',sans-serif; }
+body { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#0b0f19; background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%); color:#f8fafc; padding:20px; }
+.login-card { width:100%; max-width:400px; background:rgba(15, 23, 42, 0.75); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:36px 28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); }
+.header { text-align:center; margin-bottom:28px; }
+.header h2 { font-size:22px; font-weight:800; background:linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
+.header p { font-size:13px; color:#94a3b8; }
+.form-group { margin-bottom:18px; }
+.form-group label { display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+.form-group input { width:100%; padding:12px 14px; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:14px; outline:none; transition:0.2s; }
+.form-group input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99, 102, 241, 0.2); }
+input:-webkit-autofill { -webkit-text-fill-color:#fff; -webkit-box-shadow:0 0 0px 1000px #0f172a inset; }
+.btn-login { width:100%; padding:12px; background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.3); margin-top:8px; transition:0.2s; }
+.btn-login:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 6px 16px rgba(99,102,241,0.4); }
+.footer-text { margin-top:20px; text-align:center; font-size:12px; color:#64748b; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px; }
+</style>
+</head>
+<body>
+<div class="login-card">
+<div class="header">
+<h2>License Admin Portal</h2>
+<p>Boshqaruv paneliga xavfsiz kirish</p>
+</div>
 <form method="post" action="/admin/login">
 <input type="hidden" name="csrf" value="__CSRF__" />
-<label>Login</label><input name="username" required />
-<label>Parol</label><input type="password" name="password" required />
-<button type="submit">Kirish</button>
+<div class="form-group">
+<label>Login</label>
+<input name="username" placeholder="Loginni kiriting" required autocomplete="off" />
+</div>
+<div class="form-group">
+<label>Parol</label>
+<input type="password" name="password" placeholder="••••••••" required />
+</div>
+<button class="btn-login" type="submit">Kirish</button>
 </form>
-<p>Default: admin / change-me (env orqali almashtiring)</p>
-</div></body></html>
+<div class="footer-text">
+Default: admin / change-me (env orqali almashtiring)
+</div>
+</div>
+</body>
+</html>
 """;
     html = html.Replace("__CSRF__", HttpUtility.HtmlEncode(csrf));
     return Results.Content(html, "text/html; charset=utf-8");
@@ -304,152 +256,43 @@ app.MapGet("/admin", (HttpContext context) =>
     var stats = Db.GetDashboardStats(dbPath);
     string html = $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>License Admin</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:20px;color:#203656}
-.top{display:flex;justify-content:space-between;align-items:center;max-width:1050px;margin:0 auto 16px}
-.btn{border:none;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
-.logout{background:#eb5757;color:#fff}
-.wrap{max-width:1050px;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(33,59,95,.08)}
-.k{font-size:12px;color:#6f84a2}.v{font-size:24px;font-weight:800;margin-top:6px}
-.actions{display:flex;gap:10px;margin-top:14px}
-a.x{display:inline-block;background:#2f6fd8;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;font-weight:700}
-a.y{display:inline-block;background:#0f9d58;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;font-weight:700}
-a.z{display:inline-block;background:#8e44ad;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;font-weight:700}
-a.w{display:inline-block;background:#e67e22;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;font-weight:700}
-
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>License Admin - Dashboard</title>
+{{SharedCss}}
+</head>
 <body>
-<div class="top"><h2>License Admin Panel</h2>
-<form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="{{HttpUtility.HtmlEncode(csrf)}}" /><button class="btn logout" type="submit">Chiqish</button></form></div>
 <div class="wrap">
+<div class="header-top">
+<div class="header-title">
+<h2>License Admin Panel</h2>
+<p>Boshqaruv va monitoring statistikasi</p>
+</div>
+<form method="post" action="/admin/logout">
+<input type="hidden" name="csrf" value="{{HttpUtility.HtmlEncode(csrf)}}" />
+<button class="btn btn-danger" type="submit">Chiqish</button>
+</form>
+</div>
+
 <div class="grid">
-<div class="card"><div class="k">Jami license</div><div class="v">{{stats.TotalLicenses}}</div></div>
-<div class="card"><div class="k">Aktiv license</div><div class="v">{{stats.ActiveLicenses}}</div></div>
-<div class="card"><div class="k">Jami qurilma</div><div class="v">{{stats.TotalDevices}}</div></div>
-<div class="card"><div class="k">Bugun online</div><div class="v">{{stats.ActiveToday}}</div></div>
+<div class="stat-card"><div class="k">Jami License</div><div class="v">{{stats.TotalLicenses}}</div></div>
+<div class="stat-card"><div class="k">Aktiv License</div><div class="v" style="color:#34d399">{{stats.ActiveLicenses}}</div></div>
+<div class="stat-card"><div class="k">Jami Qurilma</div><div class="v">{{stats.TotalDevices}}</div></div>
+<div class="stat-card"><div class="k">Bugun Online</div><div class="v" style="color:#38bdf8">{{stats.ActiveToday}}</div></div>
 </div>
-<div class="actions">
-<a class="x" href="/admin/licenses">License boshqarish</a>
-<a class="y" href="/admin/devices">Qurilmalar ro'yxati</a>
-<a class="z" href="/admin/clients">Mijozlar</a>
-<a class="w" href="/admin/settings">Sozlamalar</a>
-<a class="x" href="/admin/audit">Audit</a>
+
+<div class="actions-nav">
+<a class="nav-link active" href="/admin/licenses">License boshqarish</a>
+<a class="nav-link" href="/admin/devices">Qurilmalar ro'yxati</a>
+<a class="nav-link" href="/admin/clients">Mijozlar</a>
+<a class="nav-link" href="/admin/settings">Sozlamalar</a>
+<a class="nav-link" href="/admin/audit">Audit Logs</a>
 </div>
 </div>
-</body></html>
+</body>
+</html>
 """;
     return Results.Content(html, "text/html; charset=utf-8");
 });
@@ -459,149 +302,44 @@ app.MapGet("/admin/licenses", (HttpContext context) =>
     string csrf = EnsureCsrfToken(context);
     var rows = Db.GetLicenses(dbPath);
     string items = string.Join("", rows.Select(r =>
-        $"<tr><td>{r.Id}</td><td>{HttpUtility.HtmlEncode(r.LicenseKey)}</td><td>{HttpUtility.HtmlEncode(r.CustomerName)}</td><td>{r.MaxDevices}</td><td>{HttpUtility.HtmlEncode(r.Status)}</td><td>{HttpUtility.HtmlEncode(r.ExpiresAt ?? "-")}</td><td><form method='post' action='/admin/licenses/{r.Id}/toggle'><input type='hidden' name='csrf' value='{HttpUtility.HtmlEncode(csrf)}' /><button type='submit'>{(r.Status == "Active" ? "Block" : "Activate")}</button></form></td></tr>"));
+        $"<tr><td>#{r.Id}</td><td><code style='color:#38bdf8'>{HttpUtility.HtmlEncode(r.LicenseKey)}</code></td><td><b>{HttpUtility.HtmlEncode(r.CustomerName)}</b></td><td>{r.MaxDevices} ta</td><td><span style='padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;background:{(r.Status == "Active" ? "rgba(16,185,129,0.15);color:#34d399" : "rgba(239,68,68,0.15);color:#f87171")}'>{HttpUtility.HtmlEncode(r.Status)}</span></td><td>{HttpUtility.HtmlEncode(r.ExpiresAt ?? "-")}</td><td><form method='post' action='/admin/licenses/{r.Id}/toggle'><input type='hidden' name='csrf' value='{HttpUtility.HtmlEncode(csrf)}' /><button type='submit' class='btn {(r.Status == "Active" ? "btn-danger" : "btn-success")}' style='padding:6px 12px;font-size:12px'>{(r.Status == "Active" ? "Block" : "Activate")}</button></form></td></tr>"));
 
     string html = $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>Licenses</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:20px;color:#203656}
-.wrap{max-width:1100px;margin:0 auto}.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(33,59,95,.08);margin-bottom:12px}
-table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e4ebf5;padding:8px;font-size:13px;text-align:left}
-input{padding:8px;border:1px solid #cad6e6;border-radius:8px}
-button{padding:8px 12px;border:none;background:#2f6fd8;color:#fff;border-radius:8px;cursor:pointer}
-a{color:#2f6fd8;text-decoration:none;font-weight:700}
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Licenses - Admin</title>
+{{SharedCss}}
+</head>
+<body>
+<div class="wrap">
+<a href="/admin" class="back-link">← Dashboardga qaytish</a>
 
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
-<body><div class="wrap">
-<p><a href="/admin">← Dashboard</a></p>
 <div class="card">
 <h3>Yangi license yaratish</h3>
-<form method="post" action="/admin/licenses/create">
+<form method="post" action="/admin/licenses/create" class="row-form">
 <input type="hidden" name="csrf" value="{{HttpUtility.HtmlEncode(csrf)}}" />
-<input name="customerName" placeholder="Mijoz nomi" required />
-<input name="maxDevices" type="number" min="1" value="1" required />
-<input name="expiresAt" placeholder="YYYY-MM-DD (ixtiyoriy)" />
-<button type="submit">Yaratish</button>
+<input name="customerName" placeholder="Mijoz nomi" required style="flex:1;min-width:180px"/>
+<input name="maxDevices" type="number" min="1" value="1" required style="width:120px"/>
+<input name="expiresAt" placeholder="YYYY-MM-DD (ixtiyoriy)" style="width:180px"/>
+<button type="submit" class="btn-success">Yaratish</button>
 </form>
 </div>
+
 <div class="card">
 <h3>License ro'yxati</h3>
+<div style="overflow-x:auto">
 <table>
 <thead><tr><th>ID</th><th>Key</th><th>Mijoz</th><th>Qurilma limiti</th><th>Holat</th><th>Muddat</th><th>Amal</th></tr></thead>
 <tbody>{{items}}</tbody>
 </table>
-</div></div></body></html>
+</div>
+</div>
+</div>
+</body>
+</html>
 """;
     return Results.Content(html, "text/html; charset=utf-8");
 });
@@ -667,135 +405,32 @@ app.MapGet("/admin/devices", () =>
 {
     var rows = Db.GetDevices(dbPath);
     string items = string.Join("", rows.Select(r =>
-        $"<tr><td>{r.Id}</td><td>{HttpUtility.HtmlEncode(r.LicenseKey)}</td><td>{HttpUtility.HtmlEncode(r.DeviceId)}</td><td>{HttpUtility.HtmlEncode(r.DeviceName)}</td><td>{HttpUtility.HtmlEncode(r.AppVersion)}</td><td>{HttpUtility.HtmlEncode(r.FirstSeenAt)}</td><td>{HttpUtility.HtmlEncode(r.LastSeenAt)}</td></tr>"));
+        $"<tr><td>#{r.Id}</td><td><code style='color:#38bdf8'>{HttpUtility.HtmlEncode(r.LicenseKey)}</code></td><td><code style='color:#a78bfa'>{HttpUtility.HtmlEncode(r.DeviceId)}</code></td><td>{HttpUtility.HtmlEncode(r.DeviceName)}</td><td><span style='padding:2px 6px;background:rgba(255,255,255,0.05);border-radius:4px'>{HttpUtility.HtmlEncode(r.AppVersion)}</span></td><td>{HttpUtility.HtmlEncode(r.FirstSeenAt)}</td><td>{HttpUtility.HtmlEncode(r.LastSeenAt)}</td></tr>"));
 
     string html = $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>Devices</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:20px;color:#203656}
-.wrap{max-width:1100px;margin:0 auto}.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(33,59,95,.08)}
-table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e4ebf5;padding:8px;font-size:13px;text-align:left}
-a{color:#2f6fd8;text-decoration:none;font-weight:700}
-
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
-<body><div class="wrap">
-<p><a href="/admin">← Dashboard</a></p>
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Qurilmalar - Admin</title>
+{{SharedCss}}
+</head>
+<body>
+<div class="wrap">
+<a href="/admin" class="back-link">← Dashboardga qaytish</a>
 <div class="card">
-<h3>Qurilmalar</h3>
-<table><thead><tr><th>ID</th><th>License</th><th>Device ID</th><th>Device nomi</th><th>Versiya</th><th>Birinchi ko'rilgan</th><th>Oxirgi ko'rilgan</th></tr></thead>
-<tbody>{{items}}</tbody></table>
-</div></div></body></html>
+<h3>Qurilmalar ro'yxati</h3>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>ID</th><th>License</th><th>Device ID</th><th>Device nomi</th><th>Versiya</th><th>Birinchi ko'rilgan</th><th>Oxirgi ko'rilgan</th></tr></thead>
+<tbody>{{items}}</tbody>
+</table>
+</div>
+</div>
+</div>
+</body>
+</html>
 """;
     return Results.Content(html, "text/html; charset=utf-8");
 });
@@ -812,171 +447,71 @@ app.MapGet("/admin/clients", (HttpContext context) =>
     var backups = Db.GetClientBackupRows(dbPath, licenseKey, deviceId, 100);
 
     string telemetryRows = string.Join("", telemetry.Select(t =>
-        $"<tr><td>{t.Id}</td><td>{HttpUtility.HtmlEncode(t.LicenseKey)}</td><td>{HttpUtility.HtmlEncode(t.DeviceId)}</td><td>{t.UserCount}</td><td>{HttpUtility.HtmlEncode(t.UsernamesJson)}</td><td>{HttpUtility.HtmlEncode(t.CreatedAt)}</td></tr>"));
+        $"<tr><td>#{t.Id}</td><td><code style='color:#38bdf8'>{HttpUtility.HtmlEncode(t.LicenseKey)}</code></td><td><code>{HttpUtility.HtmlEncode(t.DeviceId)}</code></td><td>{t.UserCount} ta</td><td>{HttpUtility.HtmlEncode(t.UsernamesJson)}</td><td>{HttpUtility.HtmlEncode(t.CreatedAt)}</td></tr>"));
     string firstRows = string.Join("", firstLogins.Select(f =>
-        $"<tr><td>{f.Id}</td><td>{HttpUtility.HtmlEncode(f.LicenseKey)}</td><td>{HttpUtility.HtmlEncode(f.DeviceId)}</td><td>{HttpUtility.HtmlEncode(f.Username)}</td><td>{HttpUtility.HtmlEncode(MaskSecret(f.TempPassword))}</td><td>{HttpUtility.HtmlEncode(f.Status)}</td><td>{HttpUtility.HtmlEncode(f.CreatedAt)}</td><td>{HttpUtility.HtmlEncode(f.AppliedAt ?? "-")}</td></tr>"));
+        $"<tr><td>#{f.Id}</td><td><code style='color:#38bdf8'>{HttpUtility.HtmlEncode(f.LicenseKey)}</code></td><td><code>{HttpUtility.HtmlEncode(f.DeviceId)}</code></td><td><b>{HttpUtility.HtmlEncode(f.Username)}</b></td><td><code>{HttpUtility.HtmlEncode(MaskSecret(f.TempPassword))}</code></td><td>{HttpUtility.HtmlEncode(f.Status)}</td><td>{HttpUtility.HtmlEncode(f.CreatedAt)}</td><td>{HttpUtility.HtmlEncode(f.AppliedAt ?? "-")}</td></tr>"));
     string resetRows = string.Join("", resets.Select(r =>
-        $"<tr><td>{r.Id}</td><td>{HttpUtility.HtmlEncode(r.LicenseKey)}</td><td>{HttpUtility.HtmlEncode(r.DeviceId ?? "-")}</td><td>{HttpUtility.HtmlEncode(r.Username)}</td><td>{HttpUtility.HtmlEncode(MaskSecret(r.TempPassword))}</td><td>{HttpUtility.HtmlEncode(r.Status)}</td><td>{HttpUtility.HtmlEncode(r.CreatedAt)}</td><td>{HttpUtility.HtmlEncode(r.AppliedAt ?? "-")}</td></tr>"));
+        $"<tr><td>#{r.Id}</td><td><code style='color:#38bdf8'>{HttpUtility.HtmlEncode(r.LicenseKey)}</code></td><td><code>{HttpUtility.HtmlEncode(r.DeviceId ?? "-")}</code></td><td><b>{HttpUtility.HtmlEncode(r.Username)}</b></td><td><code>{HttpUtility.HtmlEncode(MaskSecret(r.TempPassword))}</code></td><td>{HttpUtility.HtmlEncode(r.Status)}</td><td>{HttpUtility.HtmlEncode(r.CreatedAt)}</td><td>{HttpUtility.HtmlEncode(r.AppliedAt ?? "-")}</td></tr>"));
     string backupRows = string.Join("", backups.Select(b =>
-        $"<tr><td>{b.Id}</td><td>{HttpUtility.HtmlEncode(b.LicenseKey)}</td><td>{HttpUtility.HtmlEncode(b.DeviceId)}</td><td>{HttpUtility.HtmlEncode(b.FileName)}</td><td>{b.SizeBytes}</td><td>{HttpUtility.HtmlEncode(b.CreatedAt)}</td><td><a href='/admin/clients/backups/{b.Id}/download'>Yuklab olish</a></td></tr>"));
+        $"<tr><td>#{b.Id}</td><td><code style='color:#38bdf8'>{HttpUtility.HtmlEncode(b.LicenseKey)}</code></td><td><code>{HttpUtility.HtmlEncode(b.DeviceId)}</code></td><td>{HttpUtility.HtmlEncode(b.FileName)}</td><td>{(b.SizeBytes / 1024.0 / 1024.0):F2} MB</td><td>{HttpUtility.HtmlEncode(b.CreatedAt)}</td><td><a href='/admin/clients/backups/{b.Id}/download' class='btn' style='padding:4px 8px;font-size:12px'>Yuklab olish</a></td></tr>"));
 
     string html = $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>Mijozlar</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:20px;color:#203656}
-.wrap{max-width:1200px;margin:0 auto}.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(33,59,95,.08);margin-bottom:12px}
-table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e4ebf5;padding:8px;font-size:13px;text-align:left;vertical-align:top}
-input{padding:8px;border:1px solid #cad6e6;border-radius:8px}
-button{padding:8px 12px;border:none;background:#2f6fd8;color:#fff;border-radius:8px;cursor:pointer}
-a{color:#2f6fd8;text-decoration:none;font-weight:700}
-.row{display:flex;gap:8px;flex-wrap:wrap}
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mijozlar - Admin</title>
+{{SharedCss}}
+</head>
+<body>
+<div class="wrap">
+<a href="/admin" class="back-link">← Dashboardga qaytish</a>
 
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
-<body><div class="wrap">
-<p><a href="/admin">← Dashboard</a></p>
 <div class="card">
-<h3>Filter</h3>
-<form method="get" action="/admin/clients" class="row">
-<input name="licenseKey" placeholder="License key" value="{{HttpUtility.HtmlEncode(licenseKey)}}" />
-<input name="deviceId" placeholder="Device ID" value="{{HttpUtility.HtmlEncode(deviceId)}}" />
+<h3>Filterlash</h3>
+<form method="get" action="/admin/clients" class="row-form">
+<input name="licenseKey" placeholder="License key" value="{{HttpUtility.HtmlEncode(licenseKey)}}" style="flex:1;min-width:180px"/>
+<input name="deviceId" placeholder="Device ID" value="{{HttpUtility.HtmlEncode(deviceId)}}" style="flex:1;min-width:180px"/>
 <button type="submit">Qidirish</button>
 </form>
 </div>
+
 <div class="card">
 <h3>Mijoz parolini masofadan tiklash</h3>
-<form method="post" action="/admin/clients/password-resets/create" class="row">
+<form method="post" action="/admin/clients/password-resets/create" class="row-form">
 <input type="hidden" name="csrf" value="{{HttpUtility.HtmlEncode(csrf)}}" />
-<input name="licenseKey" placeholder="License key" required />
-<input name="deviceId" placeholder="Device ID (ixtiyoriy)" />
-<input name="username" placeholder="Username" required />
-<input name="tempPassword" placeholder="Temporary parol" required />
-<button type="submit">Reset yuborish</button>
+<input name="licenseKey" placeholder="License key" required style="flex:1;min-width:150px"/>
+<input name="deviceId" placeholder="Device ID (ixtiyoriy)" style="flex:1;min-width:150px"/>
+<input name="username" placeholder="Username" required style="flex:1;min-width:120px"/>
+<input name="tempPassword" placeholder="Temporary parol" required style="flex:1;min-width:120px"/>
+<button type="submit" class="btn-success">Reset yuborish</button>
 </form>
 </div>
-<div class="card"><h3>Birinchi kirish login/parol</h3>
-<table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>Username</th><th>Parol</th><th>Status</th><th>Created</th><th>Applied</th></tr></thead><tbody>{{firstRows}}</tbody></table>
+
+<div class="card">
+<h3>Birinchi kirish login/parol</h3>
+<div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>Username</th><th>Parol</th><th>Status</th><th>Created</th><th>Applied</th></tr></thead><tbody>{{firstRows}}</tbody></table></div>
 </div>
-<div class="card"><h3>Password resetlar tarixi</h3>
-<table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>Username</th><th>Temp parol</th><th>Status</th><th>Created</th><th>Applied</th></tr></thead><tbody>{{resetRows}}</tbody></table>
+
+<div class="card">
+<h3>Password resetlar tarixi</h3>
+<div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>Username</th><th>Temp parol</th><th>Status</th><th>Created</th><th>Applied</th></tr></thead><tbody>{{resetRows}}</tbody></table></div>
 </div>
-<div class="card"><h3>Mijoz user telemetry</h3>
-<table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>User count</th><th>Usernames</th><th>Created</th></tr></thead><tbody>{{telemetryRows}}</tbody></table>
+
+<div class="card">
+<h3>Mijoz user telemetry</h3>
+<div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>User count</th><th>Usernames</th><th>Created</th></tr></thead><tbody>{{telemetryRows}}</tbody></table></div>
 </div>
-<div class="card"><h3>Mijoz backup fayllari</h3>
-<table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>File</th><th>Size</th><th>Created</th><th>Amal</th></tr></thead><tbody>{{backupRows}}</tbody></table>
+
+<div class="card">
+<h3>Mijoz backup fayllari</h3>
+<div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>License</th><th>Device</th><th>File</th><th>Size</th><th>Created</th><th>Amal</th></tr></thead><tbody>{{backupRows}}</tbody></table></div>
 </div>
-</div></body></html>
+
+</div>
+</body>
+</html>
 """;
     return Results.Content(html, "text/html; charset=utf-8");
 });
@@ -1038,149 +573,41 @@ app.MapGet("/admin/settings", (HttpContext context) =>
     string contact = Db.GetSupportContactInfo(dbPath);
     string html = $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>Sozlamalar</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:20px;color:#203656}
-.wrap{max-width:1100px;margin:0 auto}.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(33,59,95,.08);margin-bottom:12px}
-input,textarea{width:100%;padding:8px;border:1px solid #cad6e6;border-radius:8px}
-button{padding:8px 12px;border:none;background:#2f6fd8;color:#fff;border-radius:8px;cursor:pointer;font-weight:700}
-label{display:block;margin:8px 0 6px;font-size:13px;color:#5f7698}
-a{color:#2f6fd8;text-decoration:none;font-weight:700}
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sozlamalar - Admin</title>
+{{SharedCss}}
+</head>
+<body>
+<div class="wrap">
+<a href="/admin" class="back-link">← Dashboardga qaytish</a>
 
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
-<body><div class="wrap">
-<p><a href="/admin">← Dashboard</a></p>
 <div class="card">
 <h3>Update version boshqaruvi</h3>
-<form method="post" action="/admin/settings/version">
+<form method="post" action="/admin/settings/version" style="display:flex;flex-direction:column;gap:12px;max-width:500px">
 <input type="hidden" name="csrf" value="{{HttpUtility.HtmlEncode(csrf)}}" />
-<label>Version</label><input name="version" value="{{HttpUtility.HtmlEncode(cfg.Version)}}" required />
-<label>Update URL</label><input name="url" value="{{HttpUtility.HtmlEncode(cfg.Url)}}" />
-<label>Izoh</label><textarea name="note" rows="3">{{HttpUtility.HtmlEncode(cfg.Note)}}</textarea>
-<label><input type="checkbox" name="mandatory" value="1" {{(cfg.Mandatory ? "checked" : "")}} /> Majburiy update</label>
-<button type="submit">Version saqlash</button>
+<div><label style="display:block;margin-bottom:4px;font-size:12px;color:#94a3b8">Version</label><input name="version" value="{{HttpUtility.HtmlEncode(cfg.Version)}}" required style="width:100%"/></div>
+<div><label style="display:block;margin-bottom:4px;font-size:12px;color:#94a3b8">Update URL</label><input name="url" value="{{HttpUtility.HtmlEncode(cfg.Url)}}" style="width:100%"/></div>
+<div><label style="display:block;margin-bottom:4px;font-size:12px;color:#94a3b8">Izoh</label><textarea name="note" rows="3" style="width:100%">{{HttpUtility.HtmlEncode(cfg.Note)}}</textarea></div>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" name="mandatory" value="1" {{(cfg.Mandatory ? "checked" : "")}} /> Majburiy update</label>
+<button type="submit" class="btn-success" style="align-self:flex-start">Version saqlash</button>
 </form>
 </div>
+
 <div class="card">
 <h3>Mijoz bilan aloqa ma'lumoti</h3>
-<form method="post" action="/admin/settings/contact">
+<form method="post" action="/admin/settings/contact" style="display:flex;flex-direction:column;gap:12px;max-width:500px">
 <input type="hidden" name="csrf" value="{{HttpUtility.HtmlEncode(csrf)}}" />
-<label>Kontakt matni</label>
-<textarea name="contact" rows="3" required>{{HttpUtility.HtmlEncode(contact)}}</textarea>
-<button type="submit">Aloqa ma'lumotini saqlash</button>
+<div><label style="display:block;margin-bottom:4px;font-size:12px;color:#94a3b8">Kontakt matni</label><textarea name="contact" rows="3" required style="width:100%">{{HttpUtility.HtmlEncode(contact)}}</textarea></div>
+<button type="submit" class="btn-success" style="align-self:flex-start">Aloqa ma'lumotini saqlash</button>
 </form>
 </div>
-</div></body></html>
+
+</div>
+</body>
+</html>
 """;
     return Results.Content(html, "text/html; charset=utf-8");
 });
@@ -1252,140 +679,33 @@ app.MapGet("/admin/audit", (HttpContext context) =>
 
     var rows = Db.GetAuditLogs(dbPath, limit);
     string items = string.Join("", rows.Select(r =>
-        $"<tr><td>{r.Id}</td><td>{HttpUtility.HtmlEncode(r.EventType)}</td><td>{HttpUtility.HtmlEncode(r.Message)}</td><td>{HttpUtility.HtmlEncode(r.CreatedAt)}</td></tr>"));
+        $"<tr><td>#{r.Id}</td><td><span style='padding:2px 6px;background:rgba(56,189,248,0.1);color:#38bdf8;border-radius:4px;font-weight:700'>{HttpUtility.HtmlEncode(r.EventType)}</span></td><td>{HttpUtility.HtmlEncode(r.Message)}</td><td>{HttpUtility.HtmlEncode(r.CreatedAt)}</td></tr>"));
     string html = $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"/><title>Audit</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;padding:20px;color:#203656}
-.wrap{max-width:1200px;margin:0 auto}.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(33,59,95,.08)}
-table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e4ebf5;padding:8px;font-size:13px;text-align:left}
-input{padding:8px;border:1px solid #cad6e6;border-radius:8px}
-button{padding:8px 12px;border:none;background:#2f6fd8;color:#fff;border-radius:8px;cursor:pointer}
-a{color:#2f6fd8;text-decoration:none;font-weight:700}
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Audit Logs - Admin</title>
+{{SharedCss}}
+</head>
+<body>
+<div class="wrap">
+<a href="/admin" class="back-link">← Dashboardga qaytish</a>
 
-/* Modern responsive admin theme — presentation only */
-:root{
-  color-scheme:light;
-  --ink:#17243b;--muted:#71809a;--line:#e5eaf2;--surface:#ffffff;
-  --page:#f3f6fb;--primary:#465fe8;--primary-dark:#354bd0;
-  --shadow:0 12px 34px rgba(28,43,76,.08);
-}
-*{box-sizing:border-box}
-html{min-width:320px;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;padding:clamp(16px,3vw,32px);
-  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);
-  background:radial-gradient(ellipse at 8% 0%,rgba(89,112,245,.10),transparent 34%),
-             linear-gradient(145deg,#f7f9fd 0%,#eef2f9 100%);
-  font-size:14px;line-height:1.55;
-}
-h1,h2,h3{color:#17243b;letter-spacing:-.025em;line-height:1.25}
-h2{font-size:clamp(22px,3vw,29px);font-weight:800}
-h3{font-size:18px;font-weight:750;margin:0 0 18px}
-p{color:var(--muted)}
-.wrap{width:100%;max-width:1240px;margin:0 auto}
-.top{max-width:1240px;margin:0 auto 24px;gap:16px}
-.top h2{margin:0}
-.card{
-  background:rgba(255,255,255,.96);border:1px solid rgba(224,231,242,.9);
-  border-radius:18px;padding:clamp(18px,2.2vw,26px);
-  box-shadow:var(--shadow);margin-bottom:18px;
-  transition:box-shadow .2s ease,transform .2s ease;
-}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.grid .card{position:relative;overflow:hidden;min-height:112px}
-.grid .card:before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;
-  background:linear-gradient(180deg,#7186ff,#465fe8);border-radius:4px;
-}
-.k{font-size:12px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:#7c8aa3}
-.v{font-size:clamp(25px,3vw,32px);font-weight:850;letter-spacing:-.04em;color:#1b2a49;margin-top:9px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-a{color:var(--primary);text-decoration:none;font-weight:700;transition:color .18s ease}
-a:hover{color:var(--primary-dark);text-decoration:underline}
-a.x,a.y,a.z,a.w,.btn,button{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:40px;padding:10px 16px;border:0;border-radius:11px;
-  color:#fff;background:var(--primary);font:700 13px/1.2 inherit;
-  text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 12px rgba(70,95,232,.16);
-  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
-}
-a.x:hover,a.y:hover,a.z:hover,a.w:hover,.btn:hover,button:hover{
-  color:#fff;text-decoration:none;transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(70,95,232,.22);background:var(--primary-dark);
-}
-a.y{background:#15966b;box-shadow:0 5px 12px rgba(21,150,107,.15)}
-a.y:hover{background:#087d58}
-a.z{background:#7654c8}
-a.z:hover{background:#6241b2}
-a.w{background:#d97726}
-a.w:hover{background:#bd6018}
-.logout{background:#e45463;box-shadow:0 5px 12px rgba(228,84,99,.16)}
-.logout:hover{background:#c93c4c}
-input,textarea,select{
-  max-width:100%;min-height:42px;padding:10px 12px;
-  border:1px solid #d8e0ed;border-radius:10px;background:#fff;
-  color:var(--ink);font:inherit;outline:none;
-  transition:border-color .18s ease,box-shadow .18s ease;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#7184f4;box-shadow:0 0 0 3px rgba(70,95,232,.12);
-}
-input[type=checkbox]{width:17px;height:17px;min-height:0;vertical-align:middle;accent-color:var(--primary)}
-label{font-weight:650;color:#53627b}
-form.row{align-items:center}
-form.row input{flex:1 1 190px}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:#f5f7fc;color:#56647d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
-thead th:first-child{border-top-left-radius:9px}
-thead th:last-child{border-top-right-radius:9px}
-tbody tr{transition:background .15s ease}
-tbody tr:hover{background:#f7f9ff}
-tbody tr:last-child td{border-bottom:0}
-td{color:#34435d;overflow-wrap:anywhere}
-.card:has(table){overflow-x:auto}
-.card form:not(.row){max-width:760px}
-.card form:not(.row) input:not([type=hidden]),.card form:not(.row) textarea{margin-bottom:10px}
-button:focus-visible,a:focus-visible{outline:3px solid rgba(70,95,232,.3);outline-offset:3px}
-::selection{background:rgba(70,95,232,.18)}
-@media(max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .top{align-items:flex-start}
-}
-@media(max-width:600px){
-  body{padding:14px}
-  .top{flex-direction:column;align-items:stretch}
-  .top form,.top .btn{width:100%}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .grid .card{padding:16px;min-height:100px}
-  .actions{display:grid;grid-template-columns:1fr 1fr}
-  .actions a{width:100%;text-align:center;padding:11px 8px}
-  .card{padding:16px;border-radius:14px;margin-bottom:14px}
-  .row{align-items:stretch}
-  form.row input,form.row button{flex:1 1 100%;width:100%}
-  table{min-width:720px}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr}
-}
-
-</style></head>
-<body><div class="wrap">
-<p><a href="/admin">← Dashboard</a></p>
 <div class="card">
 <h3>Audit loglar</h3>
-<form method="get" action="/admin/audit" style="margin-bottom:10px">
-<input type="number" name="limit" min="1" max="2000" value="{{limit}}" />
+<form method="get" action="/admin/audit" class="row-form" style="margin-bottom:16px">
+<input type="number" name="limit" min="1" max="2000" value="{{limit}}" style="width:120px"/>
 <button type="submit">Yangilash</button>
 </form>
+<div style="overflow-x:auto">
 <table><thead><tr><th>ID</th><th>Event</th><th>Message</th><th>Created</th></tr></thead><tbody>{{items}}</tbody></table>
 </div>
-</div></body></html>
+</div>
+</div>
+</body>
+</html>
 """;
     return Results.Content(html, "text/html; charset=utf-8");
 });
@@ -2749,7 +2069,6 @@ static string NormalizePostgresConnectionString(string raw)
                         builder.SslMode = ssl;
                     }
                 }
-                // Npgsql 8 da TrustServerCertificate parametri eskirgan, shuning uchun e'tiborsiz qoldiramiz.
             }
         }
 
@@ -4074,7 +3393,6 @@ ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value
             return false;
         }
 
-        // New format: PBKDF2$iterations$saltHex$hashHex
         if (storedHash.StartsWith("PBKDF2$", StringComparison.Ordinal))
         {
             string[] parts = storedHash.Split('$', StringSplitOptions.None);
@@ -4101,7 +3419,6 @@ ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value
             }
         }
 
-        // Legacy format: raw SHA256 hex (backward compatibility)
         byte[] legacy = SHA256.HashData(Encoding.UTF8.GetBytes(password));
         string legacyHex = Convert.ToHexString(legacy);
         bool ok = string.Equals(legacyHex, storedHash, StringComparison.Ordinal);
