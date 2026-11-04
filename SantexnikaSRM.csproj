@@ -16,8 +16,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ServiceTests\**\*.cs" />
     <Compile Remove="LicenseAdminServer\**\*.cs" />
     <Compile Remove="LicenseAdminClient\**\*.cs" />
+    <EmbeddedResource Remove="ServiceTests\**\*" />
+    <None Remove="ServiceTests\**\*" />
     <EmbeddedResource Remove="LicenseAdminServer\**\*" />
     <EmbeddedResource Remove="LicenseAdminClient\**\*" />
     <None Remove="LicenseAdminServer\**\*" />
@@ -43,4 +46,3 @@
   </ItemGroup>
 
 </Project>
-

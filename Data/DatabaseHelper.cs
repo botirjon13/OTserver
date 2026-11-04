@@ -52,7 +52,8 @@ namespace SantexnikaSRM.Data
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     Username TEXT NOT NULL UNIQUE,
                     Password TEXT NOT NULL,
-                    Role TEXT NOT NULL DEFAULT 'Seller'
+                    Role TEXT NOT NULL DEFAULT 'Seller',
+                    MustChangePassword INTEGER NOT NULL DEFAULT 0
                 );";
 
                 var cmd = connection.CreateCommand();
@@ -65,6 +66,18 @@ namespace SantexnikaSRM.Data
                 try
                 {
                     migrateCmd.ExecuteNonQuery();
+                }
+                catch
+                {
+                    // Column mavjud bo'lsa ignore qilinadi.
+                }
+
+                var migratePasswordFlagCmd = connection.CreateCommand();
+                migratePasswordFlagCmd.CommandText =
+                    "ALTER TABLE Users ADD COLUMN MustChangePassword INTEGER NOT NULL DEFAULT 0";
+                try
+                {
+                    migratePasswordFlagCmd.ExecuteNonQuery();
                 }
                 catch
                 {
@@ -135,7 +148,7 @@ namespace SantexnikaSRM.Data
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT Id, Username, Password, Role FROM Users WHERE Username=@u AND Password=@p LIMIT 1";
+                cmd.CommandText = "SELECT Id, Username, Password, Role, MustChangePassword FROM Users WHERE Username=@u AND Password=@p LIMIT 1";
                 cmd.Parameters.AddWithValue("@u", username.Trim());
                 cmd.Parameters.AddWithValue("@p", password);
 
@@ -150,7 +163,8 @@ namespace SantexnikaSRM.Data
                     Id = reader.GetInt32(0),
                     Username = reader.GetString(1),
                     Password = reader.GetString(2),
-                    Role = reader.IsDBNull(3) ? RoleSeller : reader.GetString(3)
+                    Role = reader.IsDBNull(3) ? RoleSeller : reader.GetString(3),
+                    MustChangePassword = !reader.IsDBNull(4) && reader.GetInt32(4) != 0
                 };
             }
         }
@@ -172,6 +186,52 @@ namespace SantexnikaSRM.Data
             }
         }
 
+        public void ChangePassword(int userId, string newPassword)
+        {
+            if (userId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(userId), "Foydalanuvchi identifikatori noto'g'ri.");
+            }
+
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                throw new ArgumentException("Parol bo'sh bo'lmasligi kerak.", nameof(newPassword));
+            }
+
+            using var connection = Database.GetConnection();
+            connection.Open();
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE Users SET Password=@password, MustChangePassword=0 WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@password", newPassword);
+            cmd.Parameters.AddWithValue("@id", userId);
+            if (cmd.ExecuteNonQuery() == 0)
+            {
+                throw new InvalidOperationException("Foydalanuvchi topilmadi.");
+            }
+        }
+
+        public bool ResetPasswordByUsername(string username, string temporaryPassword, bool mustChangePassword)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new ArgumentException("Login bo'sh bo'lmasligi kerak.", nameof(username));
+            }
+
+            if (string.IsNullOrWhiteSpace(temporaryPassword))
+            {
+                throw new ArgumentException("Parol bo'sh bo'lmasligi kerak.", nameof(temporaryPassword));
+            }
+
+            using var connection = Database.GetConnection();
+            connection.Open();
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE Users SET Password=@password, MustChangePassword=@mustChange WHERE Username=@username";
+            cmd.Parameters.AddWithValue("@password", temporaryPassword);
+            cmd.Parameters.AddWithValue("@mustChange", mustChangePassword ? 1 : 0);
+            cmd.Parameters.AddWithValue("@username", username.Trim());
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
         public List<AppUser> GetAllUsers()
         {
             var users = new List<AppUser>();
@@ -179,7 +239,7 @@ namespace SantexnikaSRM.Data
             connection.Open();
 
             var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT Id, Username, Password, Role FROM Users ORDER BY Id";
+            cmd.CommandText = "SELECT Id, Username, Password, Role, MustChangePassword FROM Users ORDER BY Id";
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -189,7 +249,8 @@ namespace SantexnikaSRM.Data
                     Id = reader.GetInt32(0),
                     Username = reader.GetString(1),
                     Password = reader.GetString(2),
-                    Role = reader.IsDBNull(3) ? RoleSeller : reader.GetString(3)
+                    Role = reader.IsDBNull(3) ? RoleSeller : reader.GetString(3),
+                    MustChangePassword = !reader.IsDBNull(4) && reader.GetInt32(4) != 0
                 });
             }
 

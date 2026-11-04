@@ -19,6 +19,8 @@ namespace SantexnikaSRM.Services
     {
         private const string ActivationFileName = "license_activation.dat";
         private const string FallbackDeviceIdFileName = "device_id.txt";
+        private const string DefaultServerUrl = "https://otserver.onrender.com";
+        private const string LegacyServerHost = "otserver-production.up.railway.app";
         private static readonly HttpClient Http = new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(12)
@@ -27,12 +29,7 @@ namespace SantexnikaSRM.Services
         public string GetDefaultServerUrl()
         {
             string? configured = ConfigurationManager.AppSettings["ActivationServerUrl"];
-            if (string.IsNullOrWhiteSpace(configured))
-            {
-                return "https://otserver.onrender.com";
-            }
-
-            return configured.Trim().TrimEnd('/');
+            return NormalizeServerUrl(string.IsNullOrWhiteSpace(configured) ? DefaultServerUrl : configured);
         }
 
         public string GetDeviceId()
@@ -108,6 +105,7 @@ namespace SantexnikaSRM.Services
                     }
                 }
 
+                loaded.ServerUrl = NormalizeServerUrl(loaded.ServerUrl);
                 activation = loaded;
                 message = "OK";
                 return true;
@@ -181,7 +179,7 @@ namespace SantexnikaSRM.Services
 
         public async Task<ActivationOnlineResult> ActivateAsync(string serverUrl, string licenseKey, string appVersion)
         {
-            serverUrl = (serverUrl ?? string.Empty).Trim().TrimEnd('/');
+            serverUrl = NormalizeServerUrl(serverUrl);
             licenseKey = (licenseKey ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(serverUrl))
             {
@@ -389,6 +387,18 @@ namespace SantexnikaSRM.Services
             byte[] json = JsonSerializer.SerializeToUtf8Bytes(record);
             byte[] encrypted = ProtectedData.Protect(json, null, DataProtectionScope.CurrentUser);
             File.WriteAllBytes(file, encrypted);
+        }
+
+        private static string NormalizeServerUrl(string serverUrl)
+        {
+            string normalized = (serverUrl ?? string.Empty).Trim().TrimEnd('/');
+            if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri) &&
+                string.Equals(uri.Host, LegacyServerHost, StringComparison.OrdinalIgnoreCase))
+            {
+                return DefaultServerUrl;
+            }
+
+            return normalized;
         }
 
         internal static HttpRequestMessage CreateAuthorizedJsonRequest<T>(HttpMethod method, string url, string token, T payload)

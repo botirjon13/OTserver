@@ -42,7 +42,7 @@ if (string.IsNullOrWhiteSpace(rawDbConnection))
 }
 if (string.IsNullOrWhiteSpace(rawDbConnection))
 {
-    throw new InvalidOperationException("DATABASE_URL topilmadi. Railway PostgreSQL ulanish satrini env sifatida kiriting.");
+    throw new InvalidOperationException("DATABASE_URL topilmadi. PostgreSQL ulanish satrini env sifatida kiriting.");
 }
 string dbPath = NormalizePostgresConnectionString(rawDbConnection);
 string? appDataDir = Environment.GetEnvironmentVariable("APP_DATA_DIR")?.Trim();
@@ -1887,10 +1887,12 @@ static bool IsProductionLikeEnvironment()
     string? asp = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
     string? dotnet = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
     string? railway = Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT");
+    string? render = Environment.GetEnvironmentVariable("RENDER");
 
     return string.Equals(asp, "Production", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(dotnet, "Production", StringComparison.OrdinalIgnoreCase) ||
-           !string.IsNullOrWhiteSpace(railway);
+           !string.IsNullOrWhiteSpace(railway) ||
+           !string.IsNullOrWhiteSpace(render);
 }
 
 static string NormalizeReleaseProxyBaseUrl(string value)
