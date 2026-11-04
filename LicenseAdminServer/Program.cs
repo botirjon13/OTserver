@@ -63,7 +63,7 @@ long maxClientBackupBytes = GetLongEnv("CLIENT_BACKUP_MAX_BYTES", 50L * 1024 * 1
 string[] allowedClientBackupExtensions = new[] { ".db", ".sqlite", ".sqlite3" };
 string releaseProxyBaseUrl = NormalizeReleaseProxyBaseUrl(
     Environment.GetEnvironmentVariable("RELEASE_FEED_SOURCE_URL")?.Trim()
-    ?? "https://raw.githubusercontent.com/botirjon13/OTserver/main/releases");
+    ?? ReleaseFeedDefaults.GitHubProxyBaseUrl);
 var releaseProxyHttpClient = new HttpClient(new HttpClientHandler
 {
     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
@@ -1897,7 +1897,20 @@ static bool IsProductionLikeEnvironment()
 
 static string NormalizeReleaseProxyBaseUrl(string value)
 {
-    return (value ?? string.Empty).Trim().TrimEnd('/');
+    string normalized = (value ?? string.Empty).Trim().TrimEnd('/');
+    if (string.Equals(
+            normalized,
+            ReleaseFeedDefaults.LegacyRawProxyBaseUrl,
+            StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(
+            normalized,
+            "https://cdn.jsdelivr.net/gh/botirjon13/OTserver@main/releases",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        return ReleaseFeedDefaults.GitHubProxyBaseUrl;
+    }
+
+    return normalized;
 }
 
 static bool IsSafeReleaseAssetPath(string path)
@@ -1949,23 +1962,34 @@ static async Task ProxyReleaseAssetAsync(HttpContext context, HttpClient httpCli
     string targetUrl = $"{proxyBaseUrl}/{normalizedPath}";
     try
     {
-        using var upstream = await httpClient.GetAsync(targetUrl, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
-        context.Response.StatusCode = (int)upstream.StatusCode;
-        context.Response.ContentType = upstream.Content.Headers.ContentType?.ToString() ?? GuessReleaseContentType(normalizedPath);
-        if (upstream.Content.Headers.ContentLength.HasValue)
+        HttpResponseMessage upstream = await httpClient.GetAsync(targetUrl, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+        if (upstream.StatusCode == HttpStatusCode.NotFound &&
+            string.Equals(proxyBaseUrl, ReleaseFeedDefaults.GitHubProxyBaseUrl, StringComparison.OrdinalIgnoreCase))
         {
-            context.Response.ContentLength = upstream.Content.Headers.ContentLength.Value;
-        }
-        if (upstream.Headers.ETag is not null)
-        {
-            context.Response.Headers.ETag = upstream.Headers.ETag.ToString();
-        }
-        if (upstream.Headers.CacheControl is not null)
-        {
-            context.Response.Headers.CacheControl = upstream.Headers.CacheControl.ToString();
+            upstream.Dispose();
+            string fallbackUrl = $"{ReleaseFeedDefaults.LegacyRawProxyBaseUrl}/{normalizedPath}";
+            upstream = await httpClient.GetAsync(fallbackUrl, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 
-        await upstream.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
+        using (upstream)
+        {
+            context.Response.StatusCode = (int)upstream.StatusCode;
+            context.Response.ContentType = upstream.Content.Headers.ContentType?.ToString() ?? GuessReleaseContentType(normalizedPath);
+            if (upstream.Content.Headers.ContentLength.HasValue)
+            {
+                context.Response.ContentLength = upstream.Content.Headers.ContentLength.Value;
+            }
+            if (upstream.Headers.ETag is not null)
+            {
+                context.Response.Headers.ETag = upstream.Headers.ETag.ToString();
+            }
+            if (upstream.Headers.CacheControl is not null)
+            {
+                context.Response.Headers.CacheControl = upstream.Headers.CacheControl.ToString();
+            }
+
+            await upstream.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
+        }
     }
     catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
     {
@@ -3728,4 +3752,9 @@ record ActionResult(bool Ok, string? Error = null)
 {
     public static ActionResult Success() => new ActionResult(true, null);
     public static ActionResult Failure(string error) => new ActionResult(false, error);
+}
+static class ReleaseFeedDefaults
+{
+    public const string GitHubProxyBaseUrl = "https://github.com/botirjon13/OTserver/releases/latest/download";
+    public const string LegacyRawProxyBaseUrl = "https://raw.githubusercontent.com/botirjon13/OTserver/main/releases";
 }
