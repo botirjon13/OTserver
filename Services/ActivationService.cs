@@ -29,7 +29,7 @@ namespace SantexnikaSRM.Services
             string? configured = ConfigurationManager.AppSettings["ActivationServerUrl"];
             if (string.IsNullOrWhiteSpace(configured))
             {
-                return "https://otserver-production.up.railway.app";
+                return "https://otserver.onrender.com";
             }
 
             return configured.Trim().TrimEnd('/');
