@@ -240,7 +240,8 @@ internal static class Program
         using (var target = new SqliteConnection(new SqliteConnectionStringBuilder
         {
             DataSource = legacyBackupPath,
-            Mode = SqliteOpenMode.ReadWriteCreate
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false
         }.ToString()))
         {
             source.Open();

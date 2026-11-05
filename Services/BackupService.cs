@@ -401,7 +401,8 @@ namespace SantexnikaSRM.Services
             {
                 DataSource = databasePath,
                 Mode = SqliteOpenMode.ReadOnly,
-                ForeignKeys = true
+                ForeignKeys = true,
+                Pooling = false
             };
 
             using var connection = new SqliteConnection(builder.ToString());
@@ -421,13 +422,15 @@ namespace SantexnikaSRM.Services
             {
                 DataSource = sourcePath,
                 Mode = SqliteOpenMode.ReadWriteCreate,
-                ForeignKeys = true
+                ForeignKeys = true,
+                Pooling = false
             };
             var targetBuilder = new SqliteConnectionStringBuilder
             {
                 DataSource = targetPath,
                 Mode = SqliteOpenMode.ReadWriteCreate,
-                ForeignKeys = true
+                ForeignKeys = true,
+                Pooling = false
             };
 
             using var source = new SqliteConnection(sourceBuilder.ToString());
@@ -443,13 +446,15 @@ namespace SantexnikaSRM.Services
             {
                 DataSource = sourcePath,
                 Mode = SqliteOpenMode.ReadOnly,
-                ForeignKeys = true
+                ForeignKeys = true,
+                Pooling = false
             };
             var targetBuilder = new SqliteConnectionStringBuilder
             {
                 DataSource = targetPath,
                 Mode = SqliteOpenMode.ReadWriteCreate,
-                ForeignKeys = true
+                ForeignKeys = true,
+                Pooling = false
             };
 
             using var source = new SqliteConnection(sourceBuilder.ToString());
