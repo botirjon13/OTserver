@@ -4,6 +4,8 @@ obj/
 tmp_publish_fd/
 tmp_publish_velopack/
 ReleaseBundles/
+publish_single/
+publish_test/
 *.db
 *.log
 LicenseAdminClient/bin/
