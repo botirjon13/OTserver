@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -60,7 +61,7 @@ string defaultSupportContact = Environment.GetEnvironmentVariable("DEFAULT_SUPPO
 string defaultFirstLoginUsername = Environment.GetEnvironmentVariable("CLIENT_BOOTSTRAP_USERNAME")?.Trim()
     ?? "admin";
 long maxClientBackupBytes = GetLongEnv("CLIENT_BACKUP_MAX_BYTES", 50L * 1024 * 1024);
-string[] allowedClientBackupExtensions = new[] { ".db", ".sqlite", ".sqlite3" };
+string[] allowedClientBackupExtensions = new[] { ".db", ".sqlite", ".sqlite3", ".zip" };
 string releaseProxyBaseUrl = NormalizeReleaseProxyBaseUrl(
     Environment.GetEnvironmentVariable("RELEASE_FEED_SOURCE_URL")?.Trim()
     ?? ReleaseFeedDefaults.GitHubProxyBaseUrl);
@@ -1569,7 +1570,7 @@ app.MapPost("/api/client/backups/upload", async (HttpContext context) =>
     string extension = Path.GetExtension(file.FileName);
     if (!allowedClientBackupExtensions.Any(x => string.Equals(x, extension, StringComparison.OrdinalIgnoreCase)))
     {
-        return Results.BadRequest(new { ok = false, error = "Faqat SQLite backup fayllari (.db, .sqlite, .sqlite3) qabul qilinadi." });
+        return Results.BadRequest(new { ok = false, error = "SQLite backup fayli yoki rasmlar bilan ZIP to'plami qabul qilinadi." });
     }
 
     byte[] fileData;
@@ -1579,9 +1580,9 @@ app.MapPost("/api/client/backups/upload", async (HttpContext context) =>
         fileData = stream.ToArray();
     }
 
-    if (!LooksLikeSqliteDatabase(fileData))
+    if (!LooksLikeClientBackup(fileData, extension))
     {
-        return Results.BadRequest(new { ok = false, error = "Backup fayli SQLite database formatida emas." });
+        return Results.BadRequest(new { ok = false, error = "Backup fayli yaroqli SQLite nusxasi yoki rasmlar bilan ZIP to'plami emas." });
     }
 
     Db.InsertClientBackup(dbPath, licenseKey, deviceId, appVersion, file.FileName, null, fileData, file.Length);
@@ -2034,6 +2035,117 @@ static bool LooksLikeSqliteDatabase(byte[] data)
     }
 
     return true;
+}
+
+static bool LooksLikeClientBackup(byte[] data, string extension)
+{
+    if (string.Equals(extension, ".db", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(extension, ".sqlite", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(extension, ".sqlite3", StringComparison.OrdinalIgnoreCase))
+    {
+        return LooksLikeSqliteDatabase(data);
+    }
+
+    if (!string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    try
+    {
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        if (archive.Entries.Count > 20000)
+        {
+            return false;
+        }
+
+        ZipArchiveEntry? databaseEntry = null;
+        bool hasImagesDirectory = false;
+        long expandedSize = 0;
+        const long maximumExpandedSize = 1024L * 1024 * 1024;
+        var entryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (ZipArchiveEntry entry in archive.Entries)
+        {
+            if (entry.Length > maximumExpandedSize - expandedSize)
+            {
+                return false;
+            }
+
+            expandedSize += entry.Length;
+            string entryName = entry.FullName.Replace('\\', '/');
+            if (!entryNames.Add(entryName))
+            {
+                return false;
+            }
+
+            if (string.Equals(entryName, "database.db", StringComparison.Ordinal))
+            {
+                if (databaseEntry != null || string.IsNullOrEmpty(entry.Name))
+                {
+                    return false;
+                }
+
+                databaseEntry = entry;
+                continue;
+            }
+
+            if (string.Equals(entryName, "ProductImages/", StringComparison.Ordinal))
+            {
+                hasImagesDirectory = true;
+                continue;
+            }
+
+            if (entryName.StartsWith("ProductImages/", StringComparison.Ordinal))
+            {
+                string relativePath = entryName["ProductImages/".Length..];
+                if (string.IsNullOrWhiteSpace(relativePath) ||
+                    Path.IsPathRooted(relativePath) ||
+                    relativePath.Split('/').Any(part => part is "." or ".." || part.Contains(':')))
+                {
+                    return false;
+                }
+
+                hasImagesDirectory = true;
+                continue;
+            }
+
+            return false;
+        }
+
+        if (databaseEntry == null || !hasImagesDirectory || databaseEntry.Length < 16)
+        {
+            return false;
+        }
+
+        byte[] header = new byte[16];
+        using Stream databaseStream = databaseEntry.Open();
+        int read = 0;
+        while (read < header.Length)
+        {
+            int currentRead = databaseStream.Read(header, read, header.Length - read);
+            if (currentRead == 0)
+            {
+                return false;
+            }
+
+            read += currentRead;
+        }
+
+        return LooksLikeSqliteDatabase(header);
+    }
+    catch (InvalidDataException)
+    {
+        return false;
+    }
+    catch (IOException)
+    {
+        return false;
+    }
+    catch (ArgumentException)
+    {
+        return false;
+    }
 }
 
 static string Sign(string payload, string key)

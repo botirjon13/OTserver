@@ -135,7 +135,7 @@ namespace SantexnikaSRM.Forms
                 Left = 70,
                 Top = 13,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 15.5f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15.5f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 46, 72),
                 BackColor = Color.Transparent
             });
@@ -146,7 +146,7 @@ namespace SantexnikaSRM.Forms
                 Left = 70,
                 Top = 39,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(89, 108, 137),
                 BackColor = Color.Transparent
             });
@@ -202,7 +202,7 @@ namespace SantexnikaSRM.Forms
             _chkVat.Top = 16;
             _chkVat.AutoSize = true;
             _chkVat.Text = "QQS to'lovchi";
-            _chkVat.Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold);
+            _chkVat.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold);
             _chkVat.ForeColor = Color.FromArgb(31, 49, 80);
             _chkVat.BackColor = Color.Transparent;
             _chkVat.CheckedChanged += VatChanged;
@@ -214,7 +214,7 @@ namespace SantexnikaSRM.Forms
                 Left = 38,
                 Top = 45,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(68, 89, 122),
                 BackColor = Color.Transparent
             });
@@ -223,7 +223,7 @@ namespace SantexnikaSRM.Forms
             _lblVat.Left = 350;
             _lblVat.Top = 14;
             _lblVat.AutoSize = true;
-            _lblVat.Font = new Font("Bahnschrift", 9.5f, FontStyle.Regular);
+            _lblVat.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9.5f, FontStyle.Regular);
             _lblVat.ForeColor = Color.FromArgb(55, 78, 111);
             _lblVat.BackColor = Color.Transparent;
             vatPanel.Controls.Add(_lblVat);
@@ -239,7 +239,7 @@ namespace SantexnikaSRM.Forms
                 Height = 38,
                 Text = "Saqlash",
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Bahnschrift SemiBold", 10.5f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10.5f, FontStyle.Bold),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand
             };
@@ -272,7 +272,7 @@ namespace SantexnikaSRM.Forms
                 Left = 22,
                 Top = 18,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(29, 45, 73),
                 BackColor = Color.Transparent
             });
@@ -395,7 +395,7 @@ namespace SantexnikaSRM.Forms
                 Left = 24,
                 Top = top,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 10f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(42, 60, 90),
                 BackColor = Color.Transparent
             });
@@ -430,7 +430,7 @@ namespace SantexnikaSRM.Forms
             box.Left = 12;
             box.Top = 8;
             box.Width = shell.Width - 24;
-            box.Font = new Font("Bahnschrift", 10.5f, FontStyle.Regular);
+            box.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10.5f, FontStyle.Regular);
             box.ForeColor = Color.FromArgb(37, 55, 86);
             box.BackColor = Color.White;
             box.PlaceholderText = placeholder;

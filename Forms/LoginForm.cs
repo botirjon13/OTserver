@@ -67,7 +67,7 @@ namespace SantexnikaSRM.Forms
             btnTheme.FlatStyle = FlatStyle.Flat;
             btnTheme.FlatAppearance.BorderSize = 1;
             btnTheme.Cursor = Cursors.Hand;
-            btnTheme.Font = new Font("Bahnschrift SemiBold", 10, FontStyle.Bold);
+            btnTheme.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10, FontStyle.Bold);
             btnTheme.Click += (s, e) =>
             {
                 UiTheme.ToggleTheme();
@@ -81,11 +81,11 @@ namespace SantexnikaSRM.Forms
 
             lblTitle.Text = "Tizimga kirish";
             lblTitle.AutoSize = true;
-            lblTitle.Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold);
+            lblTitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
 
             lblSubtitle.Text = string.Empty;
             lblSubtitle.AutoSize = true;
-            lblSubtitle.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            lblSubtitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             lblSubtitle.Visible = false;
 
             Image? logoImage = BrandingAssets.TryLoadLogo();
@@ -94,13 +94,13 @@ namespace SantexnikaSRM.Forms
 
             lblLogin.Text = "Login";
             lblLogin.AutoSize = true;
-            lblLogin.Font = new Font("Bahnschrift SemiLight", 12, FontStyle.Regular);
+            lblLogin.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiLight"), 12, FontStyle.Regular);
 
             SetupInputRow(usernameRow, "\uE77B", txtUsername, "Loginni kiriting");
 
             lblPassword.Text = "Parol";
             lblPassword.AutoSize = true;
-            lblPassword.Font = new Font("Bahnschrift SemiLight", 12, FontStyle.Regular);
+            lblPassword.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiLight"), 12, FontStyle.Regular);
 
             SetupInputRow(passwordRow, "\uE72E", txtPassword, "Parolni kiriting");
             txtPassword.PasswordChar = '*';
@@ -109,7 +109,7 @@ namespace SantexnikaSRM.Forms
             btnPasswordToggle.FlatStyle = FlatStyle.Flat;
             btnPasswordToggle.FlatAppearance.BorderSize = 0;
             btnPasswordToggle.Cursor = Cursors.Hand;
-            btnPasswordToggle.Font = new Font("Bahnschrift SemiBold", 9, FontStyle.Bold);
+            btnPasswordToggle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 9, FontStyle.Bold);
             btnPasswordToggle.Text = "KO'R";
             btnPasswordToggle.Click += (s, e) =>
             {
@@ -128,7 +128,7 @@ namespace SantexnikaSRM.Forms
             lnkForgot.Text = "Parolni unutdingizmi?";
             lnkForgot.AutoSize = true;
             lnkForgot.LinkBehavior = LinkBehavior.HoverUnderline;
-            lnkForgot.Font = new Font("Bahnschrift", 11, FontStyle.Regular);
+            lnkForgot.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             lnkForgot.LinkColor = Color.FromArgb(80, 72, 255);
             lnkForgot.ActiveLinkColor = Color.FromArgb(58, 45, 235);
             lnkForgot.VisitedLinkColor = Color.FromArgb(80, 72, 255);
@@ -146,7 +146,7 @@ namespace SantexnikaSRM.Forms
             btnLogin.FlatStyle = FlatStyle.Flat;
             btnLogin.FlatAppearance.BorderSize = 0;
             btnLogin.Cursor = Cursors.Hand;
-            btnLogin.Font = new Font("Bahnschrift SemiBold", 16, FontStyle.Bold);
+            btnLogin.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16, FontStyle.Bold);
             btnLogin.ForeColor = Color.White;
             btnLogin.Paint += BtnLogin_Paint;
             btnLogin.MouseEnter += (s, e) => { _loginHover = true; btnLogin.Invalidate(); };
@@ -254,7 +254,7 @@ namespace SantexnikaSRM.Forms
             textBox.Top = 14;
             textBox.Width = row.Width - 58;
             textBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            textBox.Font = new Font("Bahnschrift", 14, FontStyle.Regular);
+            textBox.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 14, FontStyle.Regular);
             textBox.PlaceholderText = string.Empty;
             AttachPlaceholder(textBox, placeholder, textBox == txtPassword);
 

@@ -57,7 +57,7 @@ namespace SantexnikaSRM.Forms
             MinimumSize = new Size(980, 640);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(238, 243, 252);
-            Font = new Font("Bahnschrift", 10, FontStyle.Regular);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
             DoubleBuffered = true;
 
             _container.BackColor = Color.Transparent;
@@ -91,14 +91,14 @@ namespace SantexnikaSRM.Forms
             {
                 Text = "Mijozlar",
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 31, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 31, FontStyle.Bold),
                 ForeColor = Color.FromArgb(29, 40, 65)
             };
             Label lblSubtitle = new Label
             {
                 Text = "Barcha mijozlar ro'yxati va ma'lumotlari",
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(94, 110, 139)
             };
 
@@ -118,7 +118,7 @@ namespace SantexnikaSRM.Forms
 
             _txtSearch.BorderStyle = BorderStyle.None;
             _txtSearch.BackColor = Color.FromArgb(249, 251, 255);
-            _txtSearch.Font = new Font("Bahnschrift", 13, FontStyle.Regular);
+            _txtSearch.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 13, FontStyle.Regular);
             _txtSearch.PlaceholderText = "Mijoz ismi yoki telefon raqamini kiriting...";
             _txtSearch.TextChanged += (s, e) => LoadGrid();
             _lblSearchIcon.Text = "\uE721";
@@ -135,7 +135,7 @@ namespace SantexnikaSRM.Forms
 
             _chkOnlyDebtors.Text = "Faqat qarzdorlar";
             _chkOnlyDebtors.AutoSize = true;
-            _chkOnlyDebtors.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            _chkOnlyDebtors.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             _chkOnlyDebtors.CheckedChanged += (s, e) => LoadGrid();
 
             StyleActionButton(_btnDebtors, "Qarzdorlar oynasi", "\uEA18", Color.FromArgb(255, 45, 95), Color.FromArgb(244, 20, 77));
@@ -178,7 +178,7 @@ namespace SantexnikaSRM.Forms
             _grid.ColumnHeadersHeight = 44;
             _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(163, 56, 253);
             _grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold);
+            _grid.ColumnHeadersDefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(163, 56, 253);
             _grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
@@ -186,7 +186,7 @@ namespace SantexnikaSRM.Forms
             _grid.DefaultCellStyle.BackColor = Color.White;
             _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(241, 232, 255);
             _grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(34, 44, 68);
-            _grid.DefaultCellStyle.Font = new Font("Bahnschrift", 11, FontStyle.Regular);
+            _grid.DefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             _grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 252, 255);
             _grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(241, 232, 255);
@@ -199,7 +199,7 @@ namespace SantexnikaSRM.Forms
             _gridWrap.Controls.Add(_grid);
 
             _lblCount.AutoSize = true;
-            _lblCount.Font = new Font("Bahnschrift", 11, FontStyle.Regular);
+            _lblCount.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             _lblCount.ForeColor = Color.FromArgb(71, 92, 128);
 
             _container.Controls.Add(_titleBadge);
@@ -282,7 +282,7 @@ namespace SantexnikaSRM.Forms
                 Top = 14,
                 AutoSize = true,
                 ForeColor = Color.FromArgb(245, 249, 255),
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 BackColor = Color.Transparent
             };
 
@@ -291,7 +291,7 @@ namespace SantexnikaSRM.Forms
             valueLabel.Width = Math.Max(80, card.Width - rightIconReserve - 16);
             valueLabel.Height = 42;
             valueLabel.ForeColor = Color.White;
-            valueLabel.Font = new Font("Bahnschrift SemiBold", 20, FontStyle.Bold);
+            valueLabel.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 20, FontStyle.Bold);
             valueLabel.BackColor = Color.Transparent;
             valueLabel.AutoEllipsis = true;
 
@@ -334,7 +334,7 @@ namespace SantexnikaSRM.Forms
                 TextRenderer.DrawText(
                     g,
                     "$",
-                    new Font("Bahnschrift SemiBold", 33, FontStyle.Bold),
+                    new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 33, FontStyle.Bold),
                     rect,
                     color,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -366,7 +366,7 @@ namespace SantexnikaSRM.Forms
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
             button.Cursor = Cursors.Hand;
-            button.Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold);
+            button.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             button.ForeColor = Color.White;
             button.Paint += (s, e) =>
             {

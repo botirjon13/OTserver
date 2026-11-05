@@ -72,7 +72,7 @@ namespace SantexnikaSRM.Forms
                 Left = 24,
                 Top = 24,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 20, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 20, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };
@@ -101,7 +101,7 @@ namespace SantexnikaSRM.Forms
                 Left = 0,
                 Top = 20,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(96, 108, 125)
             };
 
@@ -111,7 +111,7 @@ namespace SantexnikaSRM.Forms
                 Left = 0,
                 Top = 58,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold),
                 ForeColor = Color.FromArgb(62, 75, 95)
             };
             Panel passWrap = NewInputWrap();
@@ -125,7 +125,7 @@ namespace SantexnikaSRM.Forms
                 Left = 0,
                 Top = 152,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold),
                 ForeColor = Color.FromArgb(62, 75, 95)
             };
             Panel pass2Wrap = NewInputWrap();
@@ -141,7 +141,7 @@ namespace SantexnikaSRM.Forms
                 Width = 352,
                 Height = 52,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Bahnschrift SemiBold", 16, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16, FontStyle.Bold),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand
             };
@@ -244,7 +244,7 @@ namespace SantexnikaSRM.Forms
             textBox.BorderStyle = BorderStyle.None;
             textBox.BackColor = Color.FromArgb(248, 250, 255);
             textBox.ForeColor = Color.FromArgb(60, 74, 95);
-            textBox.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            textBox.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             textBox.PlaceholderText = placeholder;
             textBox.Left = 12;
             textBox.Top = 14;

@@ -39,7 +39,7 @@ namespace SantexnikaSRM.Forms
             MinimumSize = new Size(980, 760);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(239, 242, 248);
-            Font = new Font("Bahnschrift", 11, FontStyle.Regular);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             DoubleBuffered = true;
 
             Panel canvas = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
@@ -84,16 +84,16 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 66,
                 Top = 4,
-                Font = new Font("Bahnschrift SemiBold", 23, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 23, FontStyle.Bold),
                 ForeColor = Color.FromArgb(28, 42, 65)
             };
             Label lblSub = new Label
             {
-                Text = "Ma'lumotlar bazasini zaxiralash va tiklash",
+                Text = "Ma'lumotlar bazasi va mahsulot rasmlarini birga zaxiralash va tiklash",
                 AutoSize = true,
                 Left = 68,
                 Top = 40,
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(70, 89, 116)
             };
             header.Controls.Add(titleIcon);
@@ -198,7 +198,7 @@ namespace SantexnikaSRM.Forms
             _listBackups.DrawMode = DrawMode.OwnerDrawFixed;
             _listBackups.ItemHeight = 78;
             _listBackups.Dock = DockStyle.Fill;
-            _listBackups.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            _listBackups.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             _listBackups.BackColor = Color.FromArgb(250, 252, 255);
             _listBackups.DrawItem += ListBackups_DrawItem;
 
@@ -250,8 +250,8 @@ namespace SantexnikaSRM.Forms
                 Top = 18,
                 Width = 1000,
                 Height = 54,
-                Text = "Eslatma: Backup yaratish joriy ma'lumotlar bazasining nusxasini saqlaydi. Tiklash jarayoni barcha hozirgi ma'lumotlarni tanlangan backup bilan almashtiradi. Ehtiyot bo'ling!",
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Text = "Eslatma: Backup ma'lumotlar bazasi va mahsulot rasmlarini birga saqlaydi. Tiklash jarayoni hozirgi ma'lumotlar va rasmlarni tanlangan backup bilan almashtiradi. Ehtiyot bo'ling!",
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(47, 89, 166),
                 BackColor = Color.Transparent
             };
@@ -315,7 +315,7 @@ namespace SantexnikaSRM.Forms
             TextRenderer.DrawText(
                 e.Graphics,
                 item.FileName,
-                new Font("Bahnschrift SemiBold", 14, FontStyle.Bold),
+                new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14, FontStyle.Bold),
                 new Rectangle(rect.X + 16, rect.Y + 12, rect.Width - 84, 30),
                 titleColor,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
@@ -323,7 +323,7 @@ namespace SantexnikaSRM.Forms
             TextRenderer.DrawText(
                 e.Graphics,
                 item.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
-                new Font("Bahnschrift", 12, FontStyle.Regular),
+                new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 new Rectangle(rect.X + 16, rect.Y + 42, rect.Width - 84, 24),
                 dateColor,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
@@ -363,7 +363,7 @@ namespace SantexnikaSRM.Forms
         {
             b.FlatStyle = FlatStyle.Flat;
             b.FlatAppearance.BorderSize = 0;
-            b.Font = new Font("Bahnschrift SemiBold", 15, FontStyle.Bold);
+            b.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold);
             b.ForeColor = Color.White;
             b.Cursor = Cursors.Hand;
             b.Paint += (s, e) =>
@@ -460,7 +460,7 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 44,
                 Top = 15,
-                Font = new Font("Bahnschrift SemiBold", 15, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };
@@ -498,6 +498,4 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
-
 

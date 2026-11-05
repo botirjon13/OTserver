@@ -67,6 +67,7 @@ namespace SantexnikaSRM.Services
                                     throw new Exception($"Mahsulot topilmadi (Id={item.ProductId}).");
                                 }
                             }
+                            item.UnitCostUZS = purchasePriceUZS;
 
                             if (currentQuantity < item.Quantity)
                             {
@@ -136,13 +137,14 @@ namespace SantexnikaSRM.Services
                             var itemCmd = connection.CreateCommand();
                             itemCmd.Transaction = transaction;
                             itemCmd.CommandText = @"
-                                INSERT INTO SaleItems (SaleId, ProductId, Quantity, SellPriceUZS, DiscountUZS)
-                                VALUES (@saleId, @productId, @qty, @price, @discount)";
+                                INSERT INTO SaleItems (SaleId, ProductId, Quantity, SellPriceUZS, UnitCostUZS, DiscountUZS)
+                                VALUES (@saleId, @productId, @qty, @price, @unitCost, @discount)";
 
                             itemCmd.Parameters.AddWithValue("@saleId", saleId);
                             itemCmd.Parameters.AddWithValue("@productId", item.ProductId);
                             itemCmd.Parameters.AddWithValue("@qty", item.Quantity);
                             itemCmd.Parameters.AddWithValue("@price", item.SellPriceUZS);
+                            itemCmd.Parameters.AddWithValue("@unitCost", item.UnitCostUZS);
                             itemCmd.Parameters.AddWithValue("@discount", item.DiscountUZS);
                             itemCmd.ExecuteNonQuery();
                         }
@@ -242,7 +244,7 @@ namespace SantexnikaSRM.Services
                        si.Quantity,
                        IFNULL(returned.ReturnedQuantity, 0),
                        si.SellPriceUZS,
-                       p.PurchasePriceUZS
+                       CASE WHEN si.UnitCostUZS > 0 THEN si.UnitCostUZS ELSE p.PurchasePriceUZS END
                 FROM SaleItems si
                 INNER JOIN Sales s ON s.Id = si.SaleId
                 INNER JOIN Products p ON p.Id = si.ProductId

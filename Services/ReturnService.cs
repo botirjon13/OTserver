@@ -139,7 +139,7 @@ namespace SantexnikaSRM.Services
                        ), 0) AS ReturnedQty,
                        si.SellPriceUZS,
                        IFNULL(si.DiscountUZS, 0),
-                       IFNULL(p.PurchasePriceUZS, 0)
+                       CASE WHEN si.UnitCostUZS > 0 THEN si.UnitCostUZS ELSE IFNULL(p.PurchasePriceUZS, 0) END
                 FROM SaleItems si
                 INNER JOIN Products p ON p.Id = si.ProductId
                 WHERE si.SaleId = @saleId
@@ -241,7 +241,7 @@ namespace SantexnikaSRM.Services
                            ), 0) AS ReturnedQty,
                            si.SellPriceUZS,
                            IFNULL(si.DiscountUZS, 0),
-                           IFNULL(p.PurchasePriceUZS, 0)
+                           CASE WHEN si.UnitCostUZS > 0 THEN si.UnitCostUZS ELSE IFNULL(p.PurchasePriceUZS, 0) END
                     FROM SaleItems si
                     INNER JOIN Products p ON p.Id = si.ProductId
                     WHERE si.SaleId = @saleId";

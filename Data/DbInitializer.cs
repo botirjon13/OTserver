@@ -47,6 +47,7 @@ namespace SantexnikaSRM.Data
                 ProductId INTEGER NOT NULL,
                 Quantity REAL NOT NULL CHECK(Quantity > 0),
                 SellPriceUZS REAL NOT NULL CHECK(SellPriceUZS > 0),
+                UnitCostUZS REAL NOT NULL DEFAULT 0 CHECK(UnitCostUZS >= 0),
                 DiscountUZS REAL NOT NULL DEFAULT 0 CHECK(DiscountUZS >= 0),
                 FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE,
                 FOREIGN KEY (ProductId) REFERENCES Products(Id)
@@ -219,6 +220,13 @@ namespace SantexnikaSRM.Data
             ExecuteIgnoreErrors(connection, "ALTER TABLE Sales ADD COLUMN DiscountType TEXT NOT NULL DEFAULT 'None';");
             ExecuteIgnoreErrors(connection, "ALTER TABLE Sales ADD COLUMN DiscountValue REAL NOT NULL DEFAULT 0;");
             ExecuteIgnoreErrors(connection, "ALTER TABLE Sales ADD COLUMN DiscountUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleItems ADD COLUMN UnitCostUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, @"
+                UPDATE SaleItems
+                SET UnitCostUZS = COALESCE(
+                    (SELECT PurchasePriceUZS FROM Products WHERE Products.Id = SaleItems.ProductId),
+                    0)
+                WHERE UnitCostUZS <= 0;");
             ExecuteIgnoreErrors(connection, "ALTER TABLE SaleItems ADD COLUMN DiscountUZS REAL NOT NULL DEFAULT 0;");
             ExecuteIgnoreErrors(connection, @"
                 CREATE TABLE IF NOT EXISTS Returns (

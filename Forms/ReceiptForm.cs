@@ -64,7 +64,7 @@ namespace SantexnikaSRM.Forms
                 Left = 22,
                 Top = 18,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 16, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };
@@ -94,7 +94,7 @@ namespace SantexnikaSRM.Forms
                 Left = 0,
                 Top = 8,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(45, 62, 87)
             };
             _cmbPaper.Left = 124;
@@ -153,7 +153,7 @@ namespace SantexnikaSRM.Forms
                 Width = 170,
                 Height = 42,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Bahnschrift SemiBold", 14, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14, FontStyle.Bold),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand
             };
@@ -177,7 +177,7 @@ namespace SantexnikaSRM.Forms
                 Width = 180,
                 Height = 42,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Bahnschrift SemiBold", 14, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14, FontStyle.Bold),
                 ForeColor = Color.FromArgb(38, 50, 71),
                 BackColor = Color.FromArgb(244, 246, 250),
                 Cursor = Cursors.Hand

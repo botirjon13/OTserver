@@ -14,6 +14,9 @@ namespace SantexnikaSRM.Models
         // Sotish narxi (UZS)
         public double SellPriceUZS { get; set; }
 
+        // Sotuv vaqtida qayd etilgan dona tannarxi (UZS)
+        public double UnitCostUZS { get; set; }
+
         // Shu item bo'yicha berilgan chegirma summasi (UZS)
         public double DiscountUZS { get; set; }
 

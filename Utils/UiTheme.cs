@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Text;
 using System.Drawing.Drawing2D;
@@ -44,10 +45,38 @@ namespace SantexnikaSRM.Utils
         public static Color Border =>
             CurrentMode == ThemeMode.Light ? Color.FromArgb(209, 220, 236) : Color.FromArgb(47, 62, 81);
 
-        public static Font TitleFont => new Font("Bahnschrift SemiBold", 20, FontStyle.Bold);
-        public static Font BodyFont => new Font("Bahnschrift", 10, FontStyle.Regular);
-        public static Font ButtonFont => new Font("Bahnschrift SemiBold", 10, FontStyle.Bold);
+        private static readonly HashSet<string> InstalledFontFamilies = GetInstalledFontFamilies();
+        private static readonly string[] FontFallbackFamilies =
+        {
+            "Segoe UI",
+            "Arial",
+            "Liberation Sans",
+            "DejaVu Sans",
+            "Microsoft Sans Serif"
+        };
+
+        public static Font TitleFont => new Font(ResolveFontFamily("Bahnschrift SemiBold"), 20, FontStyle.Bold);
+        public static Font BodyFont => new Font(ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
+        public static Font ButtonFont => new Font(ResolveFontFamily("Bahnschrift SemiBold"), 10, FontStyle.Bold);
         public static string IconFontFamily { get; } = ResolveIconFontFamily();
+
+        public static string ResolveFontFamily(string preferredFamily)
+        {
+            if (InstalledFontFamilies.Contains(preferredFamily))
+            {
+                return preferredFamily;
+            }
+
+            foreach (string family in FontFallbackFamilies)
+            {
+                if (InstalledFontFamilies.Contains(family))
+                {
+                    return family;
+                }
+            }
+
+            return FontFamily.GenericSansSerif.Name;
+        }
 
         public static Font IconFont(float size, FontStyle style = FontStyle.Regular)
         {
@@ -303,7 +332,6 @@ namespace SantexnikaSRM.Utils
 
         private static string ResolveIconFontFamily()
         {
-            InstalledFontCollection fonts = new InstalledFontCollection();
             string[] preferred =
             {
                 "Segoe MDL2 Assets",
@@ -314,13 +342,21 @@ namespace SantexnikaSRM.Utils
 
             foreach (string family in preferred)
             {
-                if (fonts.Families.Any(f => string.Equals(f.Name, family, System.StringComparison.OrdinalIgnoreCase)))
+                if (InstalledFontFamilies.Contains(family))
                 {
                     return family;
                 }
             }
 
-            return "Segoe UI";
+            return ResolveFontFamily("Segoe UI");
+        }
+
+        private static HashSet<string> GetInstalledFontFamilies()
+        {
+            using InstalledFontCollection fonts = new InstalledFontCollection();
+            return fonts.Families
+                .Select(family => family.Name)
+                .ToHashSet(System.StringComparer.OrdinalIgnoreCase);
         }
     }
 }

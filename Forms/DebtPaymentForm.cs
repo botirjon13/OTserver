@@ -38,7 +38,7 @@ namespace SantexnikaSRM.Forms
                 Left = 18,
                 Top = 18,
                 Width = 380,
-                Font = new Font("Bahnschrift SemiBold", 11, FontStyle.Bold)
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold)
             };
 
             Controls.Add(new Label { Text = "To'lov summasi:", Left = 18, Top = 56, Width = 130 });

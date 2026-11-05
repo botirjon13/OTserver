@@ -123,7 +123,7 @@ namespace SantexnikaSRM.Forms
                 Left = 22,
                 Top = 18,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 17, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 17, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };
@@ -134,7 +134,7 @@ namespace SantexnikaSRM.Forms
             _btnClose.FlatAppearance.BorderSize = 0;
             _btnClose.FlatAppearance.MouseOverBackColor = Color.Transparent;
             _btnClose.FlatAppearance.MouseDownBackColor = Color.Transparent;
-            _btnClose.Font = new Font("Bahnschrift", 18, FontStyle.Regular);
+            _btnClose.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 18, FontStyle.Regular);
             _btnClose.ForeColor = Color.White;
             _btnClose.BackColor = Color.Transparent;
             _btnClose.UseVisualStyleBackColor = false;
@@ -179,7 +179,7 @@ namespace SantexnikaSRM.Forms
             _lblCaption.Left = _contentLeft;
             _lblCaption.Top = 8;
             _lblCaption.AutoSize = true;
-            _lblCaption.Font = new Font("Bahnschrift SemiBold", 11.5f, FontStyle.Bold);
+            _lblCaption.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11.5f, FontStyle.Bold);
             _lblCaption.ForeColor = Color.FromArgb(45, 63, 94);
 
             _selector.SetBounds(_contentLeft, 38, ContentWidth, 56);
@@ -200,7 +200,7 @@ namespace SantexnikaSRM.Forms
                 _selector.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, _selector.Width - 1), Math.Max(1, _selector.Height - 1)), 16));
 
             _lblSelectorValue.SetBounds(18, 13, 340, 30);
-            _lblSelectorValue.Font = new Font("Bahnschrift", 18, FontStyle.Regular);
+            _lblSelectorValue.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 18, FontStyle.Regular);
             _lblSelectorValue.ForeColor = Color.FromArgb(26, 47, 80);
             _lblSelectorValue.BackColor = Color.Transparent;
 
@@ -238,7 +238,7 @@ namespace SantexnikaSRM.Forms
 
             _lstOptions.Dock = DockStyle.Fill;
             _lstOptions.BorderStyle = BorderStyle.None;
-            _lstOptions.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            _lstOptions.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             _lstOptions.BackColor = Color.White;
             _lstOptions.ForeColor = Color.FromArgb(35, 54, 83);
             _lstOptions.ItemHeight = 30;
@@ -304,7 +304,7 @@ namespace SantexnikaSRM.Forms
                 Left = 66,
                 Top = 16,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 11.2f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11.2f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(71, 89, 119),
                 BackColor = Color.Transparent
             };
@@ -312,7 +312,7 @@ namespace SantexnikaSRM.Forms
             _lblPreviewValue.Left = 66;
             _lblPreviewValue.Top = 37;
             _lblPreviewValue.AutoSize = true;
-            _lblPreviewValue.Font = new Font("Bahnschrift SemiBold", 14.5f, FontStyle.Bold);
+            _lblPreviewValue.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14.5f, FontStyle.Bold);
             _lblPreviewValue.ForeColor = Color.FromArgb(24, 43, 76);
             _lblPreviewValue.BackColor = Color.Transparent;
 
@@ -327,7 +327,7 @@ namespace SantexnikaSRM.Forms
             _btnOk.FlatAppearance.MouseOverBackColor = Color.Transparent;
             _btnOk.FlatAppearance.MouseDownBackColor = Color.Transparent;
             _btnOk.UseVisualStyleBackColor = false;
-            _btnOk.Font = new Font("Bahnschrift SemiBold", 15, FontStyle.Bold);
+            _btnOk.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold);
             _btnOk.ForeColor = Color.White;
             _btnOk.Cursor = Cursors.Hand;
             _btnOk.Paint += (s, e) =>
@@ -374,7 +374,7 @@ namespace SantexnikaSRM.Forms
             _btnCancel.FlatAppearance.MouseOverBackColor = Color.Transparent;
             _btnCancel.FlatAppearance.MouseDownBackColor = Color.Transparent;
             _btnCancel.UseVisualStyleBackColor = false;
-            _btnCancel.Font = new Font("Bahnschrift SemiBold", 15, FontStyle.Bold);
+            _btnCancel.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold);
             _btnCancel.ForeColor = Color.FromArgb(50, 74, 109);
             _btnCancel.BackColor = Color.FromArgb(246, 249, 253);
             _btnCancel.Cursor = Cursors.Hand;

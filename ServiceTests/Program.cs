@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using Microsoft.Data.Sqlite;
 using SantexnikaSRM.Data;
 using SantexnikaSRM.Models;
@@ -25,8 +26,10 @@ internal static class Program
             ("sale", SaleCreatesExpectedTotalsAndStock),
             ("discount sale", DiscountSaleUsesNetPriceAndDiscountMetadata),
             ("return", ReturnUsesSameNetPriceModelAsSale),
+            ("historical cost", HistoricalCostIsUsedAfterProductCostChanges),
             ("debt sale", DebtSaleCreatesExpectedDebt),
-            ("backup restore", BackupRestoreRestoresDatabaseSnapshot)
+            ("backup restore", BackupRestoreRestoresDatabaseSnapshot),
+            ("legacy backup restore", LegacyDatabaseBackupRemainsRestorable)
         };
 
         int failed = 0;
@@ -124,6 +127,40 @@ internal static class Program
         AssertProductQuantity(productId, 9);
     }
 
+    private static void HistoricalCostIsUsedAfterProductCostChanges()
+    {
+        int productId = InsertProduct("Valve", purchaseUzs: 10000, quantity: 10);
+        int saleId = new SaleService().CreateSale(new Sale
+        {
+            Date = DateTime.Now,
+            SubtotalUZS = 30000,
+            TotalUZS = 30000,
+            Items = new List<SaleItem>
+            {
+                new SaleItem { ProductId = productId, Quantity = 2, SellPriceUZS = 15000 }
+            }
+        }, Admin);
+
+        Execute("UPDATE Products SET PurchasePriceUZS=20000 WHERE Id=@id", ("@id", productId));
+
+        var saleService = new SaleService();
+        var reportBeforeReturn = saleService.GetSaleReportRows(DateTime.Today, DateTime.Today, 12500, Admin);
+        AssertClose(reportBeforeReturn[0].ProfitUZS, 10000, "profit before return uses sale-time cost");
+
+        int saleItemId = ScalarInt("SELECT Id FROM SaleItems WHERE SaleId=@saleId", ("@saleId", saleId));
+        var result = new ReturnService().ApplyReturn(
+            saleId,
+            new List<(int saleItemId, double quantity)> { (saleItemId, 1) },
+            "test",
+            Admin);
+
+        AssertClose(result.ProfitReductionUZS, 5000, "return profit reduction uses sale-time cost");
+        AssertSale(saleId, total: 15000, subtotal: 15000, discount: 0, profit: 5000);
+
+        var reportAfterReturn = saleService.GetSaleReportRows(DateTime.Today, DateTime.Today, 12500, Admin);
+        AssertClose(reportAfterReturn[0].ProfitUZS, 5000, "remaining profit uses sale-time cost");
+    }
+
     private static void DebtSaleCreatesExpectedDebt()
     {
         int productId = InsertProduct("Tap", purchaseUzs: 8000, quantity: 10);
@@ -157,11 +194,26 @@ internal static class Program
     private static void BackupRestoreRestoresDatabaseSnapshot()
     {
         int productId = InsertProduct("Original", purchaseUzs: 10000, quantity: 3);
+        string imagesRoot = Path.Combine(Database.GetAppDataRoot(), "ProductImages");
+        Directory.CreateDirectory(imagesRoot);
+        string originalImagePath = Path.Combine(imagesRoot, "product_original.jpg");
+        File.WriteAllText(originalImagePath, "original image");
+
         var backup = new BackupService();
         string backupPath = backup.CreateBackup();
+        AssertEqual(Path.GetExtension(backupPath), ".zip", "backup bundle extension");
+
+        using (var archive = ZipFile.OpenRead(backupPath))
+        {
+            AssertTrue(archive.GetEntry("database.db") != null, "backup contains database");
+            AssertTrue(archive.GetEntry("ProductImages/") != null, "backup contains image folder");
+            AssertTrue(archive.GetEntry("ProductImages/product_original.jpg") != null, "backup contains product image");
+        }
 
         Execute("UPDATE Products SET Name='Changed', QuantityUSD=99 WHERE Id=@id", ("@id", productId));
         InsertProduct("Extra", purchaseUzs: 10000, quantity: 1);
+        File.Delete(originalImagePath);
+        File.WriteAllText(Path.Combine(imagesRoot, "product_current_only.jpg"), "current image");
 
         backup.RestoreBackup(backupPath);
 
@@ -174,6 +226,62 @@ internal static class Program
         AssertEqual(reader.GetInt32(0), 1, "product count after restore");
         AssertEqual(reader.GetString(1), "Original", "product name after restore");
         AssertClose(reader.GetDouble(2), 3, "product qty after restore");
+
+        AssertEqual(File.ReadAllText(originalImagePath), "original image", "product image after restore");
+        AssertTrue(!File.Exists(Path.Combine(imagesRoot, "product_current_only.jpg")), "restore removes images absent from backup");
+    }
+
+    private static void LegacyDatabaseBackupRemainsRestorable()
+    {
+        int productId = InsertProduct("Legacy", purchaseUzs: 10000, quantity: 3);
+        string root = Database.GetAppDataRoot();
+        string legacyBackupPath = Path.Combine(Path.GetTempPath(), $"database_legacy_{Guid.NewGuid():N}.db");
+        using (var source = Database.GetConnection())
+        using (var target = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = legacyBackupPath,
+            Mode = SqliteOpenMode.ReadWriteCreate
+        }.ToString()))
+        {
+            source.Open();
+            target.Open();
+            source.BackupDatabase(target);
+        }
+
+        string legacyImagesRoot = Path.Combine(
+            Path.GetDirectoryName(legacyBackupPath)!,
+            Path.GetFileNameWithoutExtension(legacyBackupPath) + "_assets",
+            "ProductImages");
+        Directory.CreateDirectory(legacyImagesRoot);
+        File.WriteAllText(Path.Combine(legacyImagesRoot, "legacy.jpg"), "legacy image");
+
+        Execute("UPDATE Products SET Name='Changed', QuantityUSD=99 WHERE Id=@id", ("@id", productId));
+        Directory.CreateDirectory(Path.Combine(root, "ProductImages"));
+        File.WriteAllText(Path.Combine(root, "ProductImages", "current.jpg"), "current image");
+
+        try
+        {
+            new BackupService().RestoreBackup(legacyBackupPath);
+        }
+        finally
+        {
+            File.Delete(legacyBackupPath);
+            Directory.Delete(Path.Combine(Path.GetDirectoryName(legacyBackupPath)!, Path.GetFileNameWithoutExtension(legacyBackupPath) + "_assets"), recursive: true);
+        }
+
+        using var connection = Database.GetConnection();
+        connection.Open();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT Name, QuantityUSD FROM Products WHERE Id=@id";
+        cmd.Parameters.AddWithValue("@id", productId);
+        using var reader = cmd.ExecuteReader();
+        AssertTrue(reader.Read(), "legacy product after restore");
+        AssertEqual(reader.GetString(0), "Legacy", "legacy product name after restore");
+        AssertClose(reader.GetDouble(1), 3, "legacy product quantity after restore");
+        AssertEqual(
+            File.ReadAllText(Path.Combine(root, "ProductImages", "legacy.jpg")),
+            "legacy image",
+            "legacy image after restore");
     }
 
     private static void ResetDatabase(string testName)

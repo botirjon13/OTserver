@@ -33,7 +33,7 @@ namespace SantexnikaSRM.Forms
             MinimizeBox = false;
             ClientSize = new Size(760, 360);
             BackColor = Color.FromArgb(243, 247, 253);
-            Font = new Font("Bahnschrift", 10.5f, FontStyle.Regular);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10.5f, FontStyle.Regular);
 
             Panel card = new Panel
             {
@@ -51,12 +51,12 @@ namespace SantexnikaSRM.Forms
                 Top = 14,
                 Width = 400,
                 Height = 28,
-                Font = new Font("Bahnschrift SemiBold", 15f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(34, 58, 96)
             };
 
             _lblState.SetBounds(16, 50, 680, 24);
-            _lblState.Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold);
+            _lblState.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold);
 
             _lblLicenseKey.SetBounds(16, 86, 680, 24);
             _lblDeviceId.SetBounds(16, 118, 680, 24);
@@ -73,7 +73,7 @@ namespace SantexnikaSRM.Forms
             };
 
             _lblProductInfo.SetBounds(16, 228, 688, 24);
-            _lblProductInfo.Font = new Font("Bahnschrift SemiLight", 10f, FontStyle.Regular);
+            _lblProductInfo.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiLight"), 10f, FontStyle.Regular);
             _lblProductInfo.ForeColor = Color.FromArgb(70, 88, 116);
 
             card.Controls.Add(title);

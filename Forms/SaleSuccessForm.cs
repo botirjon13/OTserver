@@ -104,7 +104,7 @@ namespace SantexnikaSRM.Forms
                 Text = "Sotuv muvaffaqiyatli saqlandi!",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Bahnschrift SemiBold", 18f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 18f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(21, 39, 66),
                 BackColor = Color.Transparent
             };
@@ -116,7 +116,7 @@ namespace SantexnikaSRM.Forms
             _btnOk.FlatAppearance.BorderSize = 0;
             _btnOk.FlatAppearance.MouseOverBackColor = Color.Transparent;
             _btnOk.FlatAppearance.MouseDownBackColor = Color.Transparent;
-            _btnOk.Font = new Font("Bahnschrift SemiBold", 18f, FontStyle.Bold);
+            _btnOk.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 18f, FontStyle.Bold);
             _btnOk.ForeColor = Color.White;
             _btnOk.Cursor = Cursors.Hand;
             _btnOk.Paint += (_, e) =>

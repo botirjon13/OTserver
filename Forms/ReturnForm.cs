@@ -38,7 +38,7 @@ namespace SantexnikaSRM.Forms
             Size = new Size(1200, 760);
             MinimumSize = new Size(1040, 680);
             BackColor = Color.White;
-            Font = new Font("Bahnschrift", 11f);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f);
 
             var root = new TableLayoutPanel
             {
@@ -117,7 +117,7 @@ namespace SantexnikaSRM.Forms
             _lblPreview.Height = 56;
             _lblPreview.TextAlign = ContentAlignment.MiddleRight;
             _lblPreview.ForeColor = Color.FromArgb(30, 58, 92);
-            _lblPreview.Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold);
+            _lblPreview.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold);
             _lblPreview.Text = "Qaytarish: 0 UZS";
 
             top.Controls.AddRange(new Control[]
@@ -466,7 +466,7 @@ namespace SantexnikaSRM.Forms
                     Dock = DockStyle.Fill,
                     Text = titles[i],
                     TextAlign = ContentAlignment.MiddleLeft,
-                    Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold),
+                    Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10f, FontStyle.Bold),
                     ForeColor = Color.FromArgb(24, 35, 48),
                     BackColor = Color.FromArgb(233, 239, 248),
                     Padding = new Padding(6, 0, 0, 0)

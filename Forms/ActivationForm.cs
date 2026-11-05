@@ -34,7 +34,7 @@ namespace SantexnikaSRM.Forms
             MinimizeBox = false;
             ClientSize = new Size(560, 390);
             BackColor = Color.FromArgb(244, 248, 253);
-            Font = new Font("Bahnschrift", 11f, FontStyle.Regular);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f, FontStyle.Regular);
 
             Label lblTitle = new Label
             {
@@ -44,7 +44,7 @@ namespace SantexnikaSRM.Forms
                 Top = 14,
                 Width = 520,
                 Height = 30,
-                Font = new Font("Bahnschrift SemiBold", 14f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(34, 58, 96)
             };
 
@@ -79,7 +79,7 @@ namespace SantexnikaSRM.Forms
             _btnContact.FlatAppearance.BorderSize = 0;
             _btnContact.BackColor = Color.FromArgb(90, 120, 166);
             _btnContact.ForeColor = Color.White;
-            _btnContact.Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold);
+            _btnContact.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold);
             _btnContact.Click += async (s, e) => await ShowContactAsync();
 
             _btnActivate.Text = "Aktivlashtirish";
@@ -88,7 +88,7 @@ namespace SantexnikaSRM.Forms
             _btnActivate.FlatAppearance.BorderSize = 0;
             _btnActivate.BackColor = Color.FromArgb(46, 110, 216);
             _btnActivate.ForeColor = Color.White;
-            _btnActivate.Font = new Font("Bahnschrift SemiBold", 12f, FontStyle.Bold);
+            _btnActivate.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12f, FontStyle.Bold);
             _btnActivate.Click += async (s, e) => await ActivateAsync();
 
             _btnExit.Text = "Chiqish";
@@ -97,7 +97,7 @@ namespace SantexnikaSRM.Forms
             _btnExit.FlatAppearance.BorderSize = 0;
             _btnExit.BackColor = Color.FromArgb(143, 157, 177);
             _btnExit.ForeColor = Color.White;
-            _btnExit.Font = new Font("Bahnschrift SemiBold", 12f, FontStyle.Bold);
+            _btnExit.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12f, FontStyle.Bold);
             _btnExit.Click += (s, e) => Close();
 
             Controls.Add(lblTitle);

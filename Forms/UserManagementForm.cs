@@ -47,7 +47,7 @@ namespace SantexnikaSRM.Forms
             MinimumSize = new Size(1100, 680);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(239, 242, 248);
-            Font = new Font("Bahnschrift", 11, FontStyle.Regular);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             DoubleBuffered = true;
 
             Panel canvas = new Panel { Dock = DockStyle.Fill };
@@ -92,7 +92,7 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 66,
                 Top = 4,
-                Font = new Font("Bahnschrift SemiBold", 23, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 23, FontStyle.Bold),
                 ForeColor = Color.FromArgb(28, 42, 65)
             };
             Label lblSub = new Label
@@ -101,7 +101,7 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 68,
                 Top = 40,
-                Font = new Font("Bahnschrift", 12, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(70, 89, 116)
             };
             header.Controls.Add(titleIcon);
@@ -159,7 +159,7 @@ namespace SantexnikaSRM.Forms
             _cmbRole.FlatStyle = FlatStyle.Flat;
             _cmbRole.BackColor = Color.FromArgb(248, 250, 255);
             _cmbRole.ForeColor = Color.FromArgb(42, 58, 84);
-            _cmbRole.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            _cmbRole.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             _cmbRole.Left = 10;
             _cmbRole.Top = 8;
             _cmbRole.Width = 250;
@@ -253,7 +253,7 @@ namespace SantexnikaSRM.Forms
             _grid.ColumnHeadersHeight = 46;
             _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(245, 248, 253);
             _grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(63, 76, 97);
-            _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold);
+            _grid.ColumnHeadersDefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(245, 248, 253);
             _grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.FromArgb(63, 76, 97);
@@ -262,7 +262,7 @@ namespace SantexnikaSRM.Forms
             _grid.DefaultCellStyle.ForeColor = Color.FromArgb(40, 54, 75);
             _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(206, 222, 247);
             _grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(19, 33, 58);
-            _grid.DefaultCellStyle.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            _grid.DefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             _grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 252, 255);
             _grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(206, 222, 247);
@@ -410,7 +410,7 @@ namespace SantexnikaSRM.Forms
             TextRenderer.DrawText(
                 e.Graphics,
                 role,
-                new Font("Bahnschrift SemiBold", 10, FontStyle.Bold),
+                new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10, FontStyle.Bold),
                 badge,
                 fg,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -523,7 +523,7 @@ namespace SantexnikaSRM.Forms
             textBox.BorderStyle = BorderStyle.None;
             textBox.BackColor = Color.FromArgb(248, 250, 255);
             textBox.ForeColor = Color.FromArgb(42, 58, 84);
-            textBox.Font = new Font("Bahnschrift", 12, FontStyle.Regular);
+            textBox.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             textBox.PlaceholderText = placeholder;
             textBox.Left = 12;
             textBox.Top = 12;
@@ -538,7 +538,7 @@ namespace SantexnikaSRM.Forms
                 Left = left,
                 Top = top,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold),
                 ForeColor = Color.FromArgb(68, 82, 102)
             };
         }
@@ -547,7 +547,7 @@ namespace SantexnikaSRM.Forms
         {
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
-            button.Font = new Font("Bahnschrift SemiBold", 12, FontStyle.Bold);
+            button.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             button.ForeColor = Color.White;
             button.Cursor = Cursors.Hand;
             button.Paint += (s, e) =>
@@ -631,7 +631,7 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 44,
                 Top = 14,
-                Font = new Font("Bahnschrift SemiBold", 15, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };

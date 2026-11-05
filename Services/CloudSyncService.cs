@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using SantexnikaSRM.Data;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Services
 {
@@ -167,10 +168,15 @@ namespace SantexnikaSRM.Services
                 {
                     File.WriteAllText(markerPath, currentMonth);
                 }
+                else
+                {
+                    LogHelper.WriteLog(
+                        $"Bulutga zaxira nusxa yuborilmadi. Server javobi: {(int)response.StatusCode} {response.ReasonPhrase}");
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Upload bo'lmasa keyingi ishga tushishda yana uriniladi.
+                LogHelper.WriteLog($"Bulutga zaxira nusxa yuborilmadi: {ex.Message}");
             }
         }
     }

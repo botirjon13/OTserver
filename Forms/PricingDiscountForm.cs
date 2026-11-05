@@ -116,7 +116,7 @@ namespace SantexnikaSRM.Forms
                 {
                     Dock = DockStyle.Fill,
                     Text = "%",
-                    Font = new Font("Bahnschrift SemiBold", 14f, FontStyle.Bold),
+                    Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14f, FontStyle.Bold),
                     ForeColor = Color.White,
                     TextAlign = ContentAlignment.MiddleCenter,
                     BackColor = Color.Transparent
@@ -130,7 +130,7 @@ namespace SantexnikaSRM.Forms
                 Left = 76,
                 Top = 13,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 16f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(32, 45, 68),
                 BackColor = Color.Transparent
             });
@@ -141,7 +141,7 @@ namespace SantexnikaSRM.Forms
                 Left = 76,
                 Top = 40,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(92, 108, 135),
                 BackColor = Color.Transparent
             });
@@ -157,7 +157,7 @@ namespace SantexnikaSRM.Forms
                 Left = 16,
                 Top = 14,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(27, 57, 45),
                 BackColor = Color.Transparent
             });
@@ -167,7 +167,7 @@ namespace SantexnikaSRM.Forms
                 Left = 16,
                 Top = 44,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(63, 92, 82),
                 BackColor = Color.Transparent
             });
@@ -183,7 +183,7 @@ namespace SantexnikaSRM.Forms
             _numMarkup.Maximum = 1000;
             _numMarkup.Increment = 0.5M;
             _numMarkup.BorderStyle = BorderStyle.None;
-            _numMarkup.Font = new Font("Bahnschrift SemiBold", 15f, FontStyle.Bold);
+            _numMarkup.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15f, FontStyle.Bold);
             _numMarkup.ForeColor = Color.FromArgb(32, 45, 68);
             _numMarkup.TextAlign = HorizontalAlignment.Left;
             _numMarkup.ValueChanged += (_, __) =>
@@ -203,7 +203,7 @@ namespace SantexnikaSRM.Forms
                 Left = 492,
                 Top = 11,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 15f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(11, 161, 86),
                 BackColor = Color.Transparent
             };
@@ -217,7 +217,7 @@ namespace SantexnikaSRM.Forms
                 Left = 10,
                 Top = 8,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(59, 87, 78),
                 BackColor = Color.Transparent
             });
@@ -227,7 +227,7 @@ namespace SantexnikaSRM.Forms
                 Left = 10,
                 Top = 28,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 10f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(40, 63, 55),
                 BackColor = Color.Transparent
             });
@@ -237,7 +237,7 @@ namespace SantexnikaSRM.Forms
                 Left = 430,
                 Top = 28,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(33, 48, 73),
                 BackColor = Color.Transparent
             });
@@ -247,7 +247,7 @@ namespace SantexnikaSRM.Forms
                 Left = 10,
                 Top = 49,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 10f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(40, 63, 55),
                 BackColor = Color.Transparent
             });
@@ -255,7 +255,7 @@ namespace SantexnikaSRM.Forms
             _lblExampleMarkup.Left = 430;
             _lblExampleMarkup.Top = 49;
             _lblExampleMarkup.AutoSize = true;
-            _lblExampleMarkup.Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold);
+            _lblExampleMarkup.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10f, FontStyle.Bold);
             _lblExampleMarkup.ForeColor = Color.FromArgb(11, 161, 86);
             _lblExampleMarkup.BackColor = Color.Transparent;
             exampleCard.Controls.Add(_lblExampleMarkup);
@@ -276,7 +276,7 @@ namespace SantexnikaSRM.Forms
                 Left = 10,
                 Top = 75,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(33, 48, 73),
                 BackColor = Color.Transparent
             });
@@ -284,7 +284,7 @@ namespace SantexnikaSRM.Forms
             _lblExampleTotal.Left = 405;
             _lblExampleTotal.Top = 74;
             _lblExampleTotal.AutoSize = true;
-            _lblExampleTotal.Font = new Font("Bahnschrift SemiBold", 13f, FontStyle.Bold);
+            _lblExampleTotal.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 13f, FontStyle.Bold);
             _lblExampleTotal.ForeColor = Color.FromArgb(11, 161, 86);
             _lblExampleTotal.BackColor = Color.Transparent;
             exampleCard.Controls.Add(_lblExampleTotal);
@@ -305,7 +305,7 @@ namespace SantexnikaSRM.Forms
             _chkAutoFill.Top = 18;
             _chkAutoFill.AutoSize = true;
             _chkAutoFill.Text = "  Tovar tanlanganda sotish narxiga tavsiya qiymatini avtomatik yozish";
-            _chkAutoFill.Font = new Font("Bahnschrift", 11f, FontStyle.Regular);
+            _chkAutoFill.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f, FontStyle.Regular);
             _chkAutoFill.ForeColor = Color.FromArgb(30, 46, 73);
             _chkAutoFill.BackColor = Color.Transparent;
             _chkAutoFill.CheckedChanged += (_, __) => MarkDirty();
@@ -316,7 +316,7 @@ namespace SantexnikaSRM.Forms
                 Left = 36,
                 Top = 44,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 8.8f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 8.8f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(68, 89, 122),
                 BackColor = Color.Transparent
             });
@@ -327,7 +327,7 @@ namespace SantexnikaSRM.Forms
             _chkQuickDiscountEnabled.Top = 18;
             _chkQuickDiscountEnabled.AutoSize = true;
             _chkQuickDiscountEnabled.Text = "  Tezkor chegirma (foiz/summa) funksiyasini yoqish";
-            _chkQuickDiscountEnabled.Font = new Font("Bahnschrift", 11f, FontStyle.Regular);
+            _chkQuickDiscountEnabled.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f, FontStyle.Regular);
             _chkQuickDiscountEnabled.ForeColor = Color.FromArgb(49, 57, 66);
             _chkQuickDiscountEnabled.BackColor = Color.Transparent;
             _chkQuickDiscountEnabled.CheckedChanged += (_, __) => MarkDirty();
@@ -338,7 +338,7 @@ namespace SantexnikaSRM.Forms
                 Left = 36,
                 Top = 44,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 8.8f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 8.8f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(97, 83, 58),
                 BackColor = Color.Transparent
             });
@@ -353,7 +353,7 @@ namespace SantexnikaSRM.Forms
             _btnReset.FlatAppearance.MouseOverBackColor = Color.FromArgb(239, 245, 252);
             _btnReset.FlatAppearance.MouseDownBackColor = Color.FromArgb(229, 238, 249);
             _btnReset.BackColor = Color.Transparent;
-            _btnReset.Font = new Font("Bahnschrift", 10f, FontStyle.Regular);
+            _btnReset.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10f, FontStyle.Regular);
             _btnReset.ForeColor = Color.FromArgb(43, 61, 90);
             _btnReset.Cursor = Cursors.Hand;
             _btnReset.Click += (_, __) =>
@@ -392,7 +392,7 @@ namespace SantexnikaSRM.Forms
             _btnSave.FlatAppearance.BorderSize = 0;
             _btnSave.FlatAppearance.MouseOverBackColor = Color.Transparent;
             _btnSave.FlatAppearance.MouseDownBackColor = Color.Transparent;
-            _btnSave.Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold);
+            _btnSave.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold);
             _btnSave.ForeColor = Color.White;
             _btnSave.Cursor = Cursors.Hand;
             _btnSave.Enabled = false;
@@ -408,7 +408,7 @@ namespace SantexnikaSRM.Forms
                 using GraphicsPath path = RoundedRect(rect, 11);
                 using LinearGradientBrush lg = new LinearGradientBrush(rect, c1, c2, 0f);
                 e.Graphics.FillPath(lg, path);
-                TextRenderer.DrawText(e.Graphics, "Saqlash", new Font("Bahnschrift SemiBold", 10.5f, FontStyle.Bold),
+                TextRenderer.DrawText(e.Graphics, "Saqlash", new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10.5f, FontStyle.Bold),
                     _btnSave.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
             _btnSave.Resize += (_, __) =>
@@ -418,7 +418,7 @@ namespace SantexnikaSRM.Forms
             _lblState.Left = 110;
             _lblState.Top = 478;
             _lblState.AutoSize = true;
-            _lblState.Font = new Font("Bahnschrift", 9.5f, FontStyle.Regular);
+            _lblState.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9.5f, FontStyle.Regular);
             _lblState.ForeColor = Color.FromArgb(184, 96, 0);
             _lblState.Text = "Sozlamalar o'zgardi (saqlanmagan)";
             card.Controls.Add(_lblState);
@@ -447,7 +447,7 @@ namespace SantexnikaSRM.Forms
             {
                 Dock = DockStyle.Fill,
                 Text = "\u2197",
-                Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10f, FontStyle.Bold),
                 ForeColor = Color.White,
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.Transparent
@@ -459,7 +459,7 @@ namespace SantexnikaSRM.Forms
                 Left = 48,
                 Top = 16,
                 AutoSize = true,
-                Font = new Font("Bahnschrift SemiBold", 11f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(20, 40, 76),
                 BackColor = Color.Transparent
             });
@@ -469,7 +469,7 @@ namespace SantexnikaSRM.Forms
                 Left = 48,
                 Top = 39,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(23, 39, 65),
                 BackColor = Color.Transparent
             });
@@ -479,7 +479,7 @@ namespace SantexnikaSRM.Forms
                 Left = 48,
                 Top = 57,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(23, 39, 65),
                 BackColor = Color.Transparent
             });
@@ -489,7 +489,7 @@ namespace SantexnikaSRM.Forms
                 Left = 48,
                 Top = 75,
                 AutoSize = true,
-                Font = new Font("Bahnschrift", 9f, FontStyle.Regular),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(23, 39, 65),
                 BackColor = Color.Transparent
             });

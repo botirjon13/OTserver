@@ -31,7 +31,7 @@ namespace SantexnikaSRM.Forms
             Size = new Size(980, 620);
             MinimumSize = new Size(900, 560);
             BackColor = Color.White;
-            Font = new Font("Bahnschrift", 11f);
+            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f);
 
             var root = new TableLayoutPanel
             {
@@ -233,7 +233,7 @@ namespace SantexnikaSRM.Forms
                     Dock = DockStyle.Fill,
                     Text = titles[i],
                     TextAlign = ContentAlignment.MiddleLeft,
-                    Font = new Font("Bahnschrift SemiBold", 10f, FontStyle.Bold),
+                    Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10f, FontStyle.Bold),
                     ForeColor = Color.FromArgb(24, 35, 48),
                     BackColor = Color.FromArgb(233, 239, 248),
                     Padding = new Padding(6, 0, 0, 0)
