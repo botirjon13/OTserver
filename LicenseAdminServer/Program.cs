@@ -132,6 +132,7 @@ td { font-size: 13px; color: #cbd5e1; padding: 12px 14px; border-bottom: 1px sol
 tr:hover td { background: rgba(255, 255, 255, 0.02); }
 input, textarea { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 13px; outline: none; transition: 0.2s; }
 input:focus, textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+select { background: #0f172a; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 13px; outline: none; }
 button, .btn { background: #3b82f6; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 button:hover, .btn:hover { background: #2563eb; transform: translateY(-1px); }
 .btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
@@ -139,6 +140,28 @@ button:hover, .btn:hover { background: #2563eb; transform: translateY(-1px); }
 .back-link { display: inline-flex; align-items: center; color: #38bdf8; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
 .back-link:hover { text-decoration: underline; }
 .row-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.dashboard-toolbar { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:20px; }
+.dashboard-toolbar label, .muted { color:#94a3b8; font-size:13px; }
+.dashboard-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.dashboard-columns .card { min-width:0; }
+.warning-line, .trend-line { color:#cbd5e1; font-size:14px; margin:10px 0; }
+.warning-line strong { color:#fbbf24; }
+.warning-line.danger-text strong { color:#fb7185; }
+.trend-line strong { color:#38bdf8; }
+.trend-line span { color:#94a3b8; margin-left:6px; }
+.quick-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.table-wrap { width:100%; overflow-x:auto; }
+.empty-state { color:#94a3b8; text-align:center; padding:20px; }
+@media (max-width:760px) {
+  body { padding:16px 10px; }
+  .header-top { align-items:flex-start; gap:12px; }
+  .dashboard-toolbar { align-items:flex-start; flex-direction:column; }
+  .dashboard-columns { grid-template-columns:1fr; gap:0; }
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .stat-card { padding:14px; }
+  .stat-card .v { font-size:24px; }
+  th, td { padding:10px; white-space:nowrap; }
+}
 </style>
 """;
 
@@ -254,6 +277,91 @@ app.MapGet("/admin", (HttpContext context) =>
 {
     string csrf = EnsureCsrfToken(context);
     var stats = Db.GetDashboardStats(dbPath);
+    int rangeDays = context.Request.Query["range"].ToString() switch
+    {
+        "1" => 1,
+        "30" => 30,
+        _ => 7
+    };
+    DateTime now = DateTime.UtcNow;
+    DateTime rangeFrom = now.AddDays(-rangeDays);
+    DateTime previousFrom = now.AddDays(-2 * rangeDays);
+    List<LicenseRow> licenses = Db.GetLicenses(dbPath);
+    List<DeviceRow> devices = Db.GetDevices(dbPath);
+    List<AuditRow> audit = Db.GetAuditLogs(dbPath, 300);
+
+    int expiringSoon = licenses.Count(license =>
+        !string.IsNullOrWhiteSpace(license.ExpiresAt) &&
+        TryParseDashboardDate(license.ExpiresAt, out DateTime expiresAt) &&
+        expiresAt >= now.Date &&
+        expiresAt <= now.Date.AddDays(rangeDays));
+    int inactiveDevices = devices.Count(device =>
+        TryParseDashboardDate(device.LastSeenAt, out DateTime lastSeen) &&
+        lastSeen < rangeFrom);
+    List<AuditRow> recentActivity = audit
+        .Where(item => TryParseDashboardDate(item.CreatedAt, out DateTime createdAt) && createdAt >= rangeFrom)
+        .OrderByDescending(item =>
+        {
+            TryParseDashboardDate(item.CreatedAt, out DateTime createdAt);
+            return createdAt;
+        })
+        .Take(12)
+        .ToList();
+    int currentEvents = audit.Count(item => TryParseDashboardDate(item.CreatedAt, out DateTime createdAt) && createdAt >= rangeFrom);
+    int previousEvents = audit.Count(item =>
+        TryParseDashboardDate(item.CreatedAt, out DateTime createdAt) &&
+        createdAt >= previousFrom &&
+        createdAt < rangeFrom);
+    int currentOnline = devices.Count(device => TryParseDashboardDate(device.LastSeenAt, out DateTime lastSeen) && lastSeen >= rangeFrom);
+    int previousOnline = devices.Count(device =>
+        TryParseDashboardDate(device.LastSeenAt, out DateTime lastSeen) &&
+        lastSeen >= previousFrom &&
+        lastSeen < rangeFrom);
+    var customerNames = licenses.ToDictionary(
+        license => license.LicenseKey,
+        license => string.IsNullOrWhiteSpace(license.CustomerName) ? "-" : license.CustomerName,
+        StringComparer.OrdinalIgnoreCase);
+    var topCustomers = devices
+        .GroupBy(device => device.LicenseKey ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new
+        {
+            Name = customerNames.TryGetValue(group.Key, out string? customerName) ? customerName : group.Key,
+            DeviceCount = group.Count()
+        })
+        .OrderByDescending(item => item.DeviceCount)
+        .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+        .Take(5)
+        .ToList();
+    var topLicenses = devices
+        .GroupBy(device => device.LicenseKey ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new
+        {
+            LicenseKey = group.Key,
+            DeviceCount = group.Count(),
+            LastActivity = group
+                .Select(device => TryParseDashboardDate(device.LastSeenAt, out DateTime lastSeen) ? lastSeen : DateTime.MinValue)
+                .Max()
+        })
+        .OrderByDescending(item => item.DeviceCount)
+        .ThenByDescending(item => item.LastActivity)
+        .Take(5)
+        .ToList();
+    string recentRows = recentActivity.Count == 0
+        ? "<tr><td colspan='3' class='empty-state'>Tanlangan davrda faoliyat yo'q.</td></tr>"
+        : string.Join("", recentActivity.Select(item =>
+            $"<tr><td>{HttpUtility.HtmlEncode(item.CreatedAt)}</td><td>{HttpUtility.HtmlEncode(item.EventType)}</td><td>{HttpUtility.HtmlEncode(item.Message)}</td></tr>"));
+    string topCustomerRows = topCustomers.Count == 0
+        ? "<tr><td colspan='2' class='empty-state'>Ma'lumot yo'q.</td></tr>"
+        : string.Join("", topCustomers.Select(item =>
+            $"<tr><td>{HttpUtility.HtmlEncode(item.Name)}</td><td>{item.DeviceCount}</td></tr>"));
+    string topLicenseRows = topLicenses.Count == 0
+        ? "<tr><td colspan='3' class='empty-state'>Ma'lumot yo'q.</td></tr>"
+        : string.Join("", topLicenses.Select(item =>
+            $"<tr><td><code>{HttpUtility.HtmlEncode(item.LicenseKey)}</code></td><td>{item.DeviceCount}</td><td>{(item.LastActivity == DateTime.MinValue ? "-" : item.LastActivity.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture))}</td></tr>"));
+    string selectedRange = rangeDays.ToString(CultureInfo.InvariantCulture);
+    string eventTrend = FormatDashboardTrend(currentEvents, previousEvents);
+    string onlineTrend = FormatDashboardTrend(currentOnline, previousOnline);
+
     string html = $$"""
 <!doctype html>
 <html lang="uz">
@@ -276,6 +384,19 @@ app.MapGet("/admin", (HttpContext context) =>
 </form>
 </div>
 
+<div class="dashboard-toolbar">
+<form method="get" action="/admin" class="row-form">
+<label for="range">Vaqt oralig'i</label>
+<select id="range" name="range" onchange="this.form.submit()">
+<option value="1" {{(selectedRange == "1" ? "selected" : string.Empty)}}>Bugun</option>
+<option value="7" {{(selectedRange == "7" ? "selected" : string.Empty)}}>7 kun</option>
+<option value="30" {{(selectedRange == "30" ? "selected" : string.Empty)}}>30 kun</option>
+</select>
+<button type="submit">Yangilash</button>
+</form>
+<span class="muted">Sahifa har daqiqada avtomatik yangilanadi.</span>
+</div>
+
 <div class="grid">
 <div class="stat-card"><div class="k">Jami License</div><div class="v">{{stats.TotalLicenses}}</div></div>
 <div class="stat-card"><div class="k">Aktiv License</div><div class="v" style="color:#34d399">{{stats.ActiveLicenses}}</div></div>
@@ -283,7 +404,55 @@ app.MapGet("/admin", (HttpContext context) =>
 <div class="stat-card"><div class="k">Bugun Online</div><div class="v" style="color:#38bdf8">{{stats.ActiveToday}}</div></div>
 </div>
 
+<div class="dashboard-columns">
+<section class="card">
+<h3>Ogohlantirishlar</h3>
+<p class="warning-line">Muddat tugashiga yaqin license: <strong>{{expiringSoon}}</strong> ta ({{rangeDays}} kun ichida)</p>
+<p class="warning-line danger-text">Uzoq vaqtdan beri offline qurilmalar: <strong>{{inactiveDevices}}</strong> ta</p>
+</section>
+<section class="card">
+<h3>Tezkor amallar</h3>
+<div class="quick-actions">
+<a class="nav-link" href="/admin/licenses">Licenselar</a>
+<a class="nav-link" href="/admin/clients">Mijozlar</a>
+<a class="nav-link" href="/admin/devices">Qurilmalar</a>
+</div>
+</section>
+</div>
+
+<section class="card">
+<h3>So'nggi faoliyat</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Vaqt</th><th>Hodisa</th><th>Izoh</th></tr></thead>
+<tbody>{{recentRows}}</tbody>
+</table>
+</div>
+</section>
+
+<div class="dashboard-columns">
+<section class="card">
+<h3>Trend ko'rsatkichlari ({{rangeDays}} kun)</h3>
+<p class="trend-line">Faollik: <strong>{{currentEvents}}</strong> ta hodisa <span>{{eventTrend}}</span></p>
+<p class="trend-line">Online: <strong>{{currentOnline}}</strong> ta qurilma <span>{{onlineTrend}}</span></p>
+</section>
+<section class="card">
+<h3>Top mijozlar (qurilmalar soni)</h3>
+<div class="table-wrap">
+<table><thead><tr><th>Mijoz</th><th>Qurilma</th></tr></thead><tbody>{{topCustomerRows}}</tbody></table>
+</div>
+</section>
+</div>
+
+<section class="card">
+<h3>Eng faol licenselar</h3>
+<div class="table-wrap">
+<table><thead><tr><th>License key</th><th>Qurilma</th><th>Oxirgi faollik</th></tr></thead><tbody>{{topLicenseRows}}</tbody></table>
+</div>
+</section>
+
 <div class="actions-nav">
+<a class="nav-link" href="/admin">Dashboard</a>
 <a class="nav-link active" href="/admin/licenses">License boshqarish</a>
 <a class="nav-link" href="/admin/devices">Qurilmalar ro'yxati</a>
 <a class="nav-link" href="/admin/clients">Mijozlar</a>
@@ -291,6 +460,7 @@ app.MapGet("/admin", (HttpContext context) =>
 <a class="nav-link" href="/admin/audit">Audit Logs</a>
 </div>
 </div>
+<script>window.setTimeout(() => window.location.reload(), 60000);</script>
 </body>
 </html>
 """;
@@ -1624,6 +1794,27 @@ app.MapGet("/releases/{**assetPath}", async (HttpContext context, string? assetP
 });
 
 app.Run();
+
+static bool TryParseDashboardDate(string? value, out DateTime parsed)
+{
+    return DateTime.TryParse(
+        value,
+        CultureInfo.InvariantCulture,
+        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+        out parsed);
+}
+
+static string FormatDashboardTrend(int currentValue, int previousValue)
+{
+    if (previousValue <= 0)
+    {
+        return currentValue > 0 ? "+100%" : "0%";
+    }
+
+    double delta = ((double)(currentValue - previousValue) / previousValue) * 100.0;
+    string sign = delta >= 0 ? "+" : string.Empty;
+    return $"{sign}{delta:0.#}%";
+}
 
 static bool TryRequireApiAdmin(HttpContext context, string dbPath, string adminUser, string adminPass, out IResult? unauthorized)
 {
