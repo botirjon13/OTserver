@@ -4,6 +4,8 @@ The application uses Velopack for both first-time installation and in-app update
 The release workflow builds the installer, portable ZIP, and update-feed assets
 on Windows. Pull requests run the build and service regression tests without
 publishing a release.
+The application entry point must run `VelopackApp.Build().Run()` before
+initializing the database or UI so Velopack can handle install and update hooks.
 
 ## Publishing
 

@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using SantexnikaSRM.Data;
 using SantexnikaSRM.Forms;
 using SantexnikaSRM.Utils;
+using Velopack;
 
 namespace SantexnikaSRM
 {
@@ -11,6 +12,7 @@ namespace SantexnikaSRM
         [STAThread]
         static void Main()
         {
+            VelopackApp.Build().Run();
             ApplicationConfiguration.Initialize();
             DatabaseHelper db = new DatabaseHelper();
 
