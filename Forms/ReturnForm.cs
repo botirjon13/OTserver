@@ -90,6 +90,13 @@ namespace SantexnikaSRM.Forms
                 LoadSales();
             };
 
+            Button btnReturnHistory = new Button { Text = "Qaytarish tarixi", Left = 852, Top = 90, Width = 120, Height = 26 };
+            btnReturnHistory.Click += (_, __) =>
+            {
+                using var history = new ReturnReceiptHistoryForm();
+                history.ShowDialog(this);
+            };
+
             var lblReason = new Label { Text = "Sabab:", AutoSize = true, Left = 0, Top = 54 };
             _txtReason.SetBounds(50, 50, 520, 60);
             _txtReason.Multiline = true;
@@ -122,7 +129,7 @@ namespace SantexnikaSRM.Forms
 
             top.Controls.AddRange(new Control[]
             {
-                lblDate, _dtFrom, lblTo, _dtTo, btnLoadSales, lblSaleId, _txtSaleId, btnOpenById, btnToday, btnMonth,
+                lblDate, _dtFrom, lblTo, _dtTo, btnLoadSales, lblSaleId, _txtSaleId, btnOpenById, btnToday, btnMonth, btnReturnHistory,
                 lblReason, _txtReason, btnApply, btnClose, _lblPreview
             });
 
@@ -369,10 +376,21 @@ namespace SantexnikaSRM.Forms
             {
                 var result = _returnService.ApplyReturn(_activeSaleId, lines, _txtReason.Text, _currentUser);
                 MessageBox.Show(
-                    $"Qaytarish saqlandi.\n\nQaytarish ID: #{result.ReturnId}\nQaytarish summasi: {result.TotalUZS:N0} UZS",
+                    $"Qaytarish saqlandi.\n\nQaytarish ID: #{result.ReturnId}\nQaytarish summasi: {result.TotalUZS:N0} UZS\nQarzdan kamaytirildi: {result.DebtReducedUZS:N0} UZS\nMijozga qaytariladi: {result.CashRefundUZS:N0} UZS",
                     "Muvaffaqiyatli",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
+
+                ReturnReceipt? receipt = _returnService.GetReturnReceipt(result.ReturnId);
+                if (receipt == null)
+                {
+                    throw new Exception($"Qaytarish #{result.ReturnId} saqlandi, lekin hujjatni ochib bo'lmadi.");
+                }
+
+                using (var preview = new ReturnReceiptForm(receipt))
+                {
+                    preview.ShowDialog(this);
+                }
 
                 OpenSaleLines(_activeSaleId);
                 LoadSales();

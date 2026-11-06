@@ -25,7 +25,9 @@ internal static class Program
         {
             ("sale", SaleCreatesExpectedTotalsAndStock),
             ("discount sale", DiscountSaleUsesNetPriceAndDiscountMetadata),
+            ("receipt branding snapshot", ReceiptBrandingAndSellerAreSnapshotted),
             ("return", ReturnUsesSameNetPriceModelAsSale),
+            ("debt return settlement", ReturnSettlementSeparatesDebtAndCash),
             ("historical cost", HistoricalCostIsUsedAfterProductCostChanges),
             ("debt sale", DebtSaleCreatesExpectedDebt),
             ("backup restore", BackupRestoreRestoresDatabaseSnapshot),
@@ -125,6 +127,64 @@ internal static class Program
         AssertClose(result.ProfitReductionUZS, 3000, "return profit reduction");
         AssertSale(saleId, total: 13000, subtotal: 15000, discount: 2000, profit: 3000);
         AssertProductQuantity(productId, 9);
+
+        ReturnReceipt? returnReceipt = new ReturnService().GetReturnReceipt(result.ReturnId);
+        AssertTrue(returnReceipt != null, "return receipt can be reopened");
+        AssertEqual(returnReceipt!.OriginalReceiptNumber, $"CHK-{saleId:D6}", "return receipt original number");
+        AssertClose(returnReceipt.TotalUZS, result.TotalUZS, "return receipt total");
+        AssertTrue(
+            new ReturnService().GetReturnHistory(DateTime.Today, DateTime.Today).Exists(x => x.ReturnId == result.ReturnId),
+            "return receipt appears in history");
+    }
+
+    private static void ReceiptBrandingAndSellerAreSnapshotted()
+    {
+        int productId = InsertProduct("Original name", purchaseUzs: 10000, quantity: 5);
+        int saleId = new SaleService().CreateSale(new Sale
+        {
+            Date = DateTime.Now,
+            SubtotalUZS = 15000,
+            TotalUZS = 15000,
+            Items = new List<SaleItem>
+            {
+                new SaleItem { ProductId = productId, Quantity = 1, SellPriceUZS = 15000 }
+            }
+        }, Admin);
+
+        byte[] logoPng = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l4sAAAAASUVORK5CYII=");
+        new FiscalSettingsService().Save(new FiscalSettings
+        {
+            BusinessName = "Test do'kon",
+            TIN = "123456789",
+            StoreAddress = "Toshkent",
+            StorePhone = "+998 90 123 45 67",
+            ThankYouMessage = "Xaridingiz uchun rahmat",
+            LogoPng = logoPng
+        }, Admin);
+
+        SaleReceipt created = new ReceiptService().CreateAndSave(saleId, "Naqd", Admin);
+        AssertEqual(created.BusinessName, "Test do'kon", "created receipt store name");
+        AssertEqual(created.SellerName, Admin.Username, "created receipt seller");
+        AssertTrue(created.LogoPng.Length > 0, "created receipt logo");
+        AssertEqual(created.FiscalSign, "", "fake fiscal sign omitted");
+        AssertEqual(created.QrData, "", "fake QR data omitted");
+
+        Execute("UPDATE Products SET Name='Changed name' WHERE Id=@id", ("@id", productId));
+        Execute("UPDATE SaleItems SET SellPriceUZS=99999 WHERE SaleId=@id", ("@id", saleId));
+        new FiscalSettingsService().Save(new FiscalSettings
+        {
+            BusinessName = "New name",
+            StorePhone = "New phone"
+        }, Admin);
+        SaleReceipt? reopened = new ReceiptService().GetBySaleId(saleId);
+        AssertTrue(reopened != null, "receipt can be reopened");
+        AssertEqual(reopened!.BusinessName, "Test do'kon", "reopened receipt store snapshot");
+        AssertEqual(reopened.StorePhone, "+998 90 123 45 67", "reopened receipt phone snapshot");
+        AssertEqual(reopened.ThankYouMessage, "Xaridingiz uchun rahmat", "reopened receipt thank-you snapshot");
+        AssertEqual(reopened.SellerName, Admin.Username, "reopened receipt seller snapshot");
+        AssertTrue(reopened.LogoPng.Length > 0, "reopened receipt logo snapshot");
+        AssertEqual(reopened.Items[0].ProductName, "Original name", "reopened receipt product-name snapshot");
+        AssertClose(reopened.Items[0].UnitPriceUZS, 15000, "reopened receipt price snapshot");
     }
 
     private static void HistoricalCostIsUsedAfterProductCostChanges()
@@ -189,6 +249,37 @@ internal static class Program
         AssertClose(reader.GetDouble(1), 5000, "debt paid");
         AssertClose(reader.GetDouble(2), 15000, "debt remaining");
         AssertEqual(reader.GetString(3), "Open", "debt status");
+    }
+
+    private static void ReturnSettlementSeparatesDebtAndCash()
+    {
+        int productId = InsertProduct("Tap", purchaseUzs: 8000, quantity: 3);
+        int customerId = new CustomerService().FindOrCreate("Ali Valiyev", "+998900000000", "");
+        int saleId = new SaleService().CreateSale(new Sale
+        {
+            Date = DateTime.Now,
+            SubtotalUZS = 20000,
+            TotalUZS = 20000,
+            Items = new List<SaleItem>
+            {
+                new SaleItem { ProductId = productId, Quantity = 1, SellPriceUZS = 20000 }
+            }
+        }, Admin);
+        new DebtService().CreateDebtForSale(saleId, customerId, 5000, DateTime.Today.AddDays(5), Admin);
+        int saleItemId = ScalarInt("SELECT Id FROM SaleItems WHERE SaleId=@saleId", ("@saleId", saleId));
+
+        ReturnService.ReturnApplyResult result = new ReturnService().ApplyReturn(
+            saleId,
+            new List<(int saleItemId, double quantity)> { (saleItemId, 1) },
+            "test",
+            Admin);
+
+        AssertClose(result.DebtReducedUZS, 15000, "return clears remaining debt");
+        AssertClose(result.CashRefundUZS, 5000, "return records paid amount as cash refund");
+        ReturnReceipt? receipt = new ReturnService().GetReturnReceipt(result.ReturnId);
+        AssertTrue(receipt != null, "settlement appears on return receipt");
+        AssertClose(receipt!.DebtReducedUZS, 15000, "receipt debt settlement");
+        AssertClose(receipt.CashRefundUZS, 5000, "receipt cash refund");
     }
 
     private static void BackupRestoreRestoresDatabaseSnapshot()

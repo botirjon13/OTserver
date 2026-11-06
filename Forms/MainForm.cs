@@ -1578,24 +1578,6 @@ namespace SantexnikaSRM.Forms
 
             try
             {
-                FiscalSettings settings = _fiscalSettingsService.Get(_currentUser);
-                bool missingFiscal =
-                    string.IsNullOrWhiteSpace(settings.BusinessName) ||
-                    string.IsNullOrWhiteSpace(settings.TIN) ||
-                    string.IsNullOrWhiteSpace(settings.StoreAddress) ||
-                    string.IsNullOrWhiteSpace(settings.KkmNumber);
-                if (missingFiscal)
-                {
-                    warnings.Add("Chek rekvizitlari to'liq emas");
-                }
-            }
-            catch
-            {
-                // Fiskal sozlamalar o'qilmasa davom etamiz.
-            }
-
-            try
-            {
                 List<string> backups = _backupService.ListBackups();
                 bool hasTodayBackup = backups.Any(path =>
                 {
@@ -1827,7 +1809,6 @@ namespace SantexnikaSRM.Forms
 
     }
 }
-
 
 
 

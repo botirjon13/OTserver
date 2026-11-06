@@ -32,6 +32,15 @@ namespace SantexnikaSRM.Services
             public double PurchasePriceUZS { get; set; }
         }
 
+        public sealed class ReturnHistoryItem
+        {
+            public int ReturnId { get; set; }
+            public int SaleId { get; set; }
+            public string OriginalReceiptNumber { get; set; } = "";
+            public DateTime IssuedAt { get; set; }
+            public double TotalUZS { get; set; }
+        }
+
         public sealed class ReturnApplyResult
         {
             public int ReturnId { get; set; }
@@ -40,6 +49,7 @@ namespace SantexnikaSRM.Services
             public double TotalUZS { get; set; }
             public double ProfitReductionUZS { get; set; }
             public double DebtReducedUZS { get; set; }
+            public double CashRefundUZS { get; set; }
         }
 
         public List<ReturnSaleRow> GetSales(DateTime from, DateTime to)
@@ -129,7 +139,7 @@ namespace SantexnikaSRM.Services
             cmd.CommandText = @"
                 SELECT si.Id,
                        si.ProductId,
-                       p.Name,
+                       COALESCE(rsi.ProductName, p.Name),
                        si.Quantity,
                        IFNULL((
                            SELECT SUM(ri.Quantity)
@@ -142,6 +152,7 @@ namespace SantexnikaSRM.Services
                        CASE WHEN si.UnitCostUZS > 0 THEN si.UnitCostUZS ELSE IFNULL(p.PurchasePriceUZS, 0) END
                 FROM SaleItems si
                 INNER JOIN Products p ON p.Id = si.ProductId
+                LEFT JOIN SaleReceiptItems rsi ON rsi.SaleItemId = si.Id AND rsi.SaleId = si.SaleId
                 WHERE si.SaleId = @saleId
                 ORDER BY si.Id";
             cmd.Parameters.AddWithValue("@saleId", saleId);
@@ -167,6 +178,129 @@ namespace SantexnikaSRM.Services
             }
 
             return rows;
+        }
+
+        public List<ReturnHistoryItem> GetReturnHistory(DateTime from, DateTime to)
+        {
+            if (to < from)
+            {
+                (from, to) = (to, from);
+            }
+
+            var rows = new List<ReturnHistoryItem>();
+            using var connection = Database.GetConnection();
+            connection.Open();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT r.Id,
+                       r.SaleId,
+                       IFNULL(sr.ReceiptNumber, 'CHK-' || printf('%06d', r.SaleId)),
+                       r.ReturnDate,
+                       r.TotalUZS
+                FROM Returns r
+                LEFT JOIN SaleReceipts sr ON sr.SaleId = r.SaleId
+                WHERE r.ReturnDate >= @from
+                  AND r.ReturnDate < @toExclusive
+                ORDER BY r.ReturnDate DESC, r.Id DESC";
+            cmd.Parameters.AddWithValue("@from", from.Date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+            cmd.Parameters.AddWithValue("@toExclusive", to.Date.AddDays(1).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                rows.Add(new ReturnHistoryItem
+                {
+                    ReturnId = reader.GetInt32(0),
+                    SaleId = reader.GetInt32(1),
+                    OriginalReceiptNumber = reader.GetString(2),
+                    IssuedAt = ParseDateTime(reader.GetString(3)),
+                    TotalUZS = reader.GetDouble(4)
+                });
+            }
+
+            return rows;
+        }
+
+        public ReturnReceipt? GetReturnReceipt(int returnId)
+        {
+            using var connection = Database.GetConnection();
+            connection.Open();
+            using var headCmd = connection.CreateCommand();
+            headCmd.CommandText = @"
+                SELECT r.Id,
+                       r.SaleId,
+                       r.ReturnDate,
+                       r.Reason,
+                       r.SubtotalUZS,
+                       r.DiscountUZS,
+                       r.TotalUZS,
+                       r.DebtReducedUZS,
+                       r.CashRefundUZS,
+                       IFNULL(sr.ReceiptNumber, 'CHK-' || printf('%06d', r.SaleId)),
+                       IFNULL(sr.BusinessName, ''),
+                       IFNULL(sr.TIN, ''),
+                       IFNULL(sr.StoreAddress, ''),
+                       IFNULL(sr.StorePhone, ''),
+                       sr.LogoPng
+                FROM Returns r
+                LEFT JOIN SaleReceipts sr ON sr.SaleId = r.SaleId
+                WHERE r.Id = @returnId
+                LIMIT 1";
+            headCmd.Parameters.AddWithValue("@returnId", returnId);
+
+            ReturnReceipt result;
+            using (var reader = headCmd.ExecuteReader())
+            {
+                if (!reader.Read())
+                {
+                    return null;
+                }
+
+                result = new ReturnReceipt
+                {
+                    ReturnId = reader.GetInt32(0),
+                    SaleId = reader.GetInt32(1),
+                    IssuedAt = ParseDateTime(reader.GetString(2)),
+                    Reason = reader.GetString(3),
+                    SubtotalUZS = reader.GetDouble(4),
+                    DiscountUZS = reader.GetDouble(5),
+                    TotalUZS = reader.GetDouble(6),
+                    DebtReducedUZS = reader.GetDouble(7),
+                    CashRefundUZS = reader.GetDouble(8),
+                    OriginalReceiptNumber = reader.GetString(9),
+                    BusinessName = reader.GetString(10),
+                    TIN = reader.GetString(11),
+                    StoreAddress = reader.GetString(12),
+                    StorePhone = reader.GetString(13),
+                    LogoPng = reader.IsDBNull(14) ? Array.Empty<byte>() : (byte[])reader[14]
+                };
+            }
+
+            using var itemCmd = connection.CreateCommand();
+            itemCmd.CommandText = @"
+                SELECT COALESCE(NULLIF(ri.ProductName, ''), srsi.ProductName, p.Name),
+                       ri.Quantity,
+                       ri.UnitPriceUZS,
+                       ri.LineTotalUZS
+                FROM ReturnItems ri
+                INNER JOIN Products p ON p.Id = ri.ProductId
+                LEFT JOIN SaleReceiptItems srsi ON srsi.SaleItemId = ri.SaleItemId
+                WHERE ri.ReturnId = @returnId
+                ORDER BY ri.Id";
+            itemCmd.Parameters.AddWithValue("@returnId", returnId);
+            using var itemReader = itemCmd.ExecuteReader();
+            while (itemReader.Read())
+            {
+                result.Items.Add(new ReturnReceiptItem
+                {
+                    ProductName = itemReader.GetString(0),
+                    Quantity = itemReader.GetDouble(1),
+                    UnitPriceUZS = itemReader.GetDouble(2),
+                    LineTotalUZS = itemReader.GetDouble(3)
+                });
+            }
+
+            return result;
         }
 
         public ReturnApplyResult ApplyReturn(
@@ -231,7 +365,7 @@ namespace SantexnikaSRM.Services
                 linesRead.CommandText = @"
                     SELECT si.Id,
                            si.ProductId,
-                           p.Name,
+                           COALESCE(rsi.ProductName, p.Name),
                            si.Quantity,
                            IFNULL((
                                SELECT SUM(ri.Quantity)
@@ -244,6 +378,7 @@ namespace SantexnikaSRM.Services
                            CASE WHEN si.UnitCostUZS > 0 THEN si.UnitCostUZS ELSE IFNULL(p.PurchasePriceUZS, 0) END
                     FROM SaleItems si
                     INNER JOIN Products p ON p.Id = si.ProductId
+                    LEFT JOIN SaleReceiptItems rsi ON rsi.SaleItemId = si.Id AND rsi.SaleId = si.SaleId
                     WHERE si.SaleId = @saleId";
                 linesRead.Parameters.AddWithValue("@saleId", saleId);
                 using (var reader = linesRead.ExecuteReader())
@@ -339,11 +474,12 @@ namespace SantexnikaSRM.Services
                     var insertLine = connection.CreateCommand();
                     insertLine.Transaction = tx;
                     insertLine.CommandText = @"
-                        INSERT INTO ReturnItems (ReturnId, SaleItemId, ProductId, Quantity, UnitPriceUZS, DiscountUZS, LineTotalUZS)
-                        VALUES (@returnId, @saleItemId, @productId, @qty, @unitPrice, @discount, @lineTotal)";
+                        INSERT INTO ReturnItems (ReturnId, SaleItemId, ProductId, ProductName, Quantity, UnitPriceUZS, DiscountUZS, LineTotalUZS)
+                        VALUES (@returnId, @saleItemId, @productId, @productName, @qty, @unitPrice, @discount, @lineTotal)";
                     insertLine.Parameters.AddWithValue("@returnId", returnId);
                     insertLine.Parameters.AddWithValue("@saleItemId", saleItemId);
                     insertLine.Parameters.AddWithValue("@productId", line.ProductId);
+                    insertLine.Parameters.AddWithValue("@productName", line.ProductName);
                     insertLine.Parameters.AddWithValue("@qty", qty);
                     insertLine.Parameters.AddWithValue("@unitPrice", netUnitPrice);
                     insertLine.Parameters.AddWithValue("@discount", lineDiscount);
@@ -398,8 +534,9 @@ namespace SantexnikaSRM.Services
                         double debtRemaining = reader.GetDouble(3);
                         DateTime dueDate = ParseDate(reader.GetString(4));
 
-                        double reduced = Math.Min(returnTotal, debtTotal);
-                        double updatedTotal = Math.Max(0, debtTotal - reduced);
+                        double totalReduction = Math.Min(returnTotal, debtTotal);
+                        double reduced = Math.Min(returnTotal, debtRemaining);
+                        double updatedTotal = Math.Max(0, debtTotal - totalReduction);
                         double updatedRemaining = Math.Max(0, debtRemaining - reduced);
                         double updatedPaid = Math.Max(0, updatedTotal - updatedRemaining);
                         string status = BuildDebtStatus(updatedRemaining, dueDate);
@@ -439,6 +576,15 @@ namespace SantexnikaSRM.Services
                     }
                 }
 
+                double cashRefund = Math.Max(0, returnTotal - debtReduced);
+                var returnSettlement = connection.CreateCommand();
+                returnSettlement.Transaction = tx;
+                returnSettlement.CommandText = "UPDATE Returns SET DebtReducedUZS=@debtReduced, CashRefundUZS=@cashRefund WHERE Id=@returnId";
+                returnSettlement.Parameters.AddWithValue("@debtReduced", debtReduced);
+                returnSettlement.Parameters.AddWithValue("@cashRefund", cashRefund);
+                returnSettlement.Parameters.AddWithValue("@returnId", returnId);
+                returnSettlement.ExecuteNonQuery();
+
                 tx.Commit();
 
                 return new ReturnApplyResult
@@ -448,7 +594,8 @@ namespace SantexnikaSRM.Services
                     DiscountUZS = returnDiscount,
                     TotalUZS = returnTotal,
                     ProfitReductionUZS = profitReduction,
-                    DebtReducedUZS = debtReduced
+                    DebtReducedUZS = debtReduced,
+                    CashRefundUZS = cashRefund
                 };
             }
             catch

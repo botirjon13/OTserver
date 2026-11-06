@@ -73,6 +73,9 @@ namespace SantexnikaSRM.Data
                 TIN TEXT NOT NULL DEFAULT '',
                 StoreAddress TEXT NOT NULL DEFAULT '',
                 KkmNumber TEXT NOT NULL DEFAULT '',
+                StorePhone TEXT NOT NULL DEFAULT '',
+                ThankYouMessage TEXT NOT NULL DEFAULT '',
+                LogoPng BLOB,
                 IsVatPayer INTEGER NOT NULL DEFAULT 0,
                 VatRatePercent REAL NOT NULL DEFAULT 0
             );
@@ -88,11 +91,29 @@ namespace SantexnikaSRM.Data
                 TIN TEXT NOT NULL,
                 StoreAddress TEXT NOT NULL,
                 KkmNumber TEXT NOT NULL,
+                StorePhone TEXT NOT NULL DEFAULT '',
+                ThankYouMessage TEXT NOT NULL DEFAULT '',
+                SellerName TEXT NOT NULL DEFAULT '',
+                LogoPng BLOB,
                 IsVatPayer INTEGER NOT NULL,
                 VatRatePercent REAL NOT NULL,
                 VatAmount REAL NOT NULL,
+                SubtotalUZS REAL NOT NULL DEFAULT 0,
+                DiscountUZS REAL NOT NULL DEFAULT 0,
+                DiscountType TEXT NOT NULL DEFAULT 'None',
+                DiscountValue REAL NOT NULL DEFAULT 0,
                 TotalUZS REAL NOT NULL,
                 FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS SaleReceiptItems (
+                SaleItemId INTEGER PRIMARY KEY,
+                SaleId INTEGER NOT NULL,
+                ProductName TEXT NOT NULL,
+                Quantity REAL NOT NULL,
+                UnitPriceUZS REAL NOT NULL,
+                FOREIGN KEY (SaleId) REFERENCES SaleReceipts(SaleId) ON DELETE CASCADE,
+                FOREIGN KEY (SaleItemId) REFERENCES SaleItems(Id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS Customers (
@@ -151,6 +172,8 @@ namespace SantexnikaSRM.Data
                 DiscountUZS REAL NOT NULL CHECK(DiscountUZS >= 0),
                 TotalUZS REAL NOT NULL CHECK(TotalUZS >= 0),
                 ProfitReductionUZS REAL NOT NULL DEFAULT 0,
+                DebtReducedUZS REAL NOT NULL DEFAULT 0,
+                CashRefundUZS REAL NOT NULL DEFAULT 0,
                 CreatedByUser TEXT NOT NULL DEFAULT '',
                 FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE
             );
@@ -160,6 +183,7 @@ namespace SantexnikaSRM.Data
                 ReturnId INTEGER NOT NULL,
                 SaleItemId INTEGER NOT NULL,
                 ProductId INTEGER NOT NULL,
+                ProductName TEXT NOT NULL DEFAULT '',
                 Quantity REAL NOT NULL CHECK(Quantity > 0),
                 UnitPriceUZS REAL NOT NULL CHECK(UnitPriceUZS >= 0),
                 DiscountUZS REAL NOT NULL CHECK(DiscountUZS >= 0),
@@ -205,6 +229,31 @@ namespace SantexnikaSRM.Data
                 SELECT 1, '', '', '', '', 0, 0
                 WHERE NOT EXISTS (SELECT 1 FROM FiscalSettings WHERE Id = 1);";
             seedSettings.ExecuteNonQuery();
+
+            ExecuteIgnoreErrors(connection, "ALTER TABLE FiscalSettings ADD COLUMN StorePhone TEXT NOT NULL DEFAULT '';");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE FiscalSettings ADD COLUMN ThankYouMessage TEXT NOT NULL DEFAULT '';");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE FiscalSettings ADD COLUMN LogoPng BLOB;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN StorePhone TEXT NOT NULL DEFAULT '';");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN ThankYouMessage TEXT NOT NULL DEFAULT '';");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN SellerName TEXT NOT NULL DEFAULT '';");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN LogoPng BLOB;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN SubtotalUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN DiscountUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN DiscountType TEXT NOT NULL DEFAULT 'None';");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE SaleReceipts ADD COLUMN DiscountValue REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE Returns ADD COLUMN DebtReducedUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE Returns ADD COLUMN CashRefundUZS REAL NOT NULL DEFAULT 0;");
+            ExecuteIgnoreErrors(connection, "ALTER TABLE ReturnItems ADD COLUMN ProductName TEXT NOT NULL DEFAULT '';");
+            ExecuteIgnoreErrors(connection, @"
+                CREATE TABLE IF NOT EXISTS SaleReceiptItems (
+                    SaleItemId INTEGER PRIMARY KEY,
+                    SaleId INTEGER NOT NULL,
+                    ProductName TEXT NOT NULL,
+                    Quantity REAL NOT NULL,
+                    UnitPriceUZS REAL NOT NULL,
+                    FOREIGN KEY (SaleId) REFERENCES SaleReceipts(SaleId) ON DELETE CASCADE,
+                    FOREIGN KEY (SaleItemId) REFERENCES SaleItems(Id) ON DELETE CASCADE
+                );");
 
             ExecuteIgnoreErrors(connection, "ALTER TABLE PricingSettings ADD COLUMN QuickDiscountEnabled INTEGER NOT NULL DEFAULT 1;");
 

@@ -16,6 +16,10 @@ namespace SantexnikaSRM.Models
         public string TIN { get; set; } = "";
         public string StoreAddress { get; set; } = "";
         public string KkmNumber { get; set; } = "";
+        public string StorePhone { get; set; } = "";
+        public string ThankYouMessage { get; set; } = "";
+        public string SellerName { get; set; } = "";
+        public byte[] LogoPng { get; set; } = Array.Empty<byte>();
 
         public bool IsVatPayer { get; set; }
         public double VatRatePercent { get; set; }
@@ -32,6 +36,7 @@ namespace SantexnikaSRM.Models
     public class SaleReceiptItem
     {
         public string ProductName { get; set; } = "";
+        public int SaleItemId { get; set; }
         public double Quantity { get; set; }
         public double UnitPriceUZS { get; set; }
         public double LineTotalUZS => Quantity * UnitPriceUZS;

@@ -11,7 +11,7 @@ initializing the database or UI so Velopack can handle install and update hooks.
 
 1. Update all four version values in `SantexnikaSRM.csproj` to the same `x.y.z`
    version and merge the change to `main`.
-2. Create and push a matching tag, for example `v1.2.41`.
+2. Create and push a matching tag, for example `v1.2.43`.
 3. The workflow builds and validates the package. Its publish job waits for an
    approval through the `stable-release` GitHub environment.
 4. After approval, the workflow publishes the Velopack feed files, installer,

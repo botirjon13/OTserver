@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Data.Sqlite;
 using SantexnikaSRM.Data;
 using SantexnikaSRM.Models;
@@ -79,7 +77,7 @@ namespace SantexnikaSRM.Services
             var itemCmd = connection.CreateCommand();
             itemCmd.Transaction = transaction;
             itemCmd.CommandText = @"
-                SELECT p.Name, si.Quantity, si.SellPriceUZS
+                SELECT si.Id, p.Name, si.Quantity, si.SellPriceUZS
                 FROM SaleItems si
                 INNER JOIN Products p ON p.Id = si.ProductId
                 WHERE si.SaleId = @saleId";
@@ -90,9 +88,10 @@ namespace SantexnikaSRM.Services
                 {
                     items.Add(new SaleReceiptItem
                     {
-                        ProductName = reader.GetString(0),
-                        Quantity = reader.GetDouble(1),
-                        UnitPriceUZS = reader.GetDouble(2)
+                        SaleItemId = reader.GetInt32(0),
+                        ProductName = reader.GetString(1),
+                        Quantity = reader.GetDouble(2),
+                        UnitPriceUZS = reader.GetDouble(3)
                     });
                 }
             }
@@ -107,16 +106,17 @@ namespace SantexnikaSRM.Services
             }
 
             string receiptNumber = $"CHK-{saleId:D6}";
-            string fiscalSign = BuildFiscalSign(saleId, total, issuedAt);
-            string qrData = BuildQrData(settings, receiptNumber, saleId, total, fiscalSign, issuedAt);
+            const string fiscalSign = "";
+            const string qrData = "";
+            byte[] logoPng = settings.LogoPng ?? Array.Empty<byte>();
 
             var insert = connection.CreateCommand();
             insert.Transaction = transaction;
             insert.CommandText = @"
                 INSERT OR REPLACE INTO SaleReceipts
-                (SaleId, ReceiptNumber, IssuedAt, PaymentType, FiscalSign, QrData, BusinessName, TIN, StoreAddress, KkmNumber, IsVatPayer, VatRatePercent, VatAmount, TotalUZS)
+                (SaleId, ReceiptNumber, IssuedAt, PaymentType, FiscalSign, QrData, BusinessName, TIN, StoreAddress, KkmNumber, StorePhone, ThankYouMessage, SellerName, LogoPng, IsVatPayer, VatRatePercent, VatAmount, SubtotalUZS, DiscountUZS, DiscountType, DiscountValue, TotalUZS)
                 VALUES
-                (@saleId, @rn, @issued, @pay, @fs, @qr, @b, @tin, @a, @kkm, @vat, @vr, @va, @t)";
+                (@saleId, @rn, @issued, @pay, @fs, @qr, @b, @tin, @a, @kkm, @phone, @thanks, @seller, @logo, @vat, @vr, @va, @subtotal, @discount, @discountType, @discountValue, @t)";
             insert.Parameters.AddWithValue("@saleId", saleId);
             insert.Parameters.AddWithValue("@rn", receiptNumber);
             insert.Parameters.AddWithValue("@issued", issuedAt.ToString("yyyy-MM-dd HH:mm:ss"));
@@ -127,11 +127,34 @@ namespace SantexnikaSRM.Services
             insert.Parameters.AddWithValue("@tin", settings.TIN);
             insert.Parameters.AddWithValue("@a", settings.StoreAddress);
             insert.Parameters.AddWithValue("@kkm", settings.KkmNumber);
+            insert.Parameters.AddWithValue("@phone", settings.StorePhone);
+            insert.Parameters.AddWithValue("@thanks", settings.ThankYouMessage);
+            insert.Parameters.AddWithValue("@seller", currentUser.Username?.Trim() ?? "");
+            insert.Parameters.AddWithValue("@logo", logoPng.Length == 0 ? DBNull.Value : logoPng);
             insert.Parameters.AddWithValue("@vat", settings.IsVatPayer ? 1 : 0);
             insert.Parameters.AddWithValue("@vr", settings.VatRatePercent);
             insert.Parameters.AddWithValue("@va", vatAmount);
+            insert.Parameters.AddWithValue("@subtotal", subtotal);
+            insert.Parameters.AddWithValue("@discount", discount);
+            insert.Parameters.AddWithValue("@discountType", discountType);
+            insert.Parameters.AddWithValue("@discountValue", discountValue);
             insert.Parameters.AddWithValue("@t", total);
             insert.ExecuteNonQuery();
+
+            foreach (SaleReceiptItem item in items)
+            {
+                var itemInsert = connection.CreateCommand();
+                itemInsert.Transaction = transaction;
+                itemInsert.CommandText = @"
+                    INSERT INTO SaleReceiptItems (SaleItemId, SaleId, ProductName, Quantity, UnitPriceUZS)
+                    VALUES (@saleItemId, @saleId, @name, @quantity, @unitPrice)";
+                itemInsert.Parameters.AddWithValue("@saleItemId", item.SaleItemId);
+                itemInsert.Parameters.AddWithValue("@saleId", saleId);
+                itemInsert.Parameters.AddWithValue("@name", item.ProductName);
+                itemInsert.Parameters.AddWithValue("@quantity", item.Quantity);
+                itemInsert.Parameters.AddWithValue("@unitPrice", item.UnitPriceUZS);
+                itemInsert.ExecuteNonQuery();
+            }
 
             return new SaleReceipt
             {
@@ -145,6 +168,10 @@ namespace SantexnikaSRM.Services
                 TIN = settings.TIN,
                 StoreAddress = settings.StoreAddress,
                 KkmNumber = settings.KkmNumber,
+                StorePhone = settings.StorePhone,
+                ThankYouMessage = settings.ThankYouMessage,
+                SellerName = currentUser.Username?.Trim() ?? "",
+                LogoPng = logoPng,
                 IsVatPayer = settings.IsVatPayer,
                 VatRatePercent = settings.VatRatePercent,
                 VatAmount = vatAmount,
@@ -244,11 +271,11 @@ namespace SantexnikaSRM.Services
             headCmd.CommandText = @"
                 SELECT s.Id,
                        s.Date,
-                       s.TotalUZS,
-                       IFNULL(s.SubtotalUZS, s.TotalUZS),
-                       IFNULL(s.DiscountUZS, 0),
-                       IFNULL(s.DiscountType, 'None'),
-                       IFNULL(s.DiscountValue, 0),
+                       COALESCE(r.TotalUZS, s.TotalUZS),
+                       COALESCE(NULLIF(r.SubtotalUZS, 0), s.SubtotalUZS, s.TotalUZS),
+                       COALESCE(r.DiscountUZS, s.DiscountUZS, 0),
+                       COALESCE(r.DiscountType, s.DiscountType, 'None'),
+                       COALESCE(r.DiscountValue, s.DiscountValue, 0),
                        IFNULL(r.ReceiptNumber, ''),
                        IFNULL(r.IssuedAt, ''),
                        IFNULL(r.PaymentType, ''),
@@ -258,6 +285,10 @@ namespace SantexnikaSRM.Services
                        IFNULL(r.TIN, ''),
                        IFNULL(r.StoreAddress, ''),
                        IFNULL(r.KkmNumber, ''),
+                       IFNULL(r.StorePhone, ''),
+                       IFNULL(r.ThankYouMessage, ''),
+                       IFNULL(r.SellerName, ''),
+                       r.LogoPng,
                        IFNULL(r.IsVatPayer, 0),
                        IFNULL(r.VatRatePercent, 0),
                        IFNULL(r.VatAmount, 0)
@@ -289,9 +320,13 @@ namespace SantexnikaSRM.Services
                 TIN = reader.GetString(13),
                 StoreAddress = reader.GetString(14),
                 KkmNumber = reader.GetString(15),
-                IsVatPayer = reader.GetInt32(16) == 1,
-                VatRatePercent = reader.GetDouble(17),
-                VatAmount = reader.GetDouble(18),
+                StorePhone = reader.GetString(16),
+                ThankYouMessage = reader.GetString(17),
+                SellerName = reader.GetString(18),
+                LogoPng = reader.IsDBNull(19) ? Array.Empty<byte>() : (byte[])reader[19],
+                IsVatPayer = reader.GetInt32(20) == 1,
+                VatRatePercent = reader.GetDouble(21),
+                VatAmount = reader.GetDouble(22),
                 SubtotalUZS = reader.GetDouble(3),
                 DiscountUZS = reader.GetDouble(4),
                 DiscountType = reader.GetString(5),
@@ -301,9 +336,13 @@ namespace SantexnikaSRM.Services
 
             var itemCmd = connection.CreateCommand();
             itemCmd.CommandText = @"
-                SELECT p.Name, si.Quantity, si.SellPriceUZS
+                SELECT COALESCE(rsi.ProductName, p.Name),
+                       si.Id,
+                       COALESCE(rsi.Quantity, si.Quantity),
+                       COALESCE(rsi.UnitPriceUZS, si.SellPriceUZS)
                 FROM SaleItems si
                 INNER JOIN Products p ON p.Id = si.ProductId
+                LEFT JOIN SaleReceiptItems rsi ON rsi.SaleItemId = si.Id AND rsi.SaleId = si.SaleId
                 WHERE si.SaleId = @saleId";
             itemCmd.Parameters.AddWithValue("@saleId", saleId);
             using var itemReader = itemCmd.ExecuteReader();
@@ -312,26 +351,13 @@ namespace SantexnikaSRM.Services
                 result.Items.Add(new SaleReceiptItem
                 {
                     ProductName = itemReader.GetString(0),
-                    Quantity = itemReader.GetDouble(1),
-                    UnitPriceUZS = itemReader.GetDouble(2)
+                    SaleItemId = itemReader.GetInt32(1),
+                    Quantity = itemReader.GetDouble(2),
+                    UnitPriceUZS = itemReader.GetDouble(3)
                 });
             }
 
             return result;
-        }
-
-        private static string BuildFiscalSign(int saleId, double total, DateTime issuedAt)
-        {
-            string raw = $"{saleId}|{total:F2}|{issuedAt:yyyyMMddHHmmss}";
-            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
-            return Convert.ToHexString(bytes)[..12];
-        }
-
-        private static string BuildQrData(FiscalSettings settings, string receiptNumber, int saleId, double total, string fiscalSign, DateTime issuedAt)
-        {
-            return
-                $"receipt={receiptNumber};sale={saleId};time={issuedAt:yyyy-MM-dd HH:mm:ss};" +
-                $"sum={total:N0};tin={settings.TIN};kkm={settings.KkmNumber};fiscal={fiscalSign}";
         }
 
         private static DateTime ParseDateTime(string raw)

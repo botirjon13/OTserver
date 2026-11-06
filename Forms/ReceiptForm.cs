@@ -2,8 +2,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Printing;
-using System.Linq;
-using System.Security.Cryptography;
+using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
@@ -14,20 +13,18 @@ namespace SantexnikaSRM.Forms
     public class ReceiptForm : Form
     {
         private readonly SaleReceipt _receipt;
-        private readonly AppUser _user;
         private readonly ComboBox _cmbPaper = new ComboBox();
         private readonly RichTextBox _txtPreview = new RichTextBox();
-        private readonly PictureBox _qrPreview = new PictureBox();
+        private readonly PictureBox _logoPreview = new PictureBox();
         private readonly Panel _receiptPaper = new Panel();
         private readonly PrintDocument _printDocument = new PrintDocument();
         private string[] _printLines = Array.Empty<string>();
         private int _printLineIndex;
-        private bool _printQrPrinted;
+        private bool _printLogoPrinted;
 
         public ReceiptForm(SaleReceipt receipt, AppUser user)
         {
             _receipt = receipt;
-            _user = user;
             InitializeComponent();
             SantexnikaSRM.Utils.FormFx.EnsureFitsScreen(this);
             RefreshPreview();
@@ -136,13 +133,13 @@ namespace SantexnikaSRM.Forms
             _txtPreview.Height = 500;
             _receiptPaper.Controls.Add(_txtPreview);
 
-            _qrPreview.SizeMode = PictureBoxSizeMode.CenterImage;
-            _qrPreview.BackColor = Color.White;
-            _qrPreview.Left = 10;
-            _qrPreview.Top = 520;
-            _qrPreview.Width = _receiptPaper.Width - 22;
-            _qrPreview.Height = 110;
-            _receiptPaper.Controls.Add(_qrPreview);
+            _logoPreview.SizeMode = PictureBoxSizeMode.Zoom;
+            _logoPreview.BackColor = Color.White;
+            _logoPreview.Left = 10;
+            _logoPreview.Top = 10;
+            _logoPreview.Width = _receiptPaper.Width - 22;
+            _logoPreview.Height = 66;
+            _receiptPaper.Controls.Add(_logoPreview);
 
             Panel bottom = new Panel { Dock = DockStyle.Bottom, Height = 72, BackColor = Color.FromArgb(246, 248, 252), Padding = new Padding(22, 12, 22, 12) };
             Button btnPrint = new Button
@@ -207,50 +204,82 @@ namespace SantexnikaSRM.Forms
             _printDocument.PrintPage += PrintDocument_PrintPage;
             _printDocument.BeginPrint += PrintDocument_BeginPrint;
             _printDocument.DocumentName = $"Chek_{_receipt.ReceiptNumber}";
+            FormClosed += (_, __) => _logoPreview.Image?.Dispose();
         }
 
         private void RefreshPreview()
         {
             int mm = GetPaperWidthMm();
-            int chars = mm >= 80 ? 38 : 30;
+            int chars = mm >= 80 ? 38 : 28;
             _receiptPaper.Width = mm >= 80 ? 330 : 282;
             _receiptPaper.Left = Math.Max(20, (ClientSize.Width - _receiptPaper.Width) / 2);
             _txtPreview.Width = _receiptPaper.Width - 22;
-            _qrPreview.Width = _receiptPaper.Width - 22;
+            _logoPreview.Width = _receiptPaper.Width - 22;
+            _logoPreview.Image?.Dispose();
+            _logoPreview.Image = CreateLogoBitmap(_receipt.LogoPng);
+            _logoPreview.Visible = _logoPreview.Image != null;
+            _txtPreview.Top = _logoPreview.Visible ? 82 : 10;
 
             _txtPreview.Text = BuildReceiptText(chars);
-            _qrPreview.Image?.Dispose();
-            _qrPreview.Image = BuildPseudoQr(_receipt.QrData, 92, 92);
+            _receiptPaper.Height = _txtPreview.Top + _txtPreview.GetPreferredSize(new Size(_txtPreview.Width, 0)).Height + 20;
         }
 
         private string BuildReceiptText(int chars)
         {
             string Sep() => new string('-', chars);
+            var sb = new StringBuilder();
+            void Wrapped(string text) => AppendWrappedText(sb, text, chars);
             string TwoCol(string l, string r)
             {
-                if (l.Length + r.Length + 1 >= chars) return l + Environment.NewLine + r;
+                if (l.Length + r.Length + 1 >= chars)
+                {
+                    Wrapped(l);
+                    Wrapped(r);
+                    return "";
+                }
                 return l + new string(' ', chars - l.Length - r.Length) + r;
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine(Center("TADBIRKOR: " + N(_receipt.BusinessName), chars));
-            sb.AppendLine(Sep());
-            sb.AppendLine($"STIR: {N(_receipt.TIN)}");
-            sb.AppendLine($"Manzil: {N(_receipt.StoreAddress)}");
-            sb.AppendLine($"KKM: {N(_receipt.KkmNumber)}");
-            sb.AppendLine($"Chek raqami: {_receipt.ReceiptNumber}");
-            sb.AppendLine($"Sana/vaqt: {_receipt.IssuedAt:yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine($"Kassir: {_user.Username}");
+            if (!string.IsNullOrWhiteSpace(_receipt.BusinessName))
+            {
+                Wrapped(Center(_receipt.BusinessName.Trim(), chars));
+            }
+            if (!string.IsNullOrWhiteSpace(_receipt.TIN))
+            {
+                Wrapped($"STIR: {_receipt.TIN.Trim()}");
+            }
+            if (!string.IsNullOrWhiteSpace(_receipt.StoreAddress))
+            {
+                Wrapped($"Manzil: {_receipt.StoreAddress.Trim()}");
+            }
+            if (!string.IsNullOrWhiteSpace(_receipt.StorePhone))
+            {
+                Wrapped($"Telefon: {_receipt.StorePhone.Trim()}");
+            }
+            if (!string.IsNullOrWhiteSpace(_receipt.BusinessName) ||
+                !string.IsNullOrWhiteSpace(_receipt.TIN) ||
+                !string.IsNullOrWhiteSpace(_receipt.StoreAddress) ||
+                !string.IsNullOrWhiteSpace(_receipt.StorePhone))
+            {
+                sb.AppendLine(Sep());
+            }
+            Wrapped($"Chek raqami: {_receipt.ReceiptNumber}");
+            Wrapped($"Sana/vaqt: {_receipt.IssuedAt:yyyy-MM-dd HH:mm:ss}");
+            if (!string.IsNullOrWhiteSpace(_receipt.SellerName))
+            {
+                Wrapped($"Sotuvchi: {_receipt.SellerName.Trim()}");
+            }
             sb.AppendLine(Sep());
             sb.AppendLine("Mahsulotlar:");
             foreach (var i in _receipt.Items)
             {
-                sb.AppendLine(i.ProductName);
-                sb.AppendLine(TwoCol($"{i.Quantity:#,##0.##} x {i.UnitPriceUZS:N0} UZS", $"{i.LineTotalUZS:N0} UZS"));
+                Wrapped(i.ProductName);
+                string columns = TwoCol($"{i.Quantity:#,##0.##} x {i.UnitPriceUZS:N0} UZS", $"{i.LineTotalUZS:N0} UZS");
+                if (columns.Length > 0) sb.AppendLine(columns);
             }
             sb.AppendLine(Sep());
-            sb.AppendLine($"To'lov turi: {_receipt.PaymentType}");
-            sb.AppendLine(_receipt.IsVatPayer
+            Wrapped($"To'lov turi: {_receipt.PaymentType}");
+            Wrapped(_receipt.IsVatPayer
                 ? $"QQS: {_receipt.VatAmount:N0} UZS ({_receipt.VatRatePercent:0.##}%)"
                 : "QQS: Qo'llanilmaydi");
             if (_receipt.DiscountUZS > 0)
@@ -258,14 +287,18 @@ namespace SantexnikaSRM.Forms
                 string discountText = _receipt.DiscountType.Equals("Percent", StringComparison.OrdinalIgnoreCase)
                     ? $"{_receipt.DiscountValue:0.##}%"
                     : $"{_receipt.DiscountValue:N0} UZS";
-                sb.AppendLine(TwoCol("Jami (chegirmagacha):", $"{_receipt.SubtotalUZS:N0} UZS"));
-                sb.AppendLine(TwoCol($"Chegirma ({discountText}):", $"-{_receipt.DiscountUZS:N0} UZS"));
+                string subtotalColumns = TwoCol("Jami (chegirmagacha):", $"{_receipt.SubtotalUZS:N0} UZS");
+                if (subtotalColumns.Length > 0) sb.AppendLine(subtotalColumns);
+                string discountColumns = TwoCol($"Chegirma ({discountText}):", $"-{_receipt.DiscountUZS:N0} UZS");
+                if (discountColumns.Length > 0) sb.AppendLine(discountColumns);
             }
-            sb.AppendLine(TwoCol("Umumiy summa:", $"{_receipt.TotalUZS:N0} UZS"));
-            sb.AppendLine(Sep());
-            sb.AppendLine($"Fiskal belgi: {_receipt.FiscalSign}");
-            sb.AppendLine("QR ma'lumot:");
-            sb.AppendLine(_receipt.QrData);
+            string totalColumns = TwoCol("Umumiy summa:", $"{_receipt.TotalUZS:N0} UZS");
+            if (totalColumns.Length > 0) sb.AppendLine(totalColumns);
+            if (!string.IsNullOrWhiteSpace(_receipt.ThankYouMessage))
+            {
+                sb.AppendLine(Sep());
+                Wrapped(Center(_receipt.ThankYouMessage.Trim(), chars));
+            }
             return sb.ToString();
         }
 
@@ -273,7 +306,11 @@ namespace SantexnikaSRM.Forms
         {
             int mm = GetPaperWidthMm();
             int width = MmToHundredthsInch(mm);
-            _printDocument.DefaultPageSettings.PaperSize = new PaperSize($"Receipt{mm}", width, 1200);
+            int chars = mm >= 80 ? 38 : 28;
+            int lineCount = BuildReceiptText(chars).Split('\n').Length;
+            int logoHeight = _receipt.LogoPng.Length == 0 ? 0 : 76;
+            int height = Math.Max(200, lineCount * 16 + logoHeight + 32);
+            _printDocument.DefaultPageSettings.PaperSize = new PaperSize($"Receipt{mm}", width, height);
             _printDocument.DefaultPageSettings.Margins = new Margins(8, 8, 8, 8);
 
             using PrintDialog dialog = new PrintDialog
@@ -293,10 +330,10 @@ namespace SantexnikaSRM.Forms
         private void PrintDocument_BeginPrint(object? sender, PrintEventArgs e)
         {
             int mm = GetPaperWidthMm();
-            int chars = mm >= 80 ? 38 : 30;
+            int chars = mm >= 80 ? 38 : 28;
             _printLines = BuildReceiptText(chars).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             _printLineIndex = 0;
-            _printQrPrinted = false;
+            _printLogoPrinted = false;
         }
 
         private void PrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
@@ -312,6 +349,23 @@ namespace SantexnikaSRM.Forms
             float x = e.MarginBounds.Left;
             float bottom = e.MarginBounds.Bottom;
 
+            if (!_printLogoPrinted)
+            {
+                if (_receipt.LogoPng.Length > 0)
+                {
+                    using Bitmap? logo = CreateLogoBitmap(_receipt.LogoPng);
+                    if (logo != null)
+                    {
+                        float scale = Math.Min(Math.Min(160f, e.MarginBounds.Width) / logo.Width, 68f / logo.Height);
+                        float width = logo.Width * scale;
+                        float height = logo.Height * scale;
+                        e.Graphics.DrawImage(logo, x + (e.MarginBounds.Width - width) / 2f, y, width, height);
+                        y += height + 6;
+                    }
+                }
+                _printLogoPrinted = true;
+            }
+
             while (_printLineIndex < _printLines.Length)
             {
                 if (y + lineH > bottom)
@@ -324,21 +378,6 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.DrawString(line, font, Brushes.Black, x, y);
                 y += lineH;
                 _printLineIndex++;
-            }
-
-            if (!_printQrPrinted)
-            {
-                using Image qr = BuildPseudoQr(_receipt.QrData, 110, 110);
-                float qrTop = y + 6;
-                if (qrTop + qr.Height > bottom)
-                {
-                    e.HasMorePages = true;
-                    return;
-                }
-
-                float qrX = x + (e.MarginBounds.Width - qr.Width) / 2f;
-                e.Graphics.DrawImage(qr, qrX, qrTop);
-                _printQrPrinted = true;
             }
 
             e.HasMorePages = false;
@@ -354,8 +393,6 @@ namespace SantexnikaSRM.Forms
             return (int)Math.Round(mm / 25.4 * 100.0);
         }
 
-        private static string N(string value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-
         private static string Center(string text, int width)
         {
             if (text.Length >= width) return text;
@@ -363,57 +400,34 @@ namespace SantexnikaSRM.Forms
             return new string(' ', pad) + text;
         }
 
-        private static Bitmap BuildPseudoQr(string data, int width, int height)
+        private static void AppendWrappedText(StringBuilder builder, string value, int width)
         {
-            int size = 29;
-            bool[,] grid = new bool[size, size];
-            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(data ?? ""));
-            int idx = 0;
-            for (int y = 0; y < size; y++)
+            string remaining = value ?? string.Empty;
+            while (remaining.Length > width)
             {
-                for (int x = 0; x < size; x++)
+                int splitAt = remaining.LastIndexOf(' ', width);
+                if (splitAt <= 0)
                 {
-                    byte bitSource = hash[idx % hash.Length];
-                    grid[y, x] = ((bitSource >> (idx % 8)) & 1) == 1;
-                    idx++;
+                    splitAt = width;
                 }
+
+                builder.AppendLine(remaining.Substring(0, splitAt).TrimEnd());
+                remaining = remaining.Substring(splitAt).TrimStart();
             }
 
-            PaintFinder(grid, 0, 0);
-            PaintFinder(grid, size - 7, 0);
-            PaintFinder(grid, 0, size - 7);
-
-            Bitmap bmp = new Bitmap(width, height);
-            using Graphics g = Graphics.FromImage(bmp);
-            g.Clear(Color.White);
-            int cell = Math.Min(width, height) / size;
-            int ox = (width - cell * size) / 2;
-            int oy = (height - cell * size) / 2;
-            using SolidBrush blackBrush = new SolidBrush(Color.Black);
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    if (grid[y, x])
-                    {
-                        g.FillRectangle(blackBrush, ox + x * cell, oy + y * cell, cell, cell);
-                    }
-                }
-            }
-            return bmp;
+            builder.AppendLine(remaining);
         }
 
-        private static void PaintFinder(bool[,] grid, int ox, int oy)
+        private static Bitmap? CreateLogoBitmap(byte[] logoPng)
         {
-            for (int y = 0; y < 7; y++)
+            if (logoPng.Length == 0)
             {
-                for (int x = 0; x < 7; x++)
-                {
-                    bool border = x == 0 || y == 0 || x == 6 || y == 6;
-                    bool core = x >= 2 && x <= 4 && y >= 2 && y <= 4;
-                    grid[oy + y, ox + x] = border || core;
-                }
+                return null;
             }
+
+            using var stream = new MemoryStream(logoPng, writable: false);
+            using Image image = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: true);
+            return new Bitmap(image);
         }
 
         private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
@@ -429,6 +443,3 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
-
-

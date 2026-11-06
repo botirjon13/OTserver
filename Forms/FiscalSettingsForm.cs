@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Globalization;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
@@ -18,6 +19,7 @@ namespace SantexnikaSRM.Forms
         private readonly TextBox _txtTin = new TextBox();
         private readonly TextBox _txtAddress = new TextBox();
         private readonly TextBox _txtKkm = new TextBox();
+        private readonly TextBox _txtThankYou = new TextBox();
         private readonly TextBox _txtVat = new TextBox();
         private readonly CheckBox _chkVat = new CheckBox();
         private readonly Label _lblVat = new Label();
@@ -27,7 +29,14 @@ namespace SantexnikaSRM.Forms
         private readonly Label _lblPreviewTin = new Label();
         private readonly Label _lblPreviewAddress = new Label();
         private readonly Label _lblPreviewKkm = new Label();
+        private readonly Label _lblPreviewSeller = new Label();
+        private readonly Label _lblPreviewThankYou = new Label();
+        private readonly PictureBox _logoPreview = new PictureBox();
+        private readonly PictureBox _sampleLogo = new PictureBox();
+        private readonly ComboBox _cmbPreviewPaper = new ComboBox();
         private readonly Panel _previewBox = new Panel();
+        private byte[] _logoPng = Array.Empty<byte>();
+        private string _legacyKkmNumber = "";
 
         public FiscalSettingsForm(AppUser currentUser)
         {
@@ -39,13 +48,18 @@ namespace SantexnikaSRM.Forms
             InitializeComponent();
             SantexnikaSRM.Utils.FormFx.EnsureFitsScreen(this);
             LoadSettings();
+            FormClosed += (_, __) =>
+            {
+                _logoPreview.Image?.Dispose();
+                _sampleLogo.Image?.Dispose();
+            };
         }
 
         private void InitializeComponent()
         {
             Text = "Chek Rekvizitlari";
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(668, 808);
+            ClientSize = new Size(668, 1000);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -151,7 +165,7 @@ namespace SantexnikaSRM.Forms
                 BackColor = Color.Transparent
             });
 
-            Panel card = CreateCard(32, 24, 604, 532);
+            Panel card = CreateCard(32, 24, 604, 748);
             root.Controls.Add(card);
 
             AddLabel(card, "Tadbirkor nomi:", 24);
@@ -163,13 +177,38 @@ namespace SantexnikaSRM.Forms
             AddLabel(card, "Do'kon manzili:", 200);
             CreateInputShell(card, _txtAddress, "Masalan: Toshkent shahri, Chilonzor 12-mavze", 220);
 
-            AddLabel(card, "KKM raqami:", 288);
-            CreateInputShell(card, _txtKkm, "Masalan: KKM-009874", 308);
+            AddLabel(card, "Do'kon telefon raqami:", 288);
+            CreateInputShell(card, _txtKkm, "Masalan: +998 90 123 45 67", 308);
+            _txtKkm.MaxLength = 64;
+
+            AddLabel(card, "Chek oxiridagi rahmatnoma (ixtiyoriy):", 360);
+            _txtThankYou.Multiline = true;
+            _txtThankYou.MaxLength = 500;
+            _txtThankYou.ScrollBars = ScrollBars.Vertical;
+            _txtThankYou.SetBounds(24, 380, 556, 58);
+            _txtThankYou.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10.5f);
+            card.Controls.Add(_txtThankYou);
+
+            AddLabel(card, "Do'kon logotipi (PNG, 1 MB gacha):", 450);
+            Button btnChooseLogo = new Button { Text = "PNG tanlash", Left = 24, Top = 472, Width = 130, Height = 34 };
+            btnChooseLogo.Click += ChooseLogo_Click;
+            card.Controls.Add(btnChooseLogo);
+            Button btnRemoveLogo = new Button { Text = "Logoni o'chirish", Left = 164, Top = 472, Width = 140, Height = 34 };
+            btnRemoveLogo.Click += (_, __) =>
+            {
+                _logoPng = Array.Empty<byte>();
+                SetLogoPreview(_logoPng);
+            };
+            card.Controls.Add(btnRemoveLogo);
+            _logoPreview.SetBounds(320, 454, 140, 62);
+            _logoPreview.SizeMode = PictureBoxSizeMode.Zoom;
+            _logoPreview.BackColor = Color.White;
+            card.Controls.Add(_logoPreview);
 
             Panel separator = new Panel
             {
                 Left = 24,
-                Top = 360,
+                Top = 530,
                 Width = 556,
                 Height = 1,
                 BackColor = Color.FromArgb(222, 230, 242)
@@ -179,7 +218,7 @@ namespace SantexnikaSRM.Forms
             Panel vatPanel = new Panel
             {
                 Left = 24,
-                Top = 376,
+                Top = 546,
                 Width = 556,
                 Height = 92,
                 BackColor = Color.FromArgb(227, 237, 252)
@@ -234,7 +273,7 @@ namespace SantexnikaSRM.Forms
             Button btnSave = new Button
             {
                 Left = 460,
-                Top = 478,
+                Top = 648,
                 Width = 120,
                 Height = 38,
                 Text = "Saqlash",
@@ -263,7 +302,7 @@ namespace SantexnikaSRM.Forms
             btnSave.Click += Save_Click;
             card.Controls.Add(btnSave);
 
-            Panel previewCard = CreateCard(32, 566, 604, 198);
+            Panel previewCard = CreateCard(32, 790, 604, 226);
             root.Controls.Add(previewCard);
 
             previewCard.Controls.Add(new Label
@@ -277,10 +316,17 @@ namespace SantexnikaSRM.Forms
                 BackColor = Color.Transparent
             });
 
+            _cmbPreviewPaper.DropDownStyle = ComboBoxStyle.DropDownList;
+            _cmbPreviewPaper.Items.AddRange(new object[] { "80mm", "58mm" });
+            _cmbPreviewPaper.SelectedIndex = 0;
+            _cmbPreviewPaper.SetBounds(488, 12, 72, 28);
+            _cmbPreviewPaper.SelectedIndexChanged += (_, __) => RefreshSample();
+            previewCard.Controls.Add(_cmbPreviewPaper);
+
             _previewBox.Left = 22;
             _previewBox.Top = 44;
             _previewBox.Width = 560;
-            _previewBox.Height = 124;
+            _previewBox.Height = 170;
             _previewBox.BackColor = Color.FromArgb(250, 252, 255);
             _previewBox.Paint += (_, e) =>
             {
@@ -301,35 +347,55 @@ namespace SantexnikaSRM.Forms
             };
             previewCard.Controls.Add(_previewBox);
 
-            _lblPreviewBusiness.SetBounds(0, 16, _previewBox.Width, 20);
+            _sampleLogo.SetBounds(0, 2, _previewBox.Width, 28);
+            _sampleLogo.SizeMode = PictureBoxSizeMode.Zoom;
+            _sampleLogo.BackColor = Color.Transparent;
+            _sampleLogo.Visible = false;
+            _previewBox.Controls.Add(_sampleLogo);
+
+            _lblPreviewBusiness.SetBounds(0, 30, _previewBox.Width, 18);
             _lblPreviewBusiness.Font = new Font("Consolas", 11f, FontStyle.Bold);
             _lblPreviewBusiness.ForeColor = Color.FromArgb(22, 37, 65);
             _lblPreviewBusiness.TextAlign = ContentAlignment.MiddleCenter;
             _lblPreviewBusiness.BackColor = Color.Transparent;
             _previewBox.Controls.Add(_lblPreviewBusiness);
 
-            _lblPreviewTin.SetBounds(0, 40, _previewBox.Width, 18);
+            _lblPreviewTin.SetBounds(0, 49, _previewBox.Width, 16);
             _lblPreviewTin.Font = new Font("Consolas", 10f, FontStyle.Regular);
             _lblPreviewTin.ForeColor = Color.FromArgb(66, 83, 111);
             _lblPreviewTin.TextAlign = ContentAlignment.MiddleCenter;
             _lblPreviewTin.BackColor = Color.Transparent;
             _previewBox.Controls.Add(_lblPreviewTin);
 
-            _lblPreviewAddress.SetBounds(0, 60, _previewBox.Width, 18);
+            _lblPreviewAddress.SetBounds(0, 66, _previewBox.Width, 16);
             _lblPreviewAddress.Font = new Font("Consolas", 10f, FontStyle.Regular);
             _lblPreviewAddress.ForeColor = Color.FromArgb(66, 83, 111);
             _lblPreviewAddress.TextAlign = ContentAlignment.MiddleCenter;
             _lblPreviewAddress.BackColor = Color.Transparent;
             _previewBox.Controls.Add(_lblPreviewAddress);
 
-            _lblPreviewKkm.SetBounds(0, 80, _previewBox.Width, 18);
+            _lblPreviewKkm.SetBounds(0, 83, _previewBox.Width, 16);
             _lblPreviewKkm.Font = new Font("Consolas", 10f, FontStyle.Regular);
             _lblPreviewKkm.ForeColor = Color.FromArgb(66, 83, 111);
             _lblPreviewKkm.TextAlign = ContentAlignment.MiddleCenter;
             _lblPreviewKkm.BackColor = Color.Transparent;
             _previewBox.Controls.Add(_lblPreviewKkm);
 
-            Panel dottedLine = new Panel { Left = 20, Top = 98, Width = 520, Height = 1 };
+            _lblPreviewSeller.SetBounds(0, 100, _previewBox.Width, 16);
+            _lblPreviewSeller.Font = new Font("Consolas", 10f, FontStyle.Regular);
+            _lblPreviewSeller.ForeColor = Color.FromArgb(66, 83, 111);
+            _lblPreviewSeller.TextAlign = ContentAlignment.MiddleCenter;
+            _lblPreviewSeller.BackColor = Color.Transparent;
+            _previewBox.Controls.Add(_lblPreviewSeller);
+
+            _lblPreviewThankYou.SetBounds(0, 117, _previewBox.Width, 32);
+            _lblPreviewThankYou.Font = new Font("Consolas", 10f, FontStyle.Bold);
+            _lblPreviewThankYou.ForeColor = Color.FromArgb(22, 37, 65);
+            _lblPreviewThankYou.TextAlign = ContentAlignment.MiddleCenter;
+            _lblPreviewThankYou.BackColor = Color.Transparent;
+            _previewBox.Controls.Add(_lblPreviewThankYou);
+
+            Panel dottedLine = new Panel { Left = 20, Top = 156, Width = 520, Height = 1 };
             dottedLine.Paint += (_, e) =>
             {
                 using Pen pen = new Pen(Color.FromArgb(174, 196, 226)) { DashStyle = DashStyle.Dot };
@@ -341,6 +407,7 @@ namespace SantexnikaSRM.Forms
             _txtTin.TextChanged += (_, __) => RefreshSample();
             _txtAddress.TextChanged += (_, __) => RefreshSample();
             _txtKkm.TextChanged += (_, __) => RefreshSample();
+            _txtThankYou.TextChanged += (_, __) => RefreshSample();
 
             AlignPreviewLabels();
             VatChanged(null, EventArgs.Empty);
@@ -350,10 +417,12 @@ namespace SantexnikaSRM.Forms
         private void AlignPreviewLabels()
         {
             int w = _previewBox.Width;
-            _lblPreviewBusiness.SetBounds(0, 16, w, 20);
-            _lblPreviewTin.SetBounds(0, 40, w, 18);
-            _lblPreviewAddress.SetBounds(0, 60, w, 18);
-            _lblPreviewKkm.SetBounds(0, 80, w, 18);
+            _lblPreviewBusiness.SetBounds(0, 30, w, 18);
+            _lblPreviewTin.SetBounds(0, 49, w, 16);
+            _lblPreviewAddress.SetBounds(0, 66, w, 16);
+            _lblPreviewKkm.SetBounds(0, 83, w, 16);
+            _lblPreviewSeller.SetBounds(0, 100, w, 16);
+            _lblPreviewThankYou.SetBounds(0, 117, w, 32);
         }
 
         private static Panel CreateCard(int left, int top, int width, int height)
@@ -458,10 +527,20 @@ namespace SantexnikaSRM.Forms
 
         private void RefreshSample()
         {
-            _lblPreviewBusiness.Text = Fit(string.IsNullOrWhiteSpace(_txtBusiness.Text) ? "[Tadbirkor nomi]" : _txtBusiness.Text, 24);
-            _lblPreviewTin.Text = $"STIR: {Fit(string.IsNullOrWhiteSpace(_txtTin.Text) ? "[STIR raqami]" : _txtTin.Text, 18)}";
-            _lblPreviewAddress.Text = Fit(string.IsNullOrWhiteSpace(_txtAddress.Text) ? "[Do'kon manzili]" : _txtAddress.Text, 28);
-            _lblPreviewKkm.Text = $"KKM: {Fit(string.IsNullOrWhiteSpace(_txtKkm.Text) ? "[KKM raqami]" : _txtKkm.Text, 18)}";
+            int maxLength = string.Equals(_cmbPreviewPaper.Text, "58mm", StringComparison.OrdinalIgnoreCase) ? 28 : 48;
+            SetOptionalPreview(_lblPreviewBusiness, _txtBusiness.Text, maxLength);
+            SetOptionalPreview(_lblPreviewTin, string.IsNullOrWhiteSpace(_txtTin.Text) ? "" : $"STIR: {_txtTin.Text}", maxLength);
+            SetOptionalPreview(_lblPreviewAddress, _txtAddress.Text, maxLength);
+            SetOptionalPreview(_lblPreviewKkm, string.IsNullOrWhiteSpace(_txtKkm.Text) ? "" : $"Telefon: {_txtKkm.Text}", maxLength);
+            SetOptionalPreview(_lblPreviewSeller, string.IsNullOrWhiteSpace(_currentUser.Username) ? "" : $"Sotuvchi: {_currentUser.Username}", maxLength);
+            _lblPreviewThankYou.Text = Fit(_txtThankYou.Text.Trim(), maxLength);
+            _lblPreviewThankYou.Visible = !string.IsNullOrWhiteSpace(_txtThankYou.Text);
+        }
+
+        private static void SetOptionalPreview(Label label, string value, int maxLength)
+        {
+            label.Text = Fit(value.Trim(), maxLength);
+            label.Visible = !string.IsNullOrWhiteSpace(value);
         }
 
         private static string Fit(string text, int max)
@@ -492,7 +571,11 @@ namespace SantexnikaSRM.Forms
             _txtBusiness.Text = s.BusinessName;
             _txtTin.Text = s.TIN;
             _txtAddress.Text = s.StoreAddress;
-            _txtKkm.Text = s.KkmNumber;
+            _legacyKkmNumber = s.KkmNumber;
+            _txtKkm.Text = s.StorePhone;
+            _txtThankYou.Text = s.ThankYouMessage;
+            _logoPng = s.LogoPng ?? Array.Empty<byte>();
+            SetLogoPreview(_logoPng);
             _chkVat.Checked = s.IsVatPayer;
             _txtVat.Text = s.VatRatePercent.ToString("0.##", CultureInfo.InvariantCulture);
             RefreshSample();
@@ -501,29 +584,106 @@ namespace SantexnikaSRM.Forms
 
         private void Save_Click(object? sender, EventArgs e)
         {
-            double vat = 0;
-            if (_chkVat.Checked && !double.TryParse(_txtVat.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out vat))
+            try
             {
-                double.TryParse(_txtVat.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out vat);
+                double vat = 0;
+                if (_chkVat.Checked &&
+                    !double.TryParse(_txtVat.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out vat) &&
+                    !double.TryParse(_txtVat.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out vat))
+                {
+                    throw new Exception("QQS foizini raqam bilan kiriting.");
+                }
+
+                _service.Save(new FiscalSettings
+                {
+                    Id = 1,
+                    BusinessName = _txtBusiness.Text,
+                    TIN = _txtTin.Text,
+                    StoreAddress = _txtAddress.Text,
+                    KkmNumber = _legacyKkmNumber,
+                    StorePhone = _txtKkm.Text,
+                    ThankYouMessage = _txtThankYou.Text,
+                    LogoPng = (byte[])_logoPng.Clone(),
+                    IsVatPayer = _chkVat.Checked,
+                    VatRatePercent = vat
+                }, _currentUser);
+
+                MessageBox.Show("Chek rekvizitlari saqlandi.", "Tayyor", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Chek rekvizitlarini saqlashda xatolik: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void ChooseLogo_Click(object? sender, EventArgs e)
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Title = "Do'kon logotipini tanlang",
+                Filter = "PNG rasm (*.png)|*.png",
+                CheckFileExists = true,
+                Multiselect = false
+            };
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
             }
 
-            _service.Save(new FiscalSettings
+            try
             {
-                Id = 1,
-                BusinessName = _txtBusiness.Text,
-                TIN = _txtTin.Text,
-                StoreAddress = _txtAddress.Text,
-                KkmNumber = _txtKkm.Text,
-                IsVatPayer = _chkVat.Checked,
-                VatRatePercent = vat
-            }, _currentUser);
+                byte[] bytes = File.ReadAllBytes(dialog.FileName);
+                ValidateLogo(bytes);
+                _logoPng = bytes;
+                SetLogoPreview(_logoPng);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Logotipni yuklashda xatolik: {ex.Message}", "Xato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
 
-            MessageBox.Show("Chek rekvizitlari saqlandi.", "Tayyor", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            DialogResult = DialogResult.OK;
-            Close();
+        private void SetLogoPreview(byte[] logoPng)
+        {
+            _logoPreview.Image?.Dispose();
+            _sampleLogo.Image?.Dispose();
+            _logoPreview.Image = CreateLogoBitmap(logoPng);
+            _sampleLogo.Image = CreateLogoBitmap(logoPng);
+            _sampleLogo.Visible = _sampleLogo.Image != null;
+            RefreshSample();
+        }
+
+        private static Bitmap? CreateLogoBitmap(byte[] logoPng)
+        {
+            if (logoPng.Length == 0)
+            {
+                return null;
+            }
+
+            using var stream = new MemoryStream(logoPng, writable: false);
+            using Image image = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: true);
+            return new Bitmap(image);
+        }
+
+        private static void ValidateLogo(byte[] logoPng)
+        {
+            if (logoPng.Length == 0 || logoPng.Length > 1_048_576)
+            {
+                throw new Exception("PNG fayl 1 MB gacha bo'lishi kerak.");
+            }
+
+            using var stream = new MemoryStream(logoPng, writable: false);
+            using Image image = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: true);
+            if (image.RawFormat.Guid != System.Drawing.Imaging.ImageFormat.Png.Guid)
+            {
+                throw new Exception("Faqat haqiqiy PNG formatidagi rasm qabul qilinadi.");
+            }
+            if (image.Width > 2048 || image.Height > 2048)
+            {
+                throw new Exception("Logotip o'lchami 2048x2048 pikseldan oshmasligi kerak.");
+            }
         }
     }
 }
-
-
-
