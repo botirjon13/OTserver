@@ -128,7 +128,7 @@ namespace SantexnikaSRM.Data
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 SaleId INTEGER NOT NULL UNIQUE,
                 CustomerId INTEGER NOT NULL,
-                TotalAmountUZS REAL NOT NULL CHECK(TotalAmountUZS > 0),
+                TotalAmountUZS REAL NOT NULL CHECK(TotalAmountUZS >= 0),
                 PaidAmountUZS REAL NOT NULL CHECK(PaidAmountUZS >= 0),
                 RemainingAmountUZS REAL NOT NULL CHECK(RemainingAmountUZS >= 0),
                 DueDate TEXT NOT NULL,
@@ -201,6 +201,8 @@ namespace SantexnikaSRM.Data
 
         private static void EnsureIndexesAndLegacyGuards(SqliteConnection connection)
         {
+            EnsureDebtTableAllowsZero(connection);
+
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
                 CREATE INDEX IF NOT EXISTS IX_Products_Name ON Products(Name);
@@ -374,6 +376,64 @@ namespace SantexnikaSRM.Data
                 BEGIN
                     SELECT RAISE(ABORT, 'Expenses summasi musbat bo''lishi kerak');
                 END;");
+        }
+
+        private static void EnsureDebtTableAllowsZero(SqliteConnection connection)
+        {
+            using var schemaCmd = connection.CreateCommand();
+            schemaCmd.CommandText = "SELECT sql FROM sqlite_master WHERE type='table' AND name='Debts'";
+            string? schema = schemaCmd.ExecuteScalar() as string;
+            if (string.IsNullOrWhiteSpace(schema) ||
+                !schema.Contains("TotalAmountUZS > 0", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            using (var foreignKeysOff = connection.CreateCommand())
+            {
+                foreignKeysOff.CommandText = "PRAGMA foreign_keys = OFF";
+                foreignKeysOff.ExecuteNonQuery();
+            }
+
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                using var rebuild = connection.CreateCommand();
+                rebuild.Transaction = transaction;
+                rebuild.CommandText = @"
+                    CREATE TABLE Debts_AllowZero_Migration (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        SaleId INTEGER NOT NULL UNIQUE,
+                        CustomerId INTEGER NOT NULL,
+                        TotalAmountUZS REAL NOT NULL CHECK(TotalAmountUZS >= 0),
+                        PaidAmountUZS REAL NOT NULL CHECK(PaidAmountUZS >= 0),
+                        RemainingAmountUZS REAL NOT NULL CHECK(RemainingAmountUZS >= 0),
+                        DueDate TEXT NOT NULL,
+                        Status TEXT NOT NULL CHECK(Status IN ('Open', 'Closed', 'Overdue')),
+                        CreatedAt TEXT NOT NULL,
+                        FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE,
+                        FOREIGN KEY (CustomerId) REFERENCES Customers(Id)
+                    );
+                    INSERT INTO Debts_AllowZero_Migration
+                        (Id, SaleId, CustomerId, TotalAmountUZS, PaidAmountUZS, RemainingAmountUZS, DueDate, Status, CreatedAt)
+                    SELECT Id, SaleId, CustomerId, TotalAmountUZS, PaidAmountUZS, RemainingAmountUZS, DueDate, Status, CreatedAt
+                    FROM Debts;
+                    DROP TABLE Debts;
+                    ALTER TABLE Debts_AllowZero_Migration RENAME TO Debts;";
+                rebuild.ExecuteNonQuery();
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+            finally
+            {
+                using var foreignKeysOn = connection.CreateCommand();
+                foreignKeysOn.CommandText = "PRAGMA foreign_keys = ON";
+                foreignKeysOn.ExecuteNonQuery();
+            }
         }
 
         private static void ExecuteIgnoreErrors(SqliteConnection connection, string sql)
