@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Data.Sqlite;
 using SantexnikaSRM.Data;
 using SantexnikaSRM.Models;
@@ -31,7 +33,8 @@ internal static class Program
             ("historical cost", HistoricalCostIsUsedAfterProductCostChanges),
             ("debt sale", DebtSaleCreatesExpectedDebt),
             ("backup restore", BackupRestoreRestoresDatabaseSnapshot),
-            ("legacy backup restore", LegacyDatabaseBackupRemainsRestorable)
+            ("legacy backup restore", LegacyDatabaseBackupRemainsRestorable),
+            ("encrypted cloud backup", EncryptedCloudBackupRoundTripsAndRejectsTampering)
         };
 
         int failed = 0;
@@ -374,6 +377,33 @@ internal static class Program
             File.ReadAllText(Path.Combine(root, "ProductImages", "legacy.jpg")),
             "legacy image",
             "legacy image after restore");
+    }
+
+    private static void EncryptedCloudBackupRoundTripsAndRejectsTampering()
+    {
+        byte[] key = RandomNumberGenerator.GetBytes(32);
+        byte[] archive = Encoding.UTF8.GetBytes("test backup archive payload");
+        byte[] encrypted = CloudBackupCryptoService.EncryptPayload(archive, key);
+
+        AssertEqual(Encoding.ASCII.GetString(encrypted, 0, 8), "OSONBK01", "encrypted backup header");
+        byte[] decrypted = CloudBackupCryptoService.DecryptPayload(encrypted, key);
+        AssertTrue(decrypted.AsSpan().SequenceEqual(archive), "encrypted backup round trip");
+
+        encrypted[^1] ^= 0x01;
+        bool rejected = false;
+        try
+        {
+            _ = CloudBackupCryptoService.DecryptPayload(encrypted, key);
+        }
+        catch (InvalidDataException)
+        {
+            rejected = true;
+        }
+
+        AssertTrue(rejected, "tampered encrypted backup must be rejected");
+        CryptographicOperations.ZeroMemory(key);
+        CryptographicOperations.ZeroMemory(decrypted);
+        CryptographicOperations.ZeroMemory(archive);
     }
 
     private static void ResetDatabase(string testName)

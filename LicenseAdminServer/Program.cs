@@ -24,6 +24,7 @@ if (!string.IsNullOrWhiteSpace(port))
 const string AdminSessionCookieName = "license_admin_session";
 const string CsrfCookieName = "license_admin_csrf";
 var webSessions = new ConcurrentDictionary<string, AdminAuth>(StringComparer.Ordinal);
+var googleDriveOAuthStates = new ConcurrentDictionary<string, (string Username, DateTime ExpiresUtc)>(StringComparer.Ordinal);
 var activationAttempts = new ConcurrentDictionary<string, (int Count, DateTime WindowStartUtc)>(StringComparer.Ordinal);
 string adminUser = Environment.GetEnvironmentVariable("ADMIN_USERNAME")?.Trim() ?? "admin";
 string adminPass = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")?.Trim() ?? "change-me";
@@ -61,7 +62,6 @@ string defaultSupportContact = Environment.GetEnvironmentVariable("DEFAULT_SUPPO
 string defaultFirstLoginUsername = Environment.GetEnvironmentVariable("CLIENT_BOOTSTRAP_USERNAME")?.Trim()
     ?? "admin";
 long maxClientBackupBytes = GetLongEnv("CLIENT_BACKUP_MAX_BYTES", 50L * 1024 * 1024);
-string[] allowedClientBackupExtensions = new[] { ".db", ".sqlite", ".sqlite3", ".zip" };
 string releaseProxyBaseUrl = NormalizeReleaseProxyBaseUrl(
     Environment.GetEnvironmentVariable("RELEASE_FEED_SOURCE_URL")?.Trim()
     ?? ReleaseFeedDefaults.GitHubProxyBaseUrl);
@@ -416,6 +416,7 @@ app.MapGet("/admin", (HttpContext context) =>
 <div class="quick-actions">
 <a class="nav-link" href="/admin/licenses">Licenselar</a>
 <a class="nav-link" href="/admin/clients">Mijozlar</a>
+<a class="nav-link" href="/admin/google-drive">Google Drive backup</a>
 <a class="nav-link" href="/admin/devices">Qurilmalar</a>
 </div>
 </section>
@@ -457,6 +458,7 @@ app.MapGet("/admin", (HttpContext context) =>
 <a class="nav-link active" href="/admin/licenses">License boshqarish</a>
 <a class="nav-link" href="/admin/devices">Qurilmalar ro'yxati</a>
 <a class="nav-link" href="/admin/clients">Mijozlar</a>
+<a class="nav-link" href="/admin/google-drive">Google Drive backup</a>
 <a class="nav-link" href="/admin/settings">Sozlamalar</a>
 <a class="nav-link" href="/admin/audit">Audit Logs</a>
 </div>
@@ -735,6 +737,157 @@ app.MapGet("/admin/clients/backups/{id:int}/download", (int id) =>
         return Results.File(row.StoredPath, "application/octet-stream", fileName);
     }
     return Results.NotFound("<h3>Backup fayli topilmadi. <a href='/admin/clients'>Qaytish</a></h3>");
+});
+
+app.MapGet("/admin/google-drive", (HttpContext context) =>
+{
+    if (!TryRequireWebAdmin(context, webSessions, out AdminAuth? auth, out _))
+    {
+        return Results.Redirect("/admin/login");
+    }
+
+    if (!string.Equals(auth!.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.Content("<h3>Google Drive ulanishini faqat SuperAdmin boshqaradi. <a href='/admin'>Qaytish</a></h3>", "text/html; charset=utf-8");
+    }
+
+    string csrf = EnsureCsrfToken(context);
+    bool configured = GoogleDriveBackupService.IsConfigured;
+    bool connected = GoogleDriveBackupService.IsConnected(dbPath);
+    string email = HttpUtility.HtmlEncode(GoogleDriveBackupService.GetConnectedEmail(dbPath));
+    string notice = context.Request.Query["status"].ToString() switch
+    {
+        "connected" => "<p class='success'>Google Drive hisob muvaffaqiyatli ulandi.</p>",
+        "disconnected" => "<p class='success'>Google Drive ulanishi uzildi. Drive'dagi fayllar o'chirilmadi.</p>",
+        "failed" => "<p class='danger-text'>Google Drive ulanmadi. OAuth sozlamalarini va Google ruxsatini tekshiring.</p>",
+        _ => string.Empty
+    };
+    string setup = configured
+        ? string.Empty
+        : "<p class='warning-line'>Serverda GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_CLIENT_SECRET va GOOGLE_DRIVE_REDIRECT_URI sozlamalari kiritilishi kerak.</p>";
+    string controls = connected
+        ? $"""
+<p>Ulangan hisob: <strong>{email}</strong></p>
+<form method="post" action="/admin/google-drive/disconnect">
+<input type="hidden" name="csrf" value="{HttpUtility.HtmlEncode(csrf)}"/>
+<button type="submit" class="btn-danger">Ulanishni uzish</button>
+</form>
+"""
+        : $"""
+<form method="post" action="/admin/google-drive/connect">
+<input type="hidden" name="csrf" value="{HttpUtility.HtmlEncode(csrf)}"/>
+<button type="submit" {(configured ? string.Empty : "disabled")}>Google Drive hisobini ulash</button>
+</form>
+""";
+    string html = $$"""
+<!doctype html>
+<html lang="uz">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Google Drive backup</title>{{SharedCss}}</head>
+<body><div class="wrap">
+<a href="/admin" class="back-link">← Dashboardga qaytish</a>
+<div class="card">
+<h3>Markaziy Google Drive backup</h3>
+{{notice}}
+{{setup}}
+<p>Drive'ga faqat mijoz dasturida administrator oylik shifrlangan backup'ga rozilik bergan qurilmalar yuboriladi.</p>
+<p>Har bir litsenziya va qurilma uchun yangi fayl Google Drive'ga muvaffaqiyatli yuklanib tekshirilgandan keyingina undan oldingi nusxalar o'chiriladi.</p>
+<p>Yuklangan nusxalar mijoz tomonida shifrlanadi. Google Drive'ga ulanish uchun server OAuth Web client ishlatadi; client secret dasturga kiritilmaydi.</p>
+{{controls}}
+</div></div></body></html>
+""";
+    return Results.Content(html, "text/html; charset=utf-8");
+});
+
+app.MapPost("/admin/google-drive/connect", async (HttpContext context) =>
+{
+    if (!TryRequireWebAdmin(context, webSessions, out AdminAuth? auth, out _))
+    {
+        return Results.Redirect("/admin/login");
+    }
+    if (!string.Equals(auth!.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    IFormCollection form = await context.Request.ReadFormAsync();
+    if (!ValidateCsrf(context, form))
+    {
+        return Results.StatusCode(StatusCodes.Status400BadRequest);
+    }
+    if (!GoogleDriveBackupService.IsConfigured)
+    {
+        return Results.Redirect("/admin/google-drive?status=failed");
+    }
+
+    string state = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    googleDriveOAuthStates[state] = (auth.Username, DateTime.UtcNow.AddMinutes(10));
+    foreach (var oldState in googleDriveOAuthStates.Where(x => x.Value.ExpiresUtc < DateTime.UtcNow).Select(x => x.Key).ToList())
+    {
+        googleDriveOAuthStates.TryRemove(oldState, out _);
+    }
+
+    return Results.Redirect(GoogleDriveBackupService.BuildAuthorizationUrl(state));
+});
+
+app.MapGet("/admin/google-drive/oauth/callback", async (HttpContext context) =>
+{
+    if (!TryRequireWebAdmin(context, webSessions, out AdminAuth? auth, out _))
+    {
+        return Results.Redirect("/admin/login");
+    }
+    if (!string.Equals(auth!.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    string state = context.Request.Query["state"].ToString();
+    if (string.IsNullOrWhiteSpace(state) ||
+        !googleDriveOAuthStates.TryRemove(state, out var pending) ||
+        pending.ExpiresUtc < DateTime.UtcNow ||
+        !string.Equals(pending.Username, auth.Username, StringComparison.Ordinal))
+    {
+        return Results.Redirect("/admin/google-drive?status=failed");
+    }
+
+    string code = context.Request.Query["code"].ToString();
+    if (string.IsNullOrWhiteSpace(code) || !string.IsNullOrWhiteSpace(context.Request.Query["error"]))
+    {
+        return Results.Redirect("/admin/google-drive?status=failed");
+    }
+
+    try
+    {
+        await GoogleDriveBackupService.ExchangeCodeAndSaveAsync(dbPath, code);
+        Db.AddAuditLog(dbPath, "GOOGLE_DRIVE_CONNECTED", "Google Drive backup hisobi ulandi.");
+        return Results.Redirect("/admin/google-drive?status=connected");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[DRIVE BACKUP] OAuth connection failed: {ex.Message}");
+        return Results.Redirect("/admin/google-drive?status=failed");
+    }
+});
+
+app.MapPost("/admin/google-drive/disconnect", async (HttpContext context) =>
+{
+    if (!TryRequireWebAdmin(context, webSessions, out AdminAuth? auth, out _))
+    {
+        return Results.Redirect("/admin/login");
+    }
+    if (!string.Equals(auth!.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    IFormCollection form = await context.Request.ReadFormAsync();
+    if (!ValidateCsrf(context, form))
+    {
+        return Results.StatusCode(StatusCodes.Status400BadRequest);
+    }
+
+    GoogleDriveBackupService.Disconnect(dbPath);
+    Db.AddAuditLog(dbPath, "GOOGLE_DRIVE_DISCONNECTED", "Google Drive backup hisobi uzildi.");
+    return Results.Redirect("/admin/google-drive?status=disconnected");
 });
 
 app.MapGet("/admin/settings", (HttpContext context) =>
@@ -1568,9 +1721,9 @@ app.MapPost("/api/client/backups/upload", async (HttpContext context) =>
     }
 
     string extension = Path.GetExtension(file.FileName);
-    if (!allowedClientBackupExtensions.Any(x => string.Equals(x, extension, StringComparison.OrdinalIgnoreCase)))
+    if (!string.Equals(extension, ".osonbackup", StringComparison.OrdinalIgnoreCase))
     {
-        return Results.BadRequest(new { ok = false, error = "SQLite backup fayli yoki rasmlar bilan ZIP to'plami qabul qilinadi." });
+        return Results.BadRequest(new { ok = false, error = "Faqat shifrlangan OsonTrack backup fayli qabul qilinadi." });
     }
 
     byte[] fileData;
@@ -1585,9 +1738,67 @@ app.MapPost("/api/client/backups/upload", async (HttpContext context) =>
         return Results.BadRequest(new { ok = false, error = "Backup fayli yaroqli SQLite nusxasi yoki rasmlar bilan ZIP to'plami emas." });
     }
 
-    Db.InsertClientBackup(dbPath, licenseKey, deviceId, appVersion, file.FileName, null, fileData, file.Length);
+    if (!GoogleDriveBackupService.IsConnected(dbPath))
+    {
+        return Results.Json(new { ok = false, error = "Google Drive serverda ulanmagan." }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    GoogleDriveUploadResult uploadResult;
+    try
+    {
+        uploadResult = await GoogleDriveBackupService.UploadAndPruneAsync(dbPath, licenseKey, deviceId, fileData);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[DRIVE BACKUP] Upload failed for a client backup: {ex.Message}");
+        return Results.Json(new { ok = false, error = "Zaxirani Google Drive'ga yuklab bo'lmadi. Keyinroq qayta urinib ko'ring." }, statusCode: StatusCodes.Status502BadGateway);
+    }
+
+    int backupId = Db.InsertClientBackup(dbPath, licenseKey, deviceId, appVersion, file.FileName, null, fileData, file.Length);
+    Db.DeleteOlderClientBackups(dbPath, licenseKey, deviceId, backupId);
     Db.AddAuditLog(dbPath, "CLIENT_BACKUP_UPLOAD", $"Backup upload: key={licenseKey}, device={deviceId}, file={file.FileName}, size={file.Length}");
-    return Results.Json(new { ok = true, file = file.FileName });
+    return Results.Json(new { ok = true, file = file.FileName, driveFileId = uploadResult.FileId, removedOldFiles = uploadResult.RemovedOldFiles });
+});
+
+app.MapGet("/api/client/backups/latest", async (HttpContext context) =>
+{
+    string licenseKey = context.Request.Query["licenseKey"].ToString().Trim();
+    string deviceId = context.Request.Query["deviceId"].ToString().Trim();
+    if (string.IsNullOrWhiteSpace(licenseKey) || string.IsNullOrWhiteSpace(deviceId))
+    {
+        return Results.BadRequest(new { ok = false, error = "licenseKey va deviceId majburiy." });
+    }
+
+    if (!TryRequireClientToken(context, licenseKey, deviceId, signingKey, out IResult? tokenUnauthorized))
+    {
+        return tokenUnauthorized!;
+    }
+
+    if (!Db.IsClientAllowed(dbPath, licenseKey, deviceId))
+    {
+        return Results.Unauthorized();
+    }
+
+    GoogleDriveDownloadResult? backup;
+    try
+    {
+        backup = await GoogleDriveBackupService.DownloadLatestAsync(dbPath, licenseKey, deviceId);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[DRIVE BACKUP] Download failed for a client backup: {ex.Message}");
+        return Results.Json(new { ok = false, error = "Google Drive backup'ni yuklab bo'lmadi." }, statusCode: StatusCodes.Status502BadGateway);
+    }
+
+    if (backup == null || backup.Content.Length == 0)
+    {
+        return Results.NotFound(new { ok = false, error = "Bu qurilma uchun Google Drive backup topilmadi." });
+    }
+
+    return Results.File(
+        backup.Content,
+        "application/octet-stream",
+        Path.GetFileName(backup.FileName));
 });
 
 app.MapPost("/api/admin/client/password-resets/create", (HttpContext context, CreateClientPasswordResetRequest req) =>
@@ -2039,6 +2250,13 @@ static bool LooksLikeSqliteDatabase(byte[] data)
 
 static bool LooksLikeClientBackup(byte[] data, string extension)
 {
+    if (string.Equals(extension, ".osonbackup", StringComparison.OrdinalIgnoreCase))
+    {
+        byte[] encryptedHeader = Encoding.ASCII.GetBytes("OSONBK01");
+        return data.Length >= encryptedHeader.Length + 12 + 16 &&
+               data.AsSpan(0, encryptedHeader.Length).SequenceEqual(encryptedHeader);
+    }
+
     if (string.Equals(extension, ".db", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(extension, ".sqlite", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(extension, ".sqlite3", StringComparison.OrdinalIgnoreCase))
@@ -3031,13 +3249,14 @@ VALUES(@k, @d, @v, @c, @u, @created)
         return list;
     }
 
-    public static void InsertClientBackup(string dbPath, string licenseKey, string deviceId, string appVersion, string fileName, string? storedPath, byte[]? fileData, long sizeBytes)
+    public static int InsertClientBackup(string dbPath, string licenseKey, string deviceId, string appVersion, string fileName, string? storedPath, byte[]? fileData, long sizeBytes)
     {
         using var conn = Open(dbPath);
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
 INSERT INTO ClientBackups(LicenseKey, DeviceId, AppVersion, FileName, StoredPath, FileData, SizeBytes, CreatedAt)
 VALUES(@k, @d, @v, @f, @p, @b, @s, @created)
+RETURNING Id
 """;
         cmd.Parameters.AddWithValue("@k", licenseKey);
         cmd.Parameters.AddWithValue("@d", deviceId);
@@ -3047,6 +3266,71 @@ VALUES(@k, @d, @v, @f, @p, @b, @s, @created)
         cmd.Parameters.AddWithValue("@b", (object?)fileData ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@s", sizeBytes);
         cmd.Parameters.AddWithValue("@created", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    public static void DeleteOlderClientBackups(string dbPath, string licenseKey, string deviceId, int keepId)
+    {
+        using var conn = Open(dbPath);
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM ClientBackups WHERE LicenseKey=@k AND DeviceId=@d AND Id<>@id";
+        cmd.Parameters.AddWithValue("@k", licenseKey);
+        cmd.Parameters.AddWithValue("@d", deviceId);
+        cmd.Parameters.AddWithValue("@id", keepId);
+        cmd.ExecuteNonQuery();
+    }
+
+    public static ClientBackupDownloadRow? GetLatestClientBackup(string dbPath, string licenseKey, string deviceId)
+    {
+        using var conn = Open(dbPath);
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT Id, LicenseKey, FileName, StoredPath, FileData FROM ClientBackups WHERE LicenseKey=@k AND DeviceId=@d ORDER BY Id DESC LIMIT 1";
+        cmd.Parameters.AddWithValue("@k", licenseKey);
+        cmd.Parameters.AddWithValue("@d", deviceId);
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+
+        return new ClientBackupDownloadRow(
+            reader.GetInt32(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.IsDBNull(3) ? null : reader.GetString(3),
+            reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4));
+    }
+
+    public static void SetSecureConfig(string dbPath, string key, string value)
+    {
+        using var conn = Open(dbPath);
+        SetConfig(conn, key, EncryptSecret(value));
+    }
+
+    public static string? GetSecureConfig(string dbPath, string key)
+    {
+        using var conn = Open(dbPath);
+        return DecryptSecret(GetConfig(conn, key));
+    }
+
+    public static void SetConfigValue(string dbPath, string key, string value)
+    {
+        using var conn = Open(dbPath);
+        SetConfig(conn, key, value);
+    }
+
+    public static string? GetConfigValue(string dbPath, string key)
+    {
+        using var conn = Open(dbPath);
+        return GetConfig(conn, key);
+    }
+
+    public static void DeleteConfig(string dbPath, string key)
+    {
+        using var conn = Open(dbPath);
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM AppConfig WHERE Key=@k";
+        cmd.Parameters.AddWithValue("@k", key);
         cmd.ExecuteNonQuery();
     }
 
