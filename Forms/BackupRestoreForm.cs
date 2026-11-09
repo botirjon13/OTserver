@@ -2,7 +2,10 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using SantexnikaSRM.Data;
 using SantexnikaSRM.Models;
 using SantexnikaSRM.Services;
 using SantexnikaSRM.Utils;
@@ -13,12 +16,19 @@ namespace SantexnikaSRM.Forms
     {
         private readonly AppUser _currentUser;
         private readonly BackupService _backupService = new BackupService();
+        private readonly CloudBackupCryptoService _cloudBackupCrypto = new CloudBackupCryptoService();
+        private readonly ActivationService _activationService = new ActivationService();
+        private readonly CloudSyncService _cloudSyncService = new CloudSyncService();
 
         private readonly Panel _content = new Panel();
         private readonly ListBox _listBackups = new ListBox();
         private readonly Button _btnCreate = new Button();
         private readonly Button _btnRestore = new Button();
         private readonly Button _btnRefresh = new Button();
+        private readonly Button _btnCloudSetup = new Button();
+        private readonly Button _btnCloudUpload = new Button();
+        private readonly Button _btnCloudRestore = new Button();
+        private readonly Label _lblCloudStatus = new Label();
 
         public BackupRestoreForm(AppUser currentUser)
         {
@@ -30,6 +40,7 @@ namespace SantexnikaSRM.Forms
             InitializeComponent();
             SantexnikaSRM.Utils.FormFx.EnsureFitsScreen(this);
             LoadBackups();
+            LoadCloudBackupState();
         }
 
         private void InitializeComponent()
@@ -148,6 +159,9 @@ namespace SantexnikaSRM.Forms
             };
 
             _btnRefresh.Click += (s, e) => LoadBackups();
+            _btnCloudSetup.Click += (s, e) => ConfigureCloudBackup();
+            _btnCloudUpload.Click += async (s, e) => await UploadCloudBackupNowAsync();
+            _btnCloudRestore.Click += async (s, e) => await RestoreCloudBackupAsync();
 
             _content.Controls.Add(actionCard);
             _content.Controls.Add(listCard);
@@ -159,7 +173,7 @@ namespace SantexnikaSRM.Forms
                 int x = (canvas.ClientSize.Width - w) / 2;
                 _content.SetBounds(Math.Max(12, x), 14, w, Math.Max(700, canvas.ClientSize.Height - 24));
                 header.SetBounds(0, 0, _content.Width, 90);
-                int listHeight = Math.Max(360, Math.Min(470, _content.Height - 320));
+                int listHeight = Math.Max(280, Math.Min(420, _content.Height - 388));
                 listCard.SetBounds(0, 104, _content.Width, listHeight);
                 actionCard.SetBounds(0, listCard.Bottom + 14, _content.Width, _content.Height - (listCard.Bottom + 14));
             };
@@ -247,20 +261,39 @@ namespace SantexnikaSRM.Forms
             Label lblNote = new Label
             {
                 Left = 18,
-                Top = 18,
+                Top = 12,
                 Width = 1000,
-                Height = 54,
-                Text = "Eslatma: Backup ma'lumotlar bazasi va mahsulot rasmlarini birga saqlaydi. Tiklash jarayoni hozirgi ma'lumotlar va rasmlarni tanlangan backup bilan almashtiradi. Ehtiyot bo'ling!",
+                Height = 44,
+                Text = "Mahalliy backup ma'lumotlar bazasi va mahsulot rasmlarini saqlaydi. Tiklash joriy ma'lumotlarni almashtiradi. Drive nusxasi rozilikdan keyin shifrlangan holda yuboriladi.",
                 Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
                 ForeColor = Color.FromArgb(47, 89, 166),
                 BackColor = Color.Transparent
             };
             note.Controls.Add(lblNote);
+            _lblCloudStatus.SetBounds(18, 60, 1000, 24);
+            _lblCloudStatus.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
+            _lblCloudStatus.BackColor = Color.Transparent;
+            note.Controls.Add(_lblCloudStatus);
+
+            _btnCloudSetup.Text = "Oylik Drive zaxirasini sozlash";
+            StyleActionButton(_btnCloudSetup, Color.FromArgb(98, 79, 205), Color.FromArgb(72, 60, 177), "\uE713");
+            _btnCloudSetup.SetBounds(30, 210, 332, 48);
+
+            _btnCloudUpload.Text = "Drive'ga hozir yuborish";
+            StyleActionButton(_btnCloudUpload, Color.FromArgb(12, 151, 186), Color.FromArgb(25, 176, 207), "\uE72A");
+            _btnCloudUpload.SetBounds(380, 210, 332, 48);
+
+            _btnCloudRestore.Text = "Drive'dan tiklash";
+            StyleActionButton(_btnCloudRestore, Color.FromArgb(235, 130, 35), Color.FromArgb(214, 103, 23), "\uE777");
+            _btnCloudRestore.SetBounds(730, 210, 332, 48);
 
             card.Controls.Add(_btnCreate);
             card.Controls.Add(_btnRestore);
             card.Controls.Add(_btnRefresh);
             card.Controls.Add(note);
+            card.Controls.Add(_btnCloudSetup);
+            card.Controls.Add(_btnCloudUpload);
+            card.Controls.Add(_btnCloudRestore);
 
             card.Resize += (s, e) =>
             {
@@ -269,11 +302,249 @@ namespace SantexnikaSRM.Forms
                 _btnCreate.SetBounds(30, 24, w, 56);
                 _btnRestore.SetBounds(30 + w + gap, 24, w, 56);
                 _btnRefresh.SetBounds(30 + (w + gap) * 2, 24, w, 56);
-                note.SetBounds(30, 106, card.ClientSize.Width - 60, 88);
+                note.SetBounds(30, 98, card.ClientSize.Width - 60, 92);
                 lblNote.Width = note.Width - 30;
+                _lblCloudStatus.Width = note.Width - 36;
+                _btnCloudSetup.SetBounds(30, 202, w, 48);
+                _btnCloudUpload.SetBounds(30 + w + gap, 202, w, 48);
+                _btnCloudRestore.SetBounds(30 + (w + gap) * 2, 202, w, 48);
             };
 
             return card;
+        }
+
+        private void LoadCloudBackupState()
+        {
+            bool enabled = _cloudBackupCrypto.IsEnabled();
+            _lblCloudStatus.Text = enabled
+                ? "Oylik markaziy Drive zaxirasi: YOQILGAN"
+                : "Oylik markaziy Drive zaxirasi: O'CHIRILGAN";
+            _lblCloudStatus.ForeColor = enabled
+                ? Color.FromArgb(26, 132, 72)
+                : Color.FromArgb(106, 120, 142);
+            _btnCloudSetup.Text = enabled
+                ? "Drive zaxirasini o'chirish"
+                : "Oylik Drive zaxirasini yoqish";
+            _btnCloudUpload.Enabled = enabled;
+            _btnCloudRestore.Enabled = true;
+        }
+
+        private void ConfigureCloudBackup()
+        {
+            if (_cloudBackupCrypto.IsEnabled())
+            {
+                if (MessageBox.Show(
+                    "Kelgusi oylik Drive yuklashlarini to'xtatamizmi? Drive'dagi hozirgi nusxa o'chirilmaydi.",
+                    "Drive zaxirasi",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    _cloudBackupCrypto.Disable();
+                    LoadCloudBackupState();
+                }
+
+                return;
+            }
+
+            DialogResult consent = MessageBox.Show(
+                "Rozilik bersangiz, ushbu qurilmaning ma'lumotlar bazasi va mahsulot rasmlari oyiga bir marta OsonTrack markaziy serveri orqali dastur egasining Google Drive hisobiga yuboriladi. Fayl Google'ga yuborilishidan oldin shifrlanadi. Har bir litsenziya va qurilma uchun faqat eng yangi tekshirilgan nusxa qoldiriladi; yangi nusxa tasdiqlangach eskilari o'chiriladi. Tiklash kalitini saqlamasangiz, kompyuter yo'qolganida zaxirani ochib bo'lmaydi. Davom etasizmi?",
+                "Bulut zaxirasi uchun rozilik",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+            if (consent != DialogResult.Yes)
+            {
+                return;
+            }
+
+            string recoveryKey = _cloudBackupCrypto.Enable();
+            LoadCloudBackupState();
+            if (!string.IsNullOrWhiteSpace(recoveryKey))
+            {
+                ShowRecoveryKey(recoveryKey);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Avvalgi tiklash kaliti ushbu Windows hisobida saqlangan. Agar kompyuter almashtirilsa, Drive zaxirasini ochish uchun o'sha tiklash kaliti kerak bo'ladi.",
+                    "Drive zaxirasi yoqildi",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+        }
+
+        private async Task UploadCloudBackupNowAsync()
+        {
+            if (!_cloudBackupCrypto.IsEnabled())
+            {
+                MessageBox.Show("Avval oylik Drive zaxirasiga rozilik bering.", "Drive zaxirasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out string message) ||
+                activation == null)
+            {
+                MessageBox.Show(message, "Aktivatsiya", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            _btnCloudUpload.Enabled = false;
+            try
+            {
+                bool uploaded = await _cloudSyncService.UploadBackupNowIfEnabledAsync(activation, Application.ProductVersion);
+                MessageBox.Show(
+                    uploaded
+                        ? "Shifrlangan backup Google Drive'ga yuborildi. Oldingi nusxalar yangi fayl tekshirilgandan keyin tozalandi."
+                        : "Backup yuborilmadi. Internet yoki serverdagi Google Drive ulanishini tekshiring.",
+                    "Drive zaxirasi",
+                    MessageBoxButtons.OK,
+                    uploaded ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Drive'ga yuborishda xatolik", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                LoadCloudBackupState();
+            }
+        }
+
+        private async Task RestoreCloudBackupAsync()
+        {
+            if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out string message) ||
+                activation == null)
+            {
+                MessageBox.Show(message, "Aktivatsiya", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show(
+                "Bulutdagi backup yuklanadi va uning ma'lumotlar bazasi hamda mahsulot rasmlari joriy ma'lumotlarning o'rniga tiklanadi. Avval joriy baza uchun mahalliy backup yaratiladi. Davom etilsinmi?",
+                "Drive'dan tiklash",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+            {
+                return;
+            }
+
+            string? stagedBackupPath = null;
+            byte[]? encryptedBytes = null;
+            byte[]? archiveBytes = null;
+            _btnCloudRestore.Enabled = false;
+            try
+            {
+                encryptedBytes = await _cloudSyncService.DownloadLatestBackupAsync(activation);
+                try
+                {
+                    archiveBytes = _cloudBackupCrypto.Decrypt(encryptedBytes);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or InvalidDataException)
+                {
+                    string? recoveryKey = PromptForRecoveryKey();
+                    if (string.IsNullOrWhiteSpace(recoveryKey))
+                    {
+                        return;
+                    }
+
+                    byte[] recoveryBytes = Convert.FromBase64String(recoveryKey.Trim());
+                    try
+                    {
+                        archiveBytes = CloudBackupCryptoService.DecryptPayload(encryptedBytes, recoveryBytes);
+                        _cloudBackupCrypto.ImportRecoveryKey(recoveryKey);
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(recoveryBytes);
+                    }
+                }
+
+                _ = _backupService.CreateBackup();
+                stagedBackupPath = Path.Combine(Database.GetAppDataRoot(), $".cloud_restore_{Guid.NewGuid():N}.zip");
+                await File.WriteAllBytesAsync(stagedBackupPath, archiveBytes);
+                _backupService.RestoreBackup(stagedBackupPath);
+                MessageBox.Show(
+                    "Drive backup tiklandi. Dastur qayta ishga tushadi.",
+                    "Tiklash tugadi",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                Application.Restart();
+                Application.Exit();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Drive'dan tiklashda xatolik", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (encryptedBytes != null)
+                {
+                    CryptographicOperations.ZeroMemory(encryptedBytes);
+                }
+
+                if (archiveBytes != null)
+                {
+                    CryptographicOperations.ZeroMemory(archiveBytes);
+                }
+
+                if (!string.IsNullOrWhiteSpace(stagedBackupPath) && File.Exists(stagedBackupPath))
+                {
+                    File.Delete(stagedBackupPath);
+                }
+
+                LoadCloudBackupState();
+            }
+        }
+
+        private static string? PromptForRecoveryKey()
+        {
+            using var prompt = new Form
+            {
+                Text = "Drive backup tiklash kaliti",
+                Width = 620,
+                Height = 190,
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+            var input = new TextBox { Left = 18, Top = 24, Width = 566 };
+            var confirm = new Button { Text = "Davom etish", Left = 380, Top = 72, Width = 120, DialogResult = DialogResult.OK };
+            var cancel = new Button { Text = "Bekor qilish", Left = 505, Top = 72, Width = 80, DialogResult = DialogResult.Cancel };
+            prompt.Controls.Add(input);
+            prompt.Controls.Add(confirm);
+            prompt.Controls.Add(cancel);
+            prompt.AcceptButton = confirm;
+            prompt.CancelButton = cancel;
+            return prompt.ShowDialog() == DialogResult.OK ? input.Text : null;
+        }
+
+        private static void ShowRecoveryKey(string recoveryKey)
+        {
+            using var prompt = new Form
+            {
+                Text = "Tiklash kalitini saqlang",
+                Width = 700,
+                Height = 240,
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+            var instruction = new Label
+            {
+                Left = 18,
+                Top = 18,
+                Width = 650,
+                Height = 54,
+                Text = "Bu kalit faqat bir marta ko'rsatiladi. Uni xavfsiz joyda saqlang. Kompyuter almashtirilsa yoki Windows qayta o'rnatilsa, Drive backup'ni ochish uchun kalit kerak."
+            };
+            var keyBox = new TextBox { Left = 18, Top = 78, Width = 650, ReadOnly = true, Text = recoveryKey };
+            var close = new Button { Text = "Yopish", Left = 568, Top = 128, Width = 100, DialogResult = DialogResult.OK };
+            prompt.Controls.Add(instruction);
+            prompt.Controls.Add(keyBox);
+            prompt.Controls.Add(close);
+            prompt.AcceptButton = close;
+            prompt.ShowDialog();
         }
 
         private void ListBackups_DrawItem(object? sender, DrawItemEventArgs e)
@@ -498,4 +769,3 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-

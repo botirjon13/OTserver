@@ -22,6 +22,7 @@ namespace SantexnikaSRM.Forms
         private readonly ProductService _productService = new ProductService();
         private readonly BackupService _backupService = new BackupService();
         private readonly ActivationService _activationService = new ActivationService();
+        private readonly CloudBackupCryptoService _cloudBackupCrypto = new CloudBackupCryptoService();
         private readonly UpdateService _updateService = new UpdateService();
         private readonly CurrencyRateProviderService _currencyRateProvider = new CurrencyRateProviderService();
         private readonly DatabaseHelper _dbHelper = new DatabaseHelper();
@@ -73,6 +74,30 @@ namespace SantexnikaSRM.Forms
             Icon = BrandingAssets.TryLoadAppIcon() ?? Icon;
             BuildTiles();
             ApplyThemeStyles();
+            Shown += MainForm_Shown;
+        }
+
+        private async void MainForm_Shown(object? sender, EventArgs e)
+        {
+            if (!string.Equals(_currentUser.Role, DatabaseHelper.RoleAdmin, StringComparison.OrdinalIgnoreCase) ||
+                !_cloudBackupCrypto.IsEnabled() ||
+                !_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out _) ||
+                activation == null)
+            {
+                return;
+            }
+
+            bool uploaded = await new CloudSyncService().UploadMonthlyBackupIfEnabledAsync(
+                activation,
+                Application.ProductVersion);
+            if (!uploaded && !IsDisposed)
+            {
+                MessageBox.Show(
+                    "Oylik Drive zaxirasi bajarilmadi. Internet va serverdagi Drive ulanishini tekshirib, Backup bo'limidan qayta urinib ko'ring.",
+                    "Bulut zaxirasi",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
         }
 
         private void InitializeComponent()
@@ -1809,7 +1834,6 @@ namespace SantexnikaSRM.Forms
 
     }
 }
-
 
 
 

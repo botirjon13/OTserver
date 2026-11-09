@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -17,11 +18,12 @@ namespace SantexnikaSRM.Services
     {
         private static readonly HttpClient Http = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(30)
+            Timeout = TimeSpan.FromMinutes(3)
         };
 
         private readonly DatabaseHelper _db = new DatabaseHelper();
         private readonly BackupService _backupService = new BackupService();
+        private readonly CloudBackupCryptoService _backupCrypto = new CloudBackupCryptoService();
 
         public async Task RunAsync(LocalActivationRecord activation, string appVersion)
         {
@@ -32,7 +34,7 @@ namespace SantexnikaSRM.Services
 
             await ApplyPendingPasswordResetsAsync(activation);
             await SendUsersSnapshotAsync(activation, appVersion);
-            await UploadMonthlyBackupAsync(activation, appVersion);
+            await UploadMonthlyBackupIfEnabledAsync(activation, appVersion);
         }
 
         public Task ApplyPendingPasswordResetsNowAsync(LocalActivationRecord activation)
@@ -43,6 +45,47 @@ namespace SantexnikaSRM.Services
             }
 
             return ApplyPendingPasswordResetsAsync(activation);
+        }
+
+        public Task<bool> UploadMonthlyBackupIfEnabledAsync(LocalActivationRecord activation, string appVersion)
+        {
+            if (activation == null ||
+                string.IsNullOrWhiteSpace(activation.ServerUrl) ||
+                !_backupCrypto.IsEnabled())
+            {
+                return Task.FromResult(false);
+            }
+
+            return UploadBackupAsync(activation, appVersion, force: false);
+        }
+
+        public Task<bool> UploadBackupNowIfEnabledAsync(LocalActivationRecord activation, string appVersion)
+        {
+            if (activation == null ||
+                string.IsNullOrWhiteSpace(activation.ServerUrl) ||
+                !_backupCrypto.IsEnabled())
+            {
+                return Task.FromResult(false);
+            }
+
+            return UploadBackupAsync(activation, appVersion, force: true);
+        }
+
+        public async Task<byte[]> DownloadLatestBackupAsync(LocalActivationRecord activation)
+        {
+            string url = $"{activation.ServerUrl.TrimEnd('/')}/api/client/backups/latest?licenseKey={Uri.EscapeDataString(activation.LicenseKey)}&deviceId={Uri.EscapeDataString(activation.DeviceId)}";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", activation.Token ?? string.Empty);
+            using var response = await Http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    response.StatusCode == System.Net.HttpStatusCode.NotFound
+                        ? "Google Drive'da bu qurilma uchun zaxira topilmadi."
+                        : $"Google Drive zaxirasi yuklab olinmadi ({(int)response.StatusCode}).");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
         }
 
         private async Task ApplyPendingPasswordResetsAsync(LocalActivationRecord activation)
@@ -133,30 +176,47 @@ namespace SantexnikaSRM.Services
             }
         }
 
-        private async Task UploadMonthlyBackupAsync(LocalActivationRecord activation, string appVersion)
+        private async Task<bool> UploadBackupAsync(LocalActivationRecord activation, string appVersion, bool force)
         {
+            byte[]? encryptedBytes = null;
             try
             {
                 string currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
-                string markerPath = Path.Combine(Database.GetAppDataRoot(), "cloud_backup_month.marker");
-                if (File.Exists(markerPath))
+                string markerId = Convert.ToHexString(SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes($"{activation.LicenseKey}\0{activation.DeviceId}"))).ToLowerInvariant();
+                string markerPath = Path.Combine(Database.GetAppDataRoot(), $"cloud_backup_month_{markerId}.marker");
+                if (!force && File.Exists(markerPath))
                 {
                     string savedMonth = File.ReadAllText(markerPath).Trim();
                     if (string.Equals(savedMonth, currentMonth, StringComparison.Ordinal))
                     {
-                        return;
+                        return true;
                     }
                 }
 
-                string backupPath = _backupService.CreateBackup();
+                string backupPath = await Task.Run(() => _backupService.CreateBackup());
+                byte[] backupBytes = await File.ReadAllBytesAsync(backupPath);
+                try
+                {
+                    encryptedBytes = _backupCrypto.Encrypt(backupBytes);
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(backupBytes);
+                }
+                if (encryptedBytes.LongLength > 50L * 1024 * 1024)
+                {
+                    throw new InvalidOperationException("Shifrlangan backup serverning 50 MB limitidan oshdi.");
+                }
+
                 using var form = new MultipartFormDataContent();
                 form.Add(new StringContent(activation.LicenseKey), "licenseKey");
                 form.Add(new StringContent(activation.DeviceId), "deviceId");
                 form.Add(new StringContent(string.IsNullOrWhiteSpace(appVersion) ? "unknown" : appVersion), "appVersion");
+                form.Add(new StringContent("true"), "encrypted");
 
-                await using var fs = File.OpenRead(backupPath);
-                var fileContent = new StreamContent(fs);
-                form.Add(fileContent, "file", Path.GetFileName(backupPath));
+                var fileContent = new ByteArrayContent(encryptedBytes);
+                form.Add(fileContent, "file", $"database_{currentMonth}.osonbackup");
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, $"{activation.ServerUrl.TrimEnd('/')}/api/client/backups/upload")
                 {
@@ -167,16 +227,26 @@ namespace SantexnikaSRM.Services
                 if (response.IsSuccessStatusCode)
                 {
                     File.WriteAllText(markerPath, currentMonth);
+                    return true;
                 }
                 else
                 {
                     LogHelper.WriteLog(
                         $"Bulutga zaxira nusxa yuborilmadi. Server javobi: {(int)response.StatusCode} {response.ReasonPhrase}");
+                    return false;
                 }
             }
             catch (Exception ex)
             {
                 LogHelper.WriteLog($"Bulutga zaxira nusxa yuborilmadi: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                if (encryptedBytes != null)
+                {
+                    CryptographicOperations.ZeroMemory(encryptedBytes);
+                }
             }
         }
     }
