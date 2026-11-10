@@ -71,6 +71,7 @@ namespace SantexnikaSRM.Forms
         private const int TileColumns = 1;
         private const int TileRowHeight = 68;
         private AppUpdateInfo? _pendingUpdate;
+        private Size _activePagePreferredSize;
         private Form? _activePage;
         private string? _lastUpdateCheckError;
         private bool _isUpdateDownloading;
@@ -281,6 +282,7 @@ namespace SantexnikaSRM.Forms
 
             _pageHost.Dock = DockStyle.Fill;
             _pageHost.BackColor = UiTheme.Background;
+            _pageHost.AutoScroll = true;
             _pageHost.Visible = false;
 
             _actionPanel.Dock = DockStyle.Bottom;
@@ -508,18 +510,22 @@ namespace SantexnikaSRM.Forms
             Form page = createPage();
             CloseActivePage();
 
+            _activePagePreferredSize = page.Size;
             page.TopLevel = false;
             page.FormBorderStyle = FormBorderStyle.None;
-            page.Dock = DockStyle.Fill;
-            page.MinimumSize = Size.Empty;
+            page.StartPosition = FormStartPosition.Manual;
             page.BackColor = UiTheme.BackgroundSecondary;
             page.Font = UiTheme.BodyFont;
+            page.Location = Point.Empty;
 
             _activePage = page;
             _body.AutoScroll = false;
             _welcomePanel.Visible = false;
+            _actionPanel.Visible = false;
+            _lblFooter.Visible = false;
             _pageHost.Visible = true;
             _pageHost.Controls.Add(page);
+            _pageHost.Resize += PageHost_Resize;
             page.FormClosed += (_, __) =>
             {
                 if (!ReferenceEquals(_activePage, page))
@@ -528,12 +534,17 @@ namespace SantexnikaSRM.Forms
                 }
 
                 _activePage = null;
+                _pageHost.Resize -= PageHost_Resize;
                 _pageHost.Controls.Remove(page);
                 _pageHost.Visible = false;
+                _pageHost.AutoScrollMinSize = Size.Empty;
+                _actionPanel.Visible = true;
+                _lblFooter.Visible = true;
                 _welcomePanel.Visible = true;
                 _body.AutoScroll = true;
                 UpdateBodyScrollArea();
             };
+            LayoutActivePage();
             page.Show();
             page.BringToFront();
             _body.PerformLayout();
@@ -543,6 +554,9 @@ namespace SantexnikaSRM.Forms
         {
             CloseActivePage();
             _pageHost.Visible = false;
+            _pageHost.AutoScrollMinSize = Size.Empty;
+            _actionPanel.Visible = true;
+            _lblFooter.Visible = true;
             _welcomePanel.Visible = true;
             _body.AutoScroll = true;
             UpdateBodyScrollArea();
@@ -558,12 +572,34 @@ namespace SantexnikaSRM.Forms
 
             Form page = _activePage;
             _activePage = null;
+            _pageHost.Resize -= PageHost_Resize;
             _pageHost.Controls.Remove(page);
             if (!page.IsDisposed)
             {
                 page.Close();
                 page.Dispose();
             }
+        }
+
+        private void PageHost_Resize(object? sender, EventArgs e)
+        {
+            LayoutActivePage();
+        }
+
+        private void LayoutActivePage()
+        {
+            if (_activePage == null || _activePage.IsDisposed)
+            {
+                return;
+            }
+
+            Size hostSize = _pageHost.ClientSize;
+            Size minimumSize = _activePage.MinimumSize;
+            int width = Math.Max(hostSize.Width, Math.Max(_activePagePreferredSize.Width, minimumSize.Width));
+            int height = Math.Max(hostSize.Height, Math.Max(_activePagePreferredSize.Height, minimumSize.Height));
+
+            _activePage.Size = new Size(width, height);
+            _pageHost.AutoScrollMinSize = _activePage.Size;
         }
 
         private TileUi CreateTile(TileDefinition def)
