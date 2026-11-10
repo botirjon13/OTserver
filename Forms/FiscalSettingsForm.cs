@@ -64,7 +64,7 @@ namespace SantexnikaSRM.Forms
             MaximizeBox = false;
             MinimizeBox = false;
             AutoScaleMode = AutoScaleMode.Dpi;
-            BackColor = Color.FromArgb(236, 241, 249);
+            BackColor = UiTheme.Background;
             DoubleBuffered = true;
 
             Panel header = new Panel
@@ -88,7 +88,7 @@ namespace SantexnikaSRM.Forms
                 Height = ClientSize.Height - header.Height,
                 AutoScroll = true,
                 Padding = new Padding(0, 12, 0, 16),
-                BackColor = Color.FromArgb(236, 241, 249),
+                BackColor = UiTheme.Background,
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
             Controls.Add(root);
@@ -99,7 +99,7 @@ namespace SantexnikaSRM.Forms
                 Top = 14,
                 Width = 36,
                 Height = 36,
-                BackColor = Color.FromArgb(54, 92, 247)
+                BackColor = UiTheme.Primary
             };
             Image? headerIconImage = BrandingAssets.TryLoadAssetImage("tile-receipt.png");
             iconWrap.Paint += (_, e) =>
@@ -149,8 +149,8 @@ namespace SantexnikaSRM.Forms
                 Left = 70,
                 Top = 13,
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15.5f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(30, 46, 72),
+                Font = UiTheme.TitleFont,
+                ForeColor = UiTheme.Text,
                 BackColor = Color.Transparent
             });
 

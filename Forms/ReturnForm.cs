@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
 using SantexnikaSRM.Services;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -37,8 +38,8 @@ namespace SantexnikaSRM.Forms
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(1200, 760);
             MinimumSize = new Size(1040, 680);
-            BackColor = Color.White;
-            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
 
             var root = new TableLayoutPanel
             {
@@ -65,15 +66,18 @@ namespace SantexnikaSRM.Forms
             _dtTo.SetBounds(246, 6, 130, 32);
 
             Button btnLoadSales = new Button { Text = "Cheklarni ko'rish", Left = 392, Top = 6, Width = 150, Height = 32 };
+            UiTheme.StylePrimaryButton(btnLoadSales);
             btnLoadSales.Click += (_, __) => LoadSales();
 
             var lblSaleId = new Label { Text = "Sotuv ID:", AutoSize = true, Left = 560, Top = 10 };
             _txtSaleId.SetBounds(632, 6, 100, 32);
 
             Button btnOpenById = new Button { Text = "Ochish", Left = 740, Top = 6, Width = 100, Height = 32 };
+            UiTheme.StyleNeutralButton(btnOpenById);
             btnOpenById.Click += (_, __) => OpenSaleById();
 
             Button btnToday = new Button { Text = "Bugun", Left = 852, Top = 6, Width = 100, Height = 32 };
+            UiTheme.StyleNeutralButton(btnToday);
             btnToday.Click += (_, __) =>
             {
                 _dtFrom.Value = DateTime.Today;
@@ -82,6 +86,7 @@ namespace SantexnikaSRM.Forms
             };
 
             Button btnMonth = new Button { Text = "Shu oy", Left = 960, Top = 6, Width = 100, Height = 32 };
+            UiTheme.StyleNeutralButton(btnMonth);
             btnMonth.Click += (_, __) =>
             {
                 DateTime now = DateTime.Today;
@@ -91,6 +96,7 @@ namespace SantexnikaSRM.Forms
             };
 
             Button btnReturnHistory = new Button { Text = "Qaytarish tarixi", Left = 852, Top = 90, Width = 120, Height = 26 };
+            UiTheme.StyleNeutralButton(btnReturnHistory);
             btnReturnHistory.Click += (_, __) =>
             {
                 using var history = new ReturnReceiptHistoryForm();
@@ -108,14 +114,17 @@ namespace SantexnikaSRM.Forms
                 Top = 50,
                 Width = 250,
                 Height = 36,
-                BackColor = Color.FromArgb(16, 140, 82),
+                BackColor = UiTheme.Danger,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
+            UiTheme.StyleDangerButton(btnApply);
+            btnApply.BackColor = UiTheme.Danger;
             btnApply.FlatAppearance.BorderSize = 0;
             btnApply.Click += ApplyReturn_Click;
 
             Button btnClose = new Button { Text = "Yopish", Left = 852, Top = 50, Width = 120, Height = 36 };
+            UiTheme.StyleNeutralButton(btnClose);
             btnClose.Click += (_, __) => Close();
 
             _lblPreview.Left = 980;
@@ -123,8 +132,8 @@ namespace SantexnikaSRM.Forms
             _lblPreview.Width = 200;
             _lblPreview.Height = 56;
             _lblPreview.TextAlign = ContentAlignment.MiddleRight;
-            _lblPreview.ForeColor = Color.FromArgb(30, 58, 92);
-            _lblPreview.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11f, FontStyle.Bold);
+            _lblPreview.ForeColor = UiTheme.Text;
+            _lblPreview.Font = UiTheme.ButtonFont;
             _lblPreview.Text = "Qaytarish: 0 UZS";
 
             top.Controls.AddRange(new Control[]
@@ -169,6 +178,7 @@ namespace SantexnikaSRM.Forms
             _gridSales.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             _gridSales.BackgroundColor = Color.White;
             _gridSales.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            UiTheme.StyleGrid(_gridSales);
             _gridSales.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
             _gridSales.RowTemplate.Height = 30;
             _gridSales.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
@@ -210,6 +220,7 @@ namespace SantexnikaSRM.Forms
             _gridLines.RowHeadersVisible = false;
             _gridLines.BackgroundColor = Color.White;
             _gridLines.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            UiTheme.StyleGrid(_gridLines);
             _gridLines.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
             _gridLines.RowTemplate.Height = 30;
             _gridLines.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;

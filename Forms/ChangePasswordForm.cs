@@ -33,7 +33,8 @@ namespace SantexnikaSRM.Forms
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
-            BackColor = Color.FromArgb(239, 242, 248);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
             DoubleBuffered = true;
             Padding = new Padding(1);
 
@@ -62,7 +63,7 @@ namespace SantexnikaSRM.Forms
             Panel header = new Panel { Dock = DockStyle.Top, Height = 78 };
             header.Paint += (s, e) =>
             {
-                using LinearGradientBrush brush = new LinearGradientBrush(header.ClientRectangle, Color.FromArgb(135, 31, 226), Color.FromArgb(176, 72, 234), 0f);
+                using LinearGradientBrush brush = new LinearGradientBrush(header.ClientRectangle, UiTheme.Primary, Color.FromArgb(0, 91, 128), 0f);
                 e.Graphics.FillRectangle(brush, header.ClientRectangle);
             };
 
@@ -72,7 +73,7 @@ namespace SantexnikaSRM.Forms
                 Left = 24,
                 Top = 24,
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 20, FontStyle.Bold),
+                Font = UiTheme.TitleFont,
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };
@@ -81,7 +82,7 @@ namespace SantexnikaSRM.Forms
             {
                 Text = "\uE711",
                 Font = UiTheme.IconFont(12),
-                ForeColor = Color.FromArgb(70, 29, 106),
+                ForeColor = Color.White,
                 BackColor = Color.Transparent,
                 Width = 24,
                 Height = 24,
@@ -145,6 +146,7 @@ namespace SantexnikaSRM.Forms
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand
             };
+            UiTheme.StylePrimaryButton(btnSave);
             btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Paint += (s, e) =>
             {
@@ -265,6 +267,5 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
 
 

@@ -47,7 +47,7 @@ namespace SantexnikaSRM.Forms
             MinimizeBox = false;
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(668, 760);
-            BackColor = Color.FromArgb(236, 241, 239);
+            BackColor = UiTheme.Background;
             DoubleBuffered = true;
 
             Panel header = new Panel
@@ -70,7 +70,7 @@ namespace SantexnikaSRM.Forms
                 Width = ClientSize.Width,
                 Height = ClientSize.Height - header.Height,
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-                BackColor = Color.FromArgb(236, 241, 239)
+                BackColor = UiTheme.Background
             };
             Controls.Add(root);
 
@@ -80,7 +80,7 @@ namespace SantexnikaSRM.Forms
                 Top = 12,
                 Width = 34,
                 Height = 34,
-                BackColor = Color.FromArgb(11, 161, 86)
+                BackColor = UiTheme.Primary
             };
             Image? headerIconImage = BrandingAssets.TryLoadAssetImage("tile-discount.png");
             iconWrap.Paint += (_, e) =>
@@ -130,8 +130,8 @@ namespace SantexnikaSRM.Forms
                 Left = 76,
                 Top = 13,
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(32, 45, 68),
+                Font = UiTheme.TitleFont,
+                ForeColor = UiTheme.Text,
                 BackColor = Color.Transparent
             });
 
@@ -655,6 +655,5 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
 
 

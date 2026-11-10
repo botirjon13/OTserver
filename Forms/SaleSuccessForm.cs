@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -21,10 +22,10 @@ namespace SantexnikaSRM.Forms
         private void InitializeComponent()
         {
             Text = "Tayyor";
-            ClientSize = new Size(446, 278);
+            ClientSize = new Size(430, 250);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.None;
-            BackColor = Color.FromArgb(238, 242, 248);
+            BackColor = UiTheme.Background;
             KeyPreview = true;
             DoubleBuffered = true;
             MaximizeBox = false;
@@ -66,13 +67,13 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.DrawPath(innerBorder, innerPath);
             };
 
-            _iconWrap.SetBounds(183, 34, 80, 80);
+            _iconWrap.SetBounds(185, 24, 60, 60);
             _iconWrap.Paint += (_, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle outer = new Rectangle(0, 0, _iconWrap.Width - 1, _iconWrap.Height - 1);
-                Rectangle inner = new Rectangle(18, 18, 44, 44);
-                using SolidBrush green = new SolidBrush(Color.FromArgb(5, 181, 104));
+                Rectangle inner = new Rectangle(14, 14, 32, 32);
+                using SolidBrush green = new SolidBrush(UiTheme.Accent);
                 using Pen innerBorder = new Pen(Color.White, 3f);
                 using GraphicsPath outerPath = RoundedRect(outer, 40);
                 using GraphicsPath innerPath = RoundedRect(inner, 22);
@@ -81,20 +82,20 @@ namespace SantexnikaSRM.Forms
                 TextRenderer.DrawText(
                     e.Graphics,
                     "\uE73E",
-                    new Font("Segoe MDL2 Assets", 16f, FontStyle.Regular),
+                    UiTheme.IconFont(14),
                     inner,
                     Color.White,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
 
-            _messageWrap.SetBounds(24, 128, 398, 62);
+            _messageWrap.SetBounds(24, 100, 382, 54);
             _messageWrap.Paint += (_, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle rect = new Rectangle(0, 0, _messageWrap.Width - 1, _messageWrap.Height - 1);
                 using GraphicsPath path = RoundedRect(rect, 12);
                 using SolidBrush fill = new SolidBrush(Color.FromArgb(229, 244, 237));
-                using Pen border = new Pen(Color.FromArgb(126, 224, 177), 1.5f);
+                using Pen border = new Pen(Color.FromArgb(126, 194, 164), 1.2f);
                 e.Graphics.FillPath(fill, path);
                 e.Graphics.DrawPath(border, path);
             };
@@ -104,19 +105,19 @@ namespace SantexnikaSRM.Forms
                 Text = "Sotuv muvaffaqiyatli saqlandi!",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 18f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(21, 39, 66),
+                Font = UiTheme.TitleFont,
+                ForeColor = UiTheme.Text,
                 BackColor = Color.Transparent
             };
             _messageWrap.Controls.Add(lblMessage);
 
-            _btnOk.SetBounds(24, 206, 398, 48);
+            _btnOk.SetBounds(24, 176, 382, 42);
             _btnOk.Text = "OK";
             _btnOk.FlatStyle = FlatStyle.Flat;
             _btnOk.FlatAppearance.BorderSize = 0;
             _btnOk.FlatAppearance.MouseOverBackColor = Color.Transparent;
             _btnOk.FlatAppearance.MouseDownBackColor = Color.Transparent;
-            _btnOk.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 18f, FontStyle.Bold);
+            _btnOk.Font = UiTheme.ButtonFont;
             _btnOk.ForeColor = Color.White;
             _btnOk.Cursor = Cursors.Hand;
             _btnOk.Paint += (_, e) =>
@@ -124,7 +125,7 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle rect = new Rectangle(0, 0, _btnOk.Width - 1, _btnOk.Height - 1);
                 using GraphicsPath path = RoundedRect(rect, 14);
-                using SolidBrush fill = new SolidBrush(Color.FromArgb(6, 177, 92));
+                using SolidBrush fill = new SolidBrush(UiTheme.Accent);
                 e.Graphics.FillPath(fill, path);
                 TextRenderer.DrawText(
                     e.Graphics,
@@ -164,6 +165,5 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
 
 

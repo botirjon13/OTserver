@@ -91,7 +91,7 @@ namespace SantexnikaSRM.Forms
             Size = new Size(1360, 850);
             MinimumSize = new Size(940, 620);
             StartPosition = FormStartPosition.CenterParent;
-            BackColor = Color.FromArgb(237, 242, 250);
+            BackColor = SantexnikaSRM.Utils.UiTheme.Background;
             Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             DoubleBuffered = true;
 
@@ -113,9 +113,9 @@ namespace SantexnikaSRM.Forms
                     return;
                 }
 
-                using var brush = new LinearGradientBrush(icon.ClientRectangle, Color.FromArgb(40, 132, 244), Color.FromArgb(33, 113, 223), 45f);
+                using var brush = new LinearGradientBrush(icon.ClientRectangle, Color.FromArgb(0, 112, 156), Color.FromArgb(0, 98, 140), 45f);
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using GraphicsPath path = RoundedRect(icon.ClientRectangle, 16);
+                using GraphicsPath path = RoundedRect(icon.ClientRectangle, 8);
                 e.Graphics.FillPath(brush, path);
                 TextRenderer.DrawText(e.Graphics, "\uE7BF", UiTheme.IconFont(24), icon.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
@@ -138,7 +138,7 @@ namespace SantexnikaSRM.Forms
                 Left = 68,
                 Top = 16,
                 Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 20, FontStyle.Bold),
-                ForeColor = Color.FromArgb(28, 42, 65)
+                ForeColor = SantexnikaSRM.Utils.UiTheme.Text
             };
 
             Panel rateBadge = new Panel
@@ -152,9 +152,9 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(1, 1, Math.Max(1, rateBadge.Width - 3), Math.Max(1, rateBadge.Height - 3));
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(232, 252, 242));
-                using Pen border = new Pen(Color.FromArgb(14, 156, 90), 3f);
-                using GraphicsPath path = RoundedRect(bounds, 14);
+                using SolidBrush brush = new SolidBrush(Color.FromArgb(236, 247, 242));
+                using Pen border = new Pen(Color.FromArgb(22, 128, 92), 1.5f);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
@@ -184,7 +184,7 @@ namespace SantexnikaSRM.Forms
                     Left = 18,
                     Top = 10,
                     Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(9, 149, 94),
+                    ForeColor = Color.FromArgb(22, 128, 92),
                     BackColor = Color.Transparent
                 };
             }
@@ -258,7 +258,7 @@ namespace SantexnikaSRM.Forms
             Panel card = NewCard();
             card.Margin = new Padding(0, 0, 12, 0);
 
-            Panel titleBar = NewBar("Mahsulot qidirish", Color.FromArgb(44, 103, 246), Color.FromArgb(52, 127, 233), "\uECAA", "tile-products.png");
+            Panel titleBar = NewBar("Mahsulot qidirish", Color.FromArgb(34, 58, 90), Color.FromArgb(28, 50, 80), "\uECAA", "tile-products.png");
             titleBar.Dock = DockStyle.Top;
 
             Panel body = new Panel
@@ -306,17 +306,17 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(1, 1, Math.Max(1, listWrap.Width - 3), Math.Max(1, listWrap.Height - 3));
                 using SolidBrush brush = new SolidBrush(Color.White);
-                using Pen border = new Pen(Color.FromArgb(66, 118, 198), 2.2f)
+                using Pen border = new Pen(Color.FromArgb(180, 196, 218), 1.5f)
                 {
                     LineJoin = LineJoin.Round
                 };
-                using GraphicsPath path = RoundedRect(bounds, 14);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
             listWrap.Resize += (s, e) =>
             {
-                listWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, listWrap.Width), Math.Max(1, listWrap.Height)), 14));
+                listWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, listWrap.Width), Math.Max(1, listWrap.Height)), 8));
             };
 
             _lstProducts.Dock = DockStyle.Fill;
@@ -339,7 +339,7 @@ namespace SantexnikaSRM.Forms
                 Left = 0,
                 Width = 100,
                 Top = 408,
-                BackColor = Color.FromArgb(228, 234, 244),
+                BackColor = Color.FromArgb(226, 233, 243),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
@@ -391,8 +391,8 @@ namespace SantexnikaSRM.Forms
             infoWrap.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(237, 243, 252));
-                using GraphicsPath path = RoundedRect(infoWrap.ClientRectangle, 12);
+                using SolidBrush brush = new SolidBrush(Color.FromArgb(226, 238, 247));
+                using GraphicsPath path = RoundedRect(infoWrap.ClientRectangle, 8);
                 e.Graphics.FillPath(brush, path);
             };
 
@@ -458,7 +458,7 @@ namespace SantexnikaSRM.Forms
             _lblSuggestedValue.Height = 28;
             _lblSuggestedValue.TextAlign = ContentAlignment.MiddleRight;
             _lblSuggestedValue.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 13, FontStyle.Bold);
-            _lblSuggestedValue.ForeColor = Color.FromArgb(10, 156, 70);
+            _lblSuggestedValue.ForeColor = Color.FromArgb(22, 128, 92);
             _lblSuggestedValue.BackColor = Color.Transparent;
             _lblSuggestedValue.Text = "-";
 
@@ -480,7 +480,7 @@ namespace SantexnikaSRM.Forms
             infoWrap.Controls.Add(_lblSuggestedValue);
             infoWrap.Controls.Add(_lblAutoFillState);
 
-            Button btnAdd = NewGradientButton("SAVATGA QO'SHISH", Color.FromArgb(127, 166, 238), Color.FromArgb(117, 152, 220));
+            Button btnAdd = NewGradientButton("SAVATGA QO'SHISH", Color.FromArgb(0, 112, 156), Color.FromArgb(0, 98, 140));
             btnAdd.SetBounds(0, 632, 810, 52);
             btnAdd.Click += AddToBasket_Click;
 
@@ -590,7 +590,7 @@ namespace SantexnikaSRM.Forms
             Panel card = NewCard();
             card.Margin = new Padding(12, 0, 0, 0);
 
-            Panel titleBar = NewBar("Savatdagi mahsulotlar", Color.FromArgb(137, 34, 226), Color.FromArgb(161, 67, 227), "\uE7BF", "tile-sales.png");
+            Panel titleBar = NewBar("Savatdagi mahsulotlar", Color.FromArgb(34, 58, 90), Color.FromArgb(28, 50, 80), "\uE7BF", "tile-sales.png");
             titleBar.Dock = DockStyle.Top;
 
             _rightBody.Dock = DockStyle.Fill;
@@ -609,13 +609,13 @@ namespace SantexnikaSRM.Forms
             _gridBasket.EnableHeadersVisualStyles = false;
             _gridBasket.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             _gridBasket.ColumnHeadersHeight = 42;
-            _gridBasket.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(42, 58, 84);
+            _gridBasket.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(34, 58, 90);
             _gridBasket.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            _gridBasket.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(42, 58, 84);
+            _gridBasket.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(34, 58, 90);
             _gridBasket.ColumnHeadersDefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
             _gridBasket.DefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             _gridBasket.DefaultCellStyle.ForeColor = Color.FromArgb(42, 58, 84);
-            _gridBasket.DefaultCellStyle.SelectionBackColor = Color.FromArgb(237, 243, 252);
+            _gridBasket.DefaultCellStyle.SelectionBackColor = Color.FromArgb(226, 238, 247);
             _gridBasket.DefaultCellStyle.SelectionForeColor = Color.FromArgb(26, 40, 62);
             _gridBasket.RowTemplate.Height = 38;
             _gridBasket.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -653,7 +653,7 @@ namespace SantexnikaSRM.Forms
             Panel divider = new Panel
             {
                 Height = 1,
-                BackColor = Color.FromArgb(228, 234, 244)
+                BackColor = Color.FromArgb(226, 233, 243)
             };
 
             _discountCard.Height = 198;
@@ -662,7 +662,7 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using SolidBrush brush = new SolidBrush(Color.FromArgb(242, 246, 252));
-                using GraphicsPath path = RoundedRect(_discountCard.ClientRectangle, 12);
+                using GraphicsPath path = RoundedRect(_discountCard.ClientRectangle, 8);
                 e.Graphics.FillPath(brush, path);
             };
 
@@ -715,11 +715,11 @@ namespace SantexnikaSRM.Forms
             discountTypeWrap.Controls.Add(discountArrowMask);
             discountValueWrap.Controls.Add(_txtDiscountValue);
 
-            Button btnApplyDiscount = NewGradientButton("Qo'llash", Color.FromArgb(75, 149, 248), Color.FromArgb(57, 132, 235));
+            Button btnApplyDiscount = NewGradientButton("Qo'llash", Color.FromArgb(0, 112, 156), Color.FromArgb(0, 98, 140));
             btnApplyDiscount.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             btnApplyDiscount.Click += (s, e) => ApplyQuickDiscount();
 
-            Button btnResetDiscount = NewGradientButton("Bekor", Color.FromArgb(120, 138, 164), Color.FromArgb(95, 114, 142));
+            Button btnResetDiscount = NewGradientButton("Bekor", Color.FromArgb(100, 116, 139), Color.FromArgb(86, 100, 122));
             btnResetDiscount.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             btnResetDiscount.Click += (s, e) =>
             {
@@ -767,7 +767,7 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using SolidBrush brush = new SolidBrush(Color.FromArgb(238, 247, 243));
-                using GraphicsPath path = RoundedRect(totalCard.ClientRectangle, 12);
+                using GraphicsPath path = RoundedRect(totalCard.ClientRectangle, 8);
                 e.Graphics.FillPath(brush, path);
             };
 
@@ -794,7 +794,7 @@ namespace SantexnikaSRM.Forms
             _lblDiscountSummary.Text = "Chegirma: 0 UZS";
             _lblDiscountSummary.AutoSize = false;
             _lblDiscountSummary.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
-            _lblDiscountSummary.ForeColor = Color.FromArgb(41, 96, 189);
+            _lblDiscountSummary.ForeColor = Color.FromArgb(0, 104, 145);
             _lblDiscountSummary.Top = 34;
             _lblDiscountSummary.Height = 22;
             _lblDiscountSummary.TextAlign = ContentAlignment.MiddleRight;
@@ -813,7 +813,7 @@ namespace SantexnikaSRM.Forms
             _lblTotal.Text = "0 UZS";
             _lblTotal.AutoSize = false;
             _lblTotal.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16, FontStyle.Bold);
-            _lblTotal.ForeColor = Color.FromArgb(10, 156, 70);
+            _lblTotal.ForeColor = Color.FromArgb(22, 128, 92);
             _lblTotal.Top = 60;
             _lblTotal.Height = 24;
             _lblTotal.TextAlign = ContentAlignment.MiddleRight;
@@ -835,11 +835,11 @@ namespace SantexnikaSRM.Forms
                 _lblTotal.Width = valueWidth;
             };
 
-            Button btnComplete = NewGradientButton("SOTUVNI YAKUNLASH", Color.FromArgb(130, 210, 165), Color.FromArgb(107, 199, 147));
+            Button btnComplete = NewGradientButton("SOTUVNI YAKUNLASH", Color.FromArgb(22, 128, 92), Color.FromArgb(18, 116, 83));
             btnComplete.Height = 50;
             btnComplete.Click += CompleteSale_Click;
 
-            _btnRemoveSelected = NewGradientButton("Tanlanganni o'chirish", Color.FromArgb(163, 176, 196), Color.FromArgb(141, 156, 178));
+            _btnRemoveSelected = NewGradientButton("Tanlanganni o'chirish", Color.FromArgb(100, 116, 139), Color.FromArgb(86, 100, 122));
             _btnRemoveSelected.Height = 42;
             _btnRemoveSelected.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
             _btnRemoveSelected.Enabled = false;
@@ -855,8 +855,8 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(1, 1, Math.Max(1, selectedPreviewCard.Width - 3), Math.Max(1, selectedPreviewCard.Height - 3));
                 using SolidBrush brush = new SolidBrush(Color.FromArgb(232, 241, 255));
-                using Pen border = new Pen(Color.FromArgb(66, 118, 198), 1.6f);
-                using GraphicsPath path = RoundedRect(bounds, 10);
+                using Pen border = new Pen(Color.FromArgb(180, 196, 218), 1f);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
@@ -1087,14 +1087,14 @@ namespace SantexnikaSRM.Forms
             bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
 
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using (SolidBrush bg = new SolidBrush(isSelected ? Color.FromArgb(53, 123, 234) : Color.FromArgb(252, 254, 255)))
-            using (GraphicsPath path = RoundedRect(rect, 10))
+            using (SolidBrush bg = new SolidBrush(isSelected ? Color.FromArgb(0, 112, 156) : Color.FromArgb(252, 254, 255)))
+            using (GraphicsPath path = RoundedRect(rect, 8))
             {
                 e.Graphics.FillPath(bg, path);
-                using Pen border = new Pen(isSelected ? Color.FromArgb(50, 108, 215) : Color.FromArgb(92, 126, 182), 1.8f);
+                using Pen border = new Pen(isSelected ? Color.FromArgb(0, 98, 140) : Color.FromArgb(200, 212, 228), 1f);
                 e.Graphics.DrawPath(border, path);
             }
-            using (Pen rowLine = new Pen(Color.FromArgb(170, 188, 214), 1f))
+            using (Pen rowLine = new Pen(Color.FromArgb(226, 233, 243), 1f))
             {
                 e.Graphics.DrawLine(rowLine, rect.Left + 8, rect.Bottom - 1, rect.Right - 8, rect.Bottom - 1);
             }
@@ -1111,11 +1111,11 @@ namespace SantexnikaSRM.Forms
                 ? Color.FromArgb(236, 244, 255)
                 : (product.QuantityUSD <= 10 ? Color.FromArgb(231, 37, 72) : Color.FromArgb(9, 14, 34));
             Color badgeTextColor = isSelected
-                ? Color.FromArgb(43, 98, 220)
+                ? Color.FromArgb(0, 104, 145)
                 : Color.White;
 
             using (SolidBrush b = new SolidBrush(badgeColor))
-            using (GraphicsPath bp = RoundedRect(badge, 12))
+            using (GraphicsPath bp = RoundedRect(badge, 8))
             {
                 e.Graphics.FillPath(b, bp);
             }
@@ -1687,12 +1687,12 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using SolidBrush brush = new SolidBrush(Color.White);
-                using Pen border = new Pen(Color.FromArgb(220, 227, 239));
-                using GraphicsPath path = RoundedRect(panel.ClientRectangle, 16);
+                using Pen border = new Pen(SantexnikaSRM.Utils.UiTheme.Border);
+                using GraphicsPath path = RoundedRect(panel.ClientRectangle, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
-            panel.Resize += (s, e) => panel.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, panel.Width), Math.Max(1, panel.Height)), 16));
+            panel.Resize += (s, e) => panel.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, panel.Width), Math.Max(1, panel.Height)), 8));
             return panel;
         }
 
@@ -1761,15 +1761,15 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(2, 2, Math.Max(1, p.Width - 5), Math.Max(1, p.Height - 5));
                 using SolidBrush brush = new SolidBrush(Color.White);
-                using Pen border = new Pen(Color.FromArgb(50, 103, 188), 3.2f)
+                using Pen border = new Pen(Color.FromArgb(180, 196, 218), 1.5f)
                 {
                     LineJoin = LineJoin.Round
                 };
-                using GraphicsPath path = RoundedRect(bounds, 10);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
-            p.Resize += (s, e) => p.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, p.Width), Math.Max(1, p.Height)), 10));
+            p.Resize += (s, e) => p.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, p.Width), Math.Max(1, p.Height)), 8));
             return p;
         }
 
@@ -1817,11 +1817,11 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using var lg = new LinearGradientBrush(b.ClientRectangle, c1, c2, 0f);
-                using GraphicsPath path = RoundedRect(b.ClientRectangle, 10);
+                using GraphicsPath path = RoundedRect(b.ClientRectangle, 8);
                 e.Graphics.FillPath(lg, path);
                 TextRenderer.DrawText(e.Graphics, b.Text, b.Font, b.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
-            b.Resize += (s, e) => b.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, b.Width), Math.Max(1, b.Height)), 10));
+            b.Resize += (s, e) => b.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, b.Width), Math.Max(1, b.Height)), 8));
             return b;
         }
 

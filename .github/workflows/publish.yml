@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Three-part application version, for example 1.2.51
+        description: Three-part application version, for example 1.2.52
         required: true
-        default: "1.2.51"
+        default: "1.2.52"
 
 permissions:
   contents: read

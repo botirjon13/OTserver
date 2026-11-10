@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
 using SantexnikaSRM.Services;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -30,8 +31,8 @@ namespace SantexnikaSRM.Forms
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(980, 620);
             MinimumSize = new Size(900, 560);
-            BackColor = Color.White;
-            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11f);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
 
             var root = new TableLayoutPanel
             {
@@ -58,9 +59,11 @@ namespace SantexnikaSRM.Forms
             _dtTo.SetBounds(255, 6, 130, 30);
 
             Button btnFilter = new Button { Text = "Ko'rish", Left = 400, Top = 4, Width = 120, Height = 34 };
+            UiTheme.StylePrimaryButton(btnFilter);
             btnFilter.Click += (_, __) => LoadHistory();
 
             Button btnToday = new Button { Text = "Bugun", Left = 530, Top = 4, Width = 120, Height = 34 };
+            UiTheme.StyleNeutralButton(btnToday);
             btnToday.Click += (_, __) =>
             {
                 _dtFrom.Value = DateTime.Today;
@@ -69,6 +72,7 @@ namespace SantexnikaSRM.Forms
             };
 
             Button btnMonth = new Button { Text = "Shu oy", Left = 660, Top = 4, Width = 120, Height = 34 };
+            UiTheme.StyleNeutralButton(btnMonth);
             btnMonth.Click += (_, __) =>
             {
                 DateTime now = DateTime.Today;
@@ -78,9 +82,11 @@ namespace SantexnikaSRM.Forms
             };
 
             Button btnReprint = new Button { Text = "Qayta chop etish", Left = 0, Top = 48, Width = 210, Height = 34 };
+            UiTheme.StylePrimaryButton(btnReprint);
             btnReprint.Click += ReprintSelected_Click;
 
             Button btnClose = new Button { Text = "Yopish", Left = 220, Top = 48, Width = 120, Height = 34 };
+            UiTheme.StyleNeutralButton(btnClose);
             btnClose.Click += (_, __) => Close();
 
             _lblSummary.AutoSize = true;
@@ -114,6 +120,10 @@ namespace SantexnikaSRM.Forms
             _grid.ColumnHeadersHeight = 34;
             _grid.ScrollBars = ScrollBars.Both;
             _grid.DoubleClick += ReprintSelected_Click;
+            UiTheme.StyleGrid(_grid);
+            _grid.ColumnHeadersVisible = false;
+            _grid.RowTemplate.Height = 36;
+            _grid.DefaultCellStyle.Padding = new Padding(6, 2, 6, 2);
 
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sotuv ID", Name = "SaleId", FillWeight = 14 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Chek raqami", Name = "ReceiptNumber", FillWeight = 26 });
@@ -220,7 +230,7 @@ namespace SantexnikaSRM.Forms
                 Dock = DockStyle.Top,
                 Height = 32,
                 CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
-                BackColor = Color.FromArgb(212, 222, 236),
+                BackColor = UiTheme.BackgroundSecondary,
                 ColumnCount = titles.Length,
                 RowCount = 1
             };
@@ -233,9 +243,9 @@ namespace SantexnikaSRM.Forms
                     Dock = DockStyle.Fill,
                     Text = titles[i],
                     TextAlign = ContentAlignment.MiddleLeft,
-                    Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10f, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(24, 35, 48),
-                    BackColor = Color.FromArgb(233, 239, 248),
+                    Font = UiTheme.ButtonFont,
+                    ForeColor = UiTheme.Text,
+                    BackColor = UiTheme.BackgroundSecondary,
                     Padding = new Padding(6, 0, 0, 0)
                 };
                 panel.Controls.Add(lbl, i, 0);

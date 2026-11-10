@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -39,7 +40,7 @@ namespace SantexnikaSRM.Forms
 
         private const string PlaceholderSelection = "Tanlang";
         private string _selected = PlaceholderSelection;
-        private readonly Color _previewFillColor = Color.FromArgb(232, 238, 248);
+        private readonly Color _previewFillColor = UiTheme.BackgroundSecondary;
         private const int ContentWidth = 406;
         private int _contentLeft = 10;
         private int _okHoverProgress;
@@ -64,7 +65,7 @@ namespace SantexnikaSRM.Forms
             ClientSize = new Size(474, 390);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.None;
-            BackColor = Color.FromArgb(236, 240, 249);
+            BackColor = UiTheme.Background;
             KeyPreview = true;
             MinimizeBox = false;
             MaximizeBox = false;
@@ -93,9 +94,9 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 Rectangle outer = new Rectangle(0, 0, _root.Width - 1, _root.Height - 1);
                 Rectangle inner = new Rectangle(1, 1, Math.Max(1, _root.Width - 3), Math.Max(1, _root.Height - 3));
-                using SolidBrush fill = new SolidBrush(Color.FromArgb(245, 248, 253));
-                using Pen border = new Pen(Color.FromArgb(170, 188, 218), 1.6f);
-                using Pen glow = new Pen(Color.FromArgb(65, 102, 149, 226), 1f);
+                using SolidBrush fill = new SolidBrush(UiTheme.Card);
+                using Pen border = new Pen(UiTheme.Border, 1.2f);
+                using Pen glow = new Pen(Color.FromArgb(24, UiTheme.Primary), 1f);
                 using GraphicsPath path = RoundedRect(outer, 18);
                 using GraphicsPath innerPath = RoundedRect(inner, 17);
                 e.Graphics.FillPath(fill, path);
@@ -111,8 +112,8 @@ namespace SantexnikaSRM.Forms
             {
                 using LinearGradientBrush brush = new LinearGradientBrush(
                     _header.ClientRectangle,
-                    Color.FromArgb(36, 103, 236),
-                    Color.FromArgb(82, 63, 228),
+                    UiTheme.Primary,
+                    Color.FromArgb(0, 91, 128),
                     0f);
                 e.Graphics.FillRectangle(brush, _header.ClientRectangle);
             };
@@ -554,7 +555,5 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
-
 
 

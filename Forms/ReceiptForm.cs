@@ -36,13 +36,13 @@ namespace SantexnikaSRM.Forms
             Size = new Size(430, 860);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.None;
-            BackColor = Color.FromArgb(230, 235, 244);
+            BackColor = UiTheme.Background;
             DoubleBuffered = true;
             Padding = new Padding(1);
 
             Paint += (s, e) =>
             {
-                using Pen pen = new Pen(Color.FromArgb(160, 174, 196), 1.2f);
+                using Pen pen = new Pen(UiTheme.Border, 1.2f);
                 e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
             };
 
@@ -52,7 +52,7 @@ namespace SantexnikaSRM.Forms
             Panel header = new Panel { Dock = DockStyle.Top, Height = 58 };
             header.Paint += (s, e) =>
             {
-                using LinearGradientBrush lg = new LinearGradientBrush(header.ClientRectangle, Color.FromArgb(36, 106, 232), Color.FromArgb(60, 133, 247), 0f);
+                using LinearGradientBrush lg = new LinearGradientBrush(header.ClientRectangle, UiTheme.Primary, Color.FromArgb(0, 91, 128), 0f);
                 e.Graphics.FillRectangle(lg, header.ClientRectangle);
             };
             Label lblTitle = new Label
@@ -83,7 +83,7 @@ namespace SantexnikaSRM.Forms
             header.Controls.Add(btnClose);
             header.Resize += (s, e) => btnClose.Left = header.Width - btnClose.Width - 14;
 
-            Panel topTools = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.FromArgb(246, 248, 252), Padding = new Padding(22, 14, 22, 14) };
+            Panel topTools = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = UiTheme.Background, Padding = new Padding(22, 14, 22, 14) };
             Panel paperRow = new Panel { Width = 280, Height = 36, BackColor = Color.Transparent };
             Label lblPaper = new Label
             {
@@ -98,6 +98,7 @@ namespace SantexnikaSRM.Forms
             _cmbPaper.Top = 4;
             _cmbPaper.Width = 110;
             _cmbPaper.DropDownStyle = ComboBoxStyle.DropDownList;
+            UiTheme.StyleInput(_cmbPaper);
             _cmbPaper.Items.AddRange(new object[] { "80mm", "58mm" });
             _cmbPaper.SelectedIndex = 0;
             _cmbPaper.SelectedIndexChanged += (s, e) => RefreshPreview();
@@ -110,7 +111,7 @@ namespace SantexnikaSRM.Forms
                 paperRow.Location = new Point(Math.Max(0, left), 12);
             };
 
-            Panel scrollArea = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(246, 248, 252), AutoScroll = true };
+            Panel scrollArea = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Background, AutoScroll = true };
             _receiptPaper.BackColor = Color.White;
             _receiptPaper.BorderStyle = BorderStyle.FixedSingle;
             _receiptPaper.Left = 60;
@@ -141,7 +142,7 @@ namespace SantexnikaSRM.Forms
             _logoPreview.Height = 66;
             _receiptPaper.Controls.Add(_logoPreview);
 
-            Panel bottom = new Panel { Dock = DockStyle.Bottom, Height = 72, BackColor = Color.FromArgb(246, 248, 252), Padding = new Padding(22, 12, 22, 12) };
+            Panel bottom = new Panel { Dock = DockStyle.Bottom, Height = 72, BackColor = UiTheme.Background, Padding = new Padding(22, 12, 22, 12) };
             Button btnPrint = new Button
             {
                 Text = "Print",
@@ -150,7 +151,7 @@ namespace SantexnikaSRM.Forms
                 Width = 170,
                 Height = 42,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14, FontStyle.Bold),
+                Font = UiTheme.ButtonFont,
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand
             };
@@ -158,7 +159,7 @@ namespace SantexnikaSRM.Forms
             btnPrint.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using LinearGradientBrush lg = new LinearGradientBrush(btnPrint.ClientRectangle, Color.FromArgb(8, 182, 71), Color.FromArgb(7, 166, 66), 0f);
+                using LinearGradientBrush lg = new LinearGradientBrush(btnPrint.ClientRectangle, UiTheme.Accent, Color.FromArgb(12, 156, 109), 0f);
                 using GraphicsPath p = RoundedRect(btnPrint.ClientRectangle, 10);
                 e.Graphics.FillPath(lg, p);
                 TextRenderer.DrawText(e.Graphics, "Print", btnPrint.Font, btnPrint.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -174,12 +175,12 @@ namespace SantexnikaSRM.Forms
                 Width = 180,
                 Height = 42,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(38, 50, 71),
-                BackColor = Color.FromArgb(244, 246, 250),
+                Font = UiTheme.ButtonFont,
+                ForeColor = UiTheme.Text,
+                BackColor = UiTheme.BackgroundSecondary,
                 Cursor = Cursors.Hand
             };
-            btnCloseBottom.FlatAppearance.BorderColor = Color.FromArgb(206, 214, 228);
+            btnCloseBottom.FlatAppearance.BorderColor = UiTheme.Border;
             btnCloseBottom.FlatAppearance.BorderSize = 1;
             btnCloseBottom.Click += (s, e) => Close();
             btnCloseBottom.Resize += (s, e) => btnCloseBottom.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, btnCloseBottom.Width), Math.Max(1, btnCloseBottom.Height)), 10));

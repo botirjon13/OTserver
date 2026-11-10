@@ -49,8 +49,8 @@ namespace SantexnikaSRM.Forms
             Size = new Size(1160, 900);
             MinimumSize = new Size(980, 760);
             StartPosition = FormStartPosition.CenterParent;
-            BackColor = Color.FromArgb(239, 242, 248);
-            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
             DoubleBuffered = true;
 
             Panel canvas = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
@@ -83,7 +83,7 @@ namespace SantexnikaSRM.Forms
                 titleIcon.Paint += (s, e) =>
                 {
                     e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    using LinearGradientBrush brush = new LinearGradientBrush(titleIcon.ClientRectangle, Color.FromArgb(12, 151, 186), Color.FromArgb(25, 176, 207), 45f);
+                    using LinearGradientBrush brush = new LinearGradientBrush(titleIcon.ClientRectangle, UiTheme.Primary, Color.FromArgb(0, 91, 128), 45f);
                     using GraphicsPath path = RoundedRect(titleIcon.ClientRectangle, 16);
                     e.Graphics.FillPath(brush, path);
                     TextRenderer.DrawText(e.Graphics, "\uE896", UiTheme.IconFont(24), titleIcon.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -95,8 +95,8 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 66,
                 Top = 4,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 23, FontStyle.Bold),
-                ForeColor = Color.FromArgb(28, 42, 65)
+                Font = UiTheme.TitleFont,
+                ForeColor = UiTheme.Text
             };
             Label lblSub = new Label
             {
@@ -104,8 +104,8 @@ namespace SantexnikaSRM.Forms
                 AutoSize = true,
                 Left = 68,
                 Top = 40,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
-                ForeColor = Color.FromArgb(70, 89, 116)
+                Font = UiTheme.BodyFont,
+                ForeColor = UiTheme.Muted
             };
             header.Controls.Add(titleIcon);
             header.Controls.Add(lblTitle);
@@ -187,7 +187,7 @@ namespace SantexnikaSRM.Forms
         private Panel BuildListCard()
         {
             Panel card = NewCard();
-            Panel bar = NewBar("Mavjud backup fayllar", Color.FromArgb(12, 151, 186), Color.FromArgb(25, 176, 207), "\uE896", "tile-backup.png");
+            Panel bar = NewBar("Mavjud backup fayllar", UiTheme.Primary, Color.FromArgb(0, 91, 128), "\uE896", "tile-backup.png");
             bar.Dock = DockStyle.Top;
 
             Panel body = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(26, 18, 26, 22) };
