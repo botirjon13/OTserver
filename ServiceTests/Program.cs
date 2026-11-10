@@ -32,6 +32,7 @@ internal static class Program
             ("debt return settlement", ReturnSettlementSeparatesDebtAndCash),
             ("historical cost", HistoricalCostIsUsedAfterProductCostChanges),
             ("debt sale", DebtSaleCreatesExpectedDebt),
+            ("home dashboard", HomeDashboardShowsRoleAppropriateMetrics),
             ("backup restore", BackupRestoreRestoresDatabaseSnapshot),
             ("legacy backup restore", LegacyDatabaseBackupRemainsRestorable),
             ("encrypted cloud backup", EncryptedCloudBackupRoundTripsAndRejectsTampering)
@@ -252,6 +253,45 @@ internal static class Program
         AssertClose(reader.GetDouble(1), 5000, "debt paid");
         AssertClose(reader.GetDouble(2), 15000, "debt remaining");
         AssertEqual(reader.GetString(3), "Open", "debt status");
+    }
+
+    private static void HomeDashboardShowsRoleAppropriateMetrics()
+    {
+        int productId = InsertProduct("Dashboard item", purchaseUzs: 10000, quantity: 3);
+        _ = new SaleService().CreateSale(new Sale
+        {
+            Date = DateTime.Today.AddHours(10),
+            SubtotalUZS = 30000,
+            TotalUZS = 30000,
+            Items = new List<SaleItem>
+            {
+                new SaleItem { ProductId = productId, Quantity = 2, SellPriceUZS = 15000 }
+            }
+        }, Admin);
+        new ExpenseService().Add(new Expense
+        {
+            Date = DateTime.Today.AddHours(11),
+            Type = "Test",
+            Description = "Dashboard expense",
+            AmountUZS = 2000
+        }, Admin);
+
+        HomeDashboardSnapshot adminSnapshot = new HomeDashboardService().GetSnapshot(Admin, DateTime.Today);
+        AssertClose(adminSnapshot.TodaySalesUZS, 30000, "dashboard today sales");
+        AssertClose(adminSnapshot.TodayProfitUZS, 10000, "dashboard today profit");
+        AssertClose(adminSnapshot.TodayExpensesUZS, 2000, "dashboard today expenses");
+        AssertClose(adminSnapshot.TodayNetUZS, 8000, "dashboard today net");
+        AssertEqual(adminSnapshot.ProductCount, 1, "dashboard product count");
+        AssertEqual(adminSnapshot.LowStockCount, 1, "dashboard low stock count");
+        AssertEqual(adminSnapshot.Week.Count, 7, "dashboard week length");
+        HomeDashboardDay todayMetric = adminSnapshot.Week.Find(day => day.Date == DateTime.Today)!;
+        AssertClose(todayMetric.SalesUZS, 30000, "dashboard daily chart sales");
+
+        var seller = new AppUser { Id = 2, Username = "test-seller", Role = DatabaseHelper.RoleSeller };
+        HomeDashboardSnapshot sellerSnapshot = new HomeDashboardService().GetSnapshot(seller, DateTime.Today);
+        AssertTrue(!sellerSnapshot.IsAdministrator, "seller dashboard role");
+        AssertClose(sellerSnapshot.TodaySalesUZS, 0, "seller dashboard hides unscoped sales");
+        AssertEqual(sellerSnapshot.Week.Count, 0, "seller dashboard hides business chart");
     }
 
     private static void ReturnSettlementSeparatesDebtAndCash()

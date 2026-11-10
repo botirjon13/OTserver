@@ -26,6 +26,7 @@ namespace SantexnikaSRM.Forms
         private readonly UpdateService _updateService = new UpdateService();
         private readonly CurrencyRateProviderService _currencyRateProvider = new CurrencyRateProviderService();
         private readonly DatabaseHelper _dbHelper = new DatabaseHelper();
+        private readonly HomeDashboardService _homeDashboardService = new HomeDashboardService();
         private readonly Label _lblTitleOson = new Label();
         private readonly Label _lblHeaderAlerts = new Label();
         private readonly PictureBox _picRole = new PictureBox();
@@ -38,6 +39,12 @@ namespace SantexnikaSRM.Forms
         private readonly Panel _header = new Panel();
         private readonly Panel _body = new Panel();
         private readonly Panel _welcomePanel = new Panel();
+        private readonly Panel _homeDashboardPanel = new Panel();
+        private readonly Panel _homeDashboardChart = new Panel();
+        private readonly Label _lblDashboardSubtitle = new Label();
+        private readonly Button _btnDashboardRefresh = new Button();
+        private readonly List<(Panel Card, Label Title, Label Value, Label Detail)> _dashboardCards =
+            new List<(Panel Card, Label Title, Label Value, Label Detail)>();
         private readonly Panel _pageHost = new Panel();
         private readonly Label _lblWelcomeTitle = new Label();
         private readonly Label _lblWelcomeSubtitle = new Label();
@@ -65,6 +72,7 @@ namespace SantexnikaSRM.Forms
         private bool _sidebarCollapsed;
         private string? _lastUpdateCheckError;
         private bool _isUpdateDownloading;
+        private HomeDashboardSnapshot? _homeDashboardSnapshot;
 
         public MainForm(AppUser currentUser)
         {
@@ -363,6 +371,8 @@ namespace SantexnikaSRM.Forms
             _lblFooter.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
 
             _body.Controls.Add(_welcomePanel);
+            BuildHomeDashboard();
+            _body.Controls.Add(_homeDashboardPanel);
             _body.Controls.Add(_actionPanel);
             _body.Controls.Add(_lblFooter);
             _body.Controls.Add(_pageHost);
@@ -386,6 +396,7 @@ namespace SantexnikaSRM.Forms
                 RefreshHeaderWarnings();
                 _headerWarningsTimer.Start();
                 StartRevealAnimation();
+                LoadHomeDashboard();
                 _ = CheckForUpdatesAsync();
             };
             FormClosed += (s, e) =>
@@ -485,6 +496,421 @@ namespace SantexnikaSRM.Forms
             }
         }
 
+        private void BuildHomeDashboard()
+        {
+            _homeDashboardPanel.Dock = DockStyle.Fill;
+            _homeDashboardPanel.Padding = new Padding(0, 12, 0, 0);
+            _homeDashboardPanel.BackColor = Color.Transparent;
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = Color.Transparent,
+                Margin = Padding.Empty
+            };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 104f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
+            var header = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+            var title = new Label
+            {
+                Text = "Bugungi ko'rsatkichlar",
+                Dock = DockStyle.Left,
+                Width = 260,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = UiTheme.ButtonFont,
+                ForeColor = UiTheme.Text
+            };
+            _lblDashboardSubtitle.Dock = DockStyle.Fill;
+            _lblDashboardSubtitle.TextAlign = ContentAlignment.MiddleLeft;
+            _lblDashboardSubtitle.Font = UiTheme.BodyFont;
+            _lblDashboardSubtitle.ForeColor = UiTheme.Muted;
+            _lblDashboardSubtitle.Text = "Ma'lumotlar yuklanmoqda...";
+
+            _btnDashboardRefresh.Text = "Yangilash";
+            _btnDashboardRefresh.Dock = DockStyle.Right;
+            _btnDashboardRefresh.Width = 108;
+            _btnDashboardRefresh.Height = 32;
+            _btnDashboardRefresh.Margin = new Padding(6, 2, 0, 2);
+            UiTheme.StyleNeutralButton(_btnDashboardRefresh);
+            _btnDashboardRefresh.Click += (_, __) => LoadHomeDashboard();
+
+            header.Controls.Add(_lblDashboardSubtitle);
+            header.Controls.Add(_btnDashboardRefresh);
+            header.Controls.Add(title);
+            layout.Controls.Add(header, 0, 0);
+
+            var cards = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 2, 0, 10),
+                Padding = Padding.Empty
+            };
+            for (int i = 0; i < 4; i++)
+            {
+                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+                var metricCard = CreateDashboardMetricCard();
+                metricCard.Card.Margin = new Padding(i == 0 ? 0 : 6, 0, i == 3 ? 0 : 6, 0);
+                cards.Controls.Add(metricCard.Card, i, 0);
+                _dashboardCards.Add(metricCard);
+            }
+            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            layout.Controls.Add(cards, 0, 1);
+
+            _homeDashboardChart.Dock = DockStyle.Fill;
+            _homeDashboardChart.Margin = new Padding(0, 2, 0, 4);
+            _homeDashboardChart.BackColor = UiTheme.Card;
+            _homeDashboardChart.Paint += HomeDashboardChart_Paint;
+            layout.Controls.Add(_homeDashboardChart, 0, 2);
+            _homeDashboardPanel.Controls.Add(layout);
+        }
+
+        private static (Panel Card, Label Title, Label Value, Label Detail) CreateDashboardMetricCard()
+        {
+            var card = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = UiTheme.Card,
+                Padding = new Padding(12, 9, 10, 8)
+            };
+            var title = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 22,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = UiTheme.BodyFont,
+                ForeColor = UiTheme.Muted,
+                BackColor = Color.Transparent
+            };
+            var value = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 34,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 18, FontStyle.Bold),
+                ForeColor = UiTheme.Text,
+                BackColor = Color.Transparent,
+                AutoEllipsis = true
+            };
+            var detail = new Label
+            {
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.TopLeft,
+                Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 8.5f, FontStyle.Regular),
+                ForeColor = UiTheme.Muted,
+                BackColor = Color.Transparent,
+                AutoEllipsis = true
+            };
+            card.Controls.Add(detail);
+            card.Controls.Add(value);
+            card.Controls.Add(title);
+            card.Paint += (_, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle bounds = new Rectangle(0, 0, card.Width - 1, card.Height - 1);
+                using GraphicsPath path = RoundedRect(bounds, 10);
+                using SolidBrush fill = new SolidBrush(UiTheme.Card);
+                using Pen border = new Pen(UiTheme.Border, 1);
+                using Pen accent = new Pen(UiTheme.Primary, 3);
+                e.Graphics.FillPath(fill, path);
+                e.Graphics.DrawPath(border, path);
+                e.Graphics.DrawLine(accent, 10, 12, 10, card.Height - 12);
+            };
+            return (card, title, value, detail);
+        }
+
+        private void LoadHomeDashboard()
+        {
+            try
+            {
+                _homeDashboardSnapshot = _homeDashboardService.GetSnapshot(_currentUser, DateTime.Today);
+                _lblDashboardSubtitle.Text = _homeDashboardSnapshot.IsAdministrator
+                    ? $"Bugun, {DateTime.Today:dd.MM.yyyy}  |  Oxirgi 7 kun  |  Ombor: {_homeDashboardSnapshot.ProductCount} ta, kam qoldiq: {_homeDashboardSnapshot.LowStockCount} ta"
+                    : $"Mijozlar va qarzlar holati  |  {DateTime.Today:dd.MM.yyyy}";
+                _lblDashboardSubtitle.ForeColor = UiTheme.Muted;
+                _btnDashboardRefresh.Enabled = true;
+                UpdateHomeDashboardCards(_homeDashboardSnapshot);
+                _homeDashboardChart.Invalidate();
+            }
+            catch (Exception ex)
+            {
+                _homeDashboardSnapshot = null;
+                _lblDashboardSubtitle.Text = $"Ko'rsatkichlarni yuklab bo'lmadi: {ex.Message}";
+                _lblDashboardSubtitle.ForeColor = UiTheme.Danger;
+                _btnDashboardRefresh.Enabled = true;
+                foreach (var card in _dashboardCards)
+                {
+                    card.Value.Text = "—";
+                    card.Detail.Text = string.Empty;
+                }
+                _homeDashboardChart.Invalidate();
+            }
+        }
+
+        private void UpdateHomeDashboardCards(HomeDashboardSnapshot snapshot)
+        {
+            string[] titles = snapshot.IsAdministrator
+                ? new[] { "Bugungi sotuv", "Sof foyda", "Bugungi xarajat", "Qarz qoldig'i" }
+                : new[] { "Jami mijozlar", "Faol qarzlar", "Muddati o'tgan", "Qarz qoldig'i" };
+            string[] values = snapshot.IsAdministrator
+                ? new[]
+                {
+                    $"{snapshot.TodaySalesUZS:N0} UZS",
+                    $"{snapshot.TodayNetUZS:N0} UZS",
+                    $"{snapshot.TodayExpensesUZS:N0} UZS",
+                    $"{snapshot.OutstandingUZS:N0} UZS"
+                }
+                : new[]
+                {
+                    snapshot.CustomerCount.ToString("N0"),
+                    snapshot.OpenDebts.ToString("N0"),
+                    snapshot.OverdueDebts.ToString("N0"),
+                    $"{snapshot.OutstandingUZS:N0} UZS"
+                };
+            string[] details = snapshot.IsAdministrator
+                ? new[]
+                {
+                    "Bugun yakunlangan sotuvlar",
+                    $"Sotuv foydasi minus xarajatlar | foyda: {snapshot.TodayProfitUZS:N0}",
+                    "Bugun qayd etilgan xarajatlar",
+                    $"Muddati o'tgan: {snapshot.OverdueUZS:N0} UZS"
+                }
+                : new[]
+                {
+                    "Mijozlar bazasidagi jami",
+                    "Ochiq qarzlar soni",
+                    "To'lov muddati o'tgan qarzlar",
+                    $"Muddati o'tgan: {snapshot.OverdueUZS:N0} UZS"
+                };
+
+            for (int i = 0; i < _dashboardCards.Count; i++)
+            {
+                _dashboardCards[i].Title.Text = titles[i];
+                _dashboardCards[i].Value.Text = values[i];
+                _dashboardCards[i].Detail.Text = details[i];
+                _dashboardCards[i].Card.Invalidate();
+            }
+
+            if (snapshot.IsAdministrator)
+            {
+                _dashboardCards[1].Value.ForeColor = snapshot.TodayNetUZS < 0 ? UiTheme.Danger : UiTheme.Accent;
+                _dashboardCards[3].Value.ForeColor = snapshot.OutstandingUZS > 0 ? UiTheme.Primary : UiTheme.Text;
+            }
+            else
+            {
+                _dashboardCards[2].Value.ForeColor = snapshot.OverdueDebts > 0 ? UiTheme.Danger : UiTheme.Text;
+                _dashboardCards[3].Value.ForeColor = snapshot.OutstandingUZS > 0 ? UiTheme.Primary : UiTheme.Text;
+            }
+        }
+
+        private void HomeDashboardChart_Paint(object? sender, PaintEventArgs e)
+        {
+            HomeDashboardSnapshot? snapshot = _homeDashboardSnapshot;
+            Panel chart = _homeDashboardChart;
+            if (chart.ClientSize.Width < 120 || chart.ClientSize.Height < 100)
+            {
+                return;
+            }
+
+            Graphics graphics = e.Graphics;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            Rectangle bounds = new Rectangle(0, 0, chart.Width - 1, chart.Height - 1);
+            using (GraphicsPath path = RoundedRect(bounds, 10))
+            using (SolidBrush fill = new SolidBrush(UiTheme.Card))
+            using (Pen border = new Pen(UiTheme.Border, 1))
+            {
+                graphics.FillPath(fill, path);
+                graphics.DrawPath(border, path);
+            }
+
+            string chartTitle = snapshot?.IsAdministrator == true
+                ? "Sotuv va xarajatlar"
+                : "Qarzlar holati";
+            TextRenderer.DrawText(
+                graphics,
+                chartTitle,
+                UiTheme.ButtonFont,
+                new Rectangle(16, 8, 220, 24),
+                UiTheme.Text,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+            if (snapshot == null)
+            {
+                TextRenderer.DrawText(
+                    graphics,
+                    "Ma'lumot mavjud emas. Qayta yuklash uchun yuqoridagi tugmani bosing.",
+                    UiTheme.BodyFont,
+                    new Rectangle(16, 42, chart.Width - 32, 30),
+                    UiTheme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                return;
+            }
+
+            DrawDashboardLegend(graphics, chart.Width, snapshot.IsAdministrator);
+            if (snapshot.IsAdministrator)
+            {
+                DrawAdminDashboardChart(graphics, chart.ClientRectangle, snapshot);
+            }
+            else
+            {
+                DrawDebtDashboardChart(graphics, chart.ClientRectangle, snapshot);
+            }
+        }
+
+        private static void DrawDashboardLegend(Graphics graphics, int width, bool isAdministrator)
+        {
+            Color firstColor = UiTheme.Primary;
+            Color secondColor = isAdministrator ? UiTheme.Accent : Color.FromArgb(224, 120, 55);
+            string firstLabel = isAdministrator ? "Sotuv" : "Faol";
+            string secondLabel = isAdministrator ? "Xarajat" : "Muddati o'tgan";
+            Font font = UiTheme.BodyFont;
+            int y = 16;
+            int right = width - 16;
+
+            Size secondSize = TextRenderer.MeasureText(secondLabel, font);
+            right -= secondSize.Width;
+            TextRenderer.DrawText(graphics, secondLabel, font, new Point(right, y), UiTheme.Muted);
+            right -= 16;
+            using (SolidBrush brush = new SolidBrush(secondColor))
+            {
+                graphics.FillRectangle(brush, right, y + 5, 8, 8);
+            }
+            right -= 10;
+
+            Size firstSize = TextRenderer.MeasureText(firstLabel, font);
+            right -= firstSize.Width;
+            TextRenderer.DrawText(graphics, firstLabel, font, new Point(right, y), UiTheme.Muted);
+            right -= 16;
+            using SolidBrush firstBrush = new SolidBrush(firstColor);
+            graphics.FillRectangle(firstBrush, right, y + 5, 8, 8);
+        }
+
+        private static void DrawAdminDashboardChart(Graphics graphics, Rectangle bounds, HomeDashboardSnapshot snapshot)
+        {
+            if (snapshot.Week.Count == 0)
+            {
+                return;
+            }
+
+            double max = Math.Max(0, snapshot.Week.Max(day => Math.Max(day.SalesUZS, day.ExpensesUZS)));
+            DrawDashboardBars(
+                graphics,
+                bounds,
+                snapshot.Week.Count,
+                max,
+                index => snapshot.Week[index].SalesUZS,
+                index => snapshot.Week[index].ExpensesUZS,
+                index => snapshot.Week[index].Date.ToString("dd.MM", CultureInfo.InvariantCulture),
+                isCurrency: true);
+        }
+
+        private static void DrawDebtDashboardChart(Graphics graphics, Rectangle bounds, HomeDashboardSnapshot snapshot)
+        {
+            int max = Math.Max(1, Math.Max(snapshot.OpenDebts, snapshot.OverdueDebts));
+            DrawDashboardBars(
+                graphics,
+                bounds,
+                1,
+                max,
+                _ => snapshot.OpenDebts,
+                _ => snapshot.OverdueDebts,
+                _ => "Qarzlar",
+                isCurrency: false,
+                secondSeriesColor: Color.FromArgb(224, 120, 55));
+        }
+
+        private static void DrawDashboardBars(
+            Graphics graphics,
+            Rectangle bounds,
+            int itemCount,
+            double maxValue,
+            Func<int, double> firstValue,
+            Func<int, double> secondValue,
+            Func<int, string> itemLabel,
+            bool isCurrency,
+            Color? secondSeriesColor = null)
+        {
+            int left = 54;
+            int right = bounds.Width - 20;
+            int top = 42;
+            int bottom = bounds.Height - 30;
+            int plotHeight = bottom - top;
+            int plotWidth = right - left;
+            if (plotHeight < 24 || plotWidth < 20 || itemCount <= 0)
+            {
+                return;
+            }
+
+            maxValue = maxValue <= 0 ? 1 : maxValue * 1.15;
+            using (Pen gridPen = new Pen(UiTheme.Border, 1))
+            using (SolidBrush firstBrush = new SolidBrush(UiTheme.Primary))
+            using (SolidBrush secondBrush = new SolidBrush(secondSeriesColor ?? UiTheme.Accent))
+            using (Font axisFont = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 8f))
+            {
+                for (int line = 0; line <= 3; line++)
+                {
+                    int y = top + (plotHeight * line / 3);
+                    graphics.DrawLine(gridPen, left, y, right, y);
+                    double labelValue = maxValue * (3 - line) / 3;
+                    string label = isCurrency
+                        ? FormatCompactCurrency(labelValue)
+                        : Math.Round(labelValue).ToString("N0", CultureInfo.InvariantCulture);
+                    TextRenderer.DrawText(
+                        graphics,
+                        label,
+                        axisFont,
+                        new Rectangle(4, y - 8, left - 10, 16),
+                        UiTheme.Muted,
+                        TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                }
+
+                float slot = (float)plotWidth / itemCount;
+                float barWidth = Math.Min(22f, Math.Max(5f, slot * (itemCount == 1 ? 0.22f : 0.27f)));
+                for (int i = 0; i < itemCount; i++)
+                {
+                    float center = left + (slot * i) + (slot / 2f);
+                    float firstHeight = (float)Math.Max(0, firstValue(i) / maxValue * plotHeight);
+                    float secondHeight = (float)Math.Max(0, secondValue(i) / maxValue * plotHeight);
+                    graphics.FillRectangle(firstBrush, center - barWidth - 1, bottom - firstHeight, barWidth, firstHeight);
+                    graphics.FillRectangle(secondBrush, center + 1, bottom - secondHeight, barWidth, secondHeight);
+                    TextRenderer.DrawText(
+                        graphics,
+                        itemLabel(i),
+                        axisFont,
+                        new Rectangle((int)(center - slot / 2f), bottom + 5, (int)slot, 18),
+                        UiTheme.Muted,
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                }
+            }
+        }
+
+        private static string FormatCompactCurrency(double value)
+        {
+            if (value >= 1_000_000_000)
+            {
+                return $"{value / 1_000_000_000:0.#} mlrd";
+            }
+
+            if (value >= 1_000_000)
+            {
+                return $"{value / 1_000_000:0.#} mln";
+            }
+
+            if (value >= 1_000)
+            {
+                return $"{value / 1_000:0.#} ming";
+            }
+
+            return value.ToString("N0", CultureInfo.InvariantCulture);
+        }
+
         private void OpenPage(Func<Form> createPage)
         {
             ArgumentNullException.ThrowIfNull(createPage);
@@ -510,6 +936,7 @@ namespace SantexnikaSRM.Forms
             _activePage = page;
             _body.AutoScroll = false;
             _welcomePanel.Visible = false;
+            _homeDashboardPanel.Visible = false;
             _actionPanel.Visible = false;
             _lblFooter.Visible = false;
             _pageHost.Visible = true;
@@ -532,10 +959,12 @@ namespace SantexnikaSRM.Forms
                 _actionPanel.Visible = true;
                 _lblFooter.Visible = true;
                 _welcomePanel.Visible = true;
+                _homeDashboardPanel.Visible = true;
                 _body.AutoScroll = true;
                 _header.Height = 98;
                 LayoutHeaderCenterText();
                 UpdateBodyScrollArea();
+                LoadHomeDashboard();
             };
             LayoutActivePage();
             page.Show();
@@ -551,11 +980,13 @@ namespace SantexnikaSRM.Forms
             _actionPanel.Visible = true;
             _lblFooter.Visible = true;
             _welcomePanel.Visible = true;
+            _homeDashboardPanel.Visible = true;
             _body.AutoScroll = true;
             _header.Height = 98;
             LayoutHeaderCenterText();
             UpdateBodyScrollArea();
             _body.PerformLayout();
+            LoadHomeDashboard();
         }
 
         private void ToggleSidebar()
@@ -747,6 +1178,26 @@ namespace SantexnikaSRM.Forms
             _body.BackColor = BackColor;
             _pageHost.BackColor = UiTheme.Background;
             _tilesGrid.BackColor = BackColor;
+            _homeDashboardPanel.BackColor = BackColor;
+            _homeDashboardChart.BackColor = UiTheme.Card;
+            _btnDashboardRefresh.BackColor = isLight ? Color.FromArgb(87, 102, 122) : Color.FromArgb(58, 79, 103);
+            _btnDashboardRefresh.ForeColor = Color.White;
+            _btnDashboardRefresh.FlatAppearance.MouseOverBackColor = isLight
+                ? Color.FromArgb(70, 85, 106)
+                : Color.FromArgb(71, 94, 121);
+            _lblDashboardSubtitle.ForeColor = UiTheme.Muted;
+            foreach (var card in _dashboardCards)
+            {
+                card.Card.Invalidate();
+                card.Title.ForeColor = UiTheme.Muted;
+                card.Detail.ForeColor = UiTheme.Muted;
+                card.Value.ForeColor = UiTheme.Text;
+            }
+            if (_homeDashboardSnapshot != null)
+            {
+                UpdateHomeDashboardCards(_homeDashboardSnapshot);
+            }
+            _homeDashboardChart.Invalidate();
 
             _lblTitleOson.BackColor = Color.Transparent;
             _lblHeaderAlerts.BackColor = Color.Transparent;
