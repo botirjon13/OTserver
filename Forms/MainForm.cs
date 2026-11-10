@@ -30,8 +30,15 @@ namespace SantexnikaSRM.Forms
         private readonly Label _lblHeaderAlerts = new Label();
         private readonly PictureBox _picRole = new PictureBox();
         private readonly Label _lblRole = new Label();
+        private readonly Panel _workspace = new Panel();
+        private readonly Panel _sidebar = new Panel();
+        private readonly Panel _sidebarBrand = new Panel();
+        private readonly Label _lblSidebarCaption = new Label();
         private readonly Panel _header = new Panel();
         private readonly Panel _body = new Panel();
+        private readonly Panel _welcomePanel = new Panel();
+        private readonly Label _lblWelcomeTitle = new Label();
+        private readonly Label _lblWelcomeSubtitle = new Label();
         private readonly TableLayoutPanel _tilesGrid = new TableLayoutPanel();
         private readonly Panel _actionPanel = new Panel();
         private readonly FlowLayoutPanel _actionsFlow = new FlowLayoutPanel();
@@ -60,8 +67,8 @@ namespace SantexnikaSRM.Forms
         private int _roleLabelBaseTop;
         private Control? _appLogoControl;
         private Rectangle _appLogoBaseBounds;
-        private const int TileColumns = 3;
-        private const int TileRowHeight = 186;
+        private const int TileColumns = 1;
+        private const int TileRowHeight = 68;
         private AppUpdateInfo? _pendingUpdate;
         private string? _lastUpdateCheckError;
         private bool _isUpdateDownloading;
@@ -112,42 +119,68 @@ namespace SantexnikaSRM.Forms
             Font = UiTheme.BodyFont;
             DoubleBuffered = true;
 
+            _sidebar.Dock = DockStyle.Left;
+            _sidebar.Width = 248;
+            _sidebar.Padding = new Padding(12, 10, 12, 12);
+            _sidebar.AutoScroll = true;
+
             _header.Dock = DockStyle.Top;
             _header.Height = 98;
-            _header.Padding = new Padding(28, 18, 28, 16);
+            _header.Padding = new Padding(24, 14, 24, 14);
             _header.BackColor = Color.FromArgb(20, 30, 44);
             _header.Paint += (s, e) =>
             {
-                using Pen line = new Pen(Color.FromArgb(56, 78, 108));
+                bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
+                Color start = isLight ? Color.FromArgb(238, 245, 255) : Color.FromArgb(19, 34, 57);
+                Color end = isLight ? Color.FromArgb(207, 225, 252) : Color.FromArgb(27, 48, 77);
+                if (_header.ClientSize.Width > 0 && _header.ClientSize.Height > 0)
+                {
+                    using LinearGradientBrush background = new LinearGradientBrush(_header.ClientRectangle, start, end, 0f);
+                    e.Graphics.FillRectangle(background, _header.ClientRectangle);
+                }
+                using Pen line = new Pen(isLight ? Color.FromArgb(190, 210, 239) : Color.FromArgb(56, 78, 108));
                 e.Graphics.DrawLine(line, 0, _header.Height - 1, _header.Width, _header.Height - 1);
             };
 
             Image? logoImage = BrandingAssets.TryLoadLogo();
-            Size headerLogoSize = logoImage != null ? new Size(220, 88) : new Size(56, 56);
+            Size headerLogoSize = logoImage != null ? new Size(200, 82) : new Size(56, 56);
             Control appIcon = BrandingAssets.CreateLogoControl(headerLogoSize, 14, "\uE700");
-            appIcon.Left = -34;
-            appIcon.Top = 6;
+            appIcon.Left = 12;
+            appIcon.Top = 8;
             _appLogoControl = appIcon;
             _appLogoBaseBounds = appIcon.Bounds;
             appIcon.MouseEnter += (s, e) => _logoHoverTarget = 1f;
             appIcon.MouseLeave += (s, e) => _logoHoverTarget = 0f;
 
+            _sidebarBrand.Dock = DockStyle.Top;
+            _sidebarBrand.Height = 124;
+            _sidebarBrand.BackColor = Color.FromArgb(12, 43, 91);
+            _sidebarBrand.Controls.Add(appIcon);
+            _lblSidebarCaption.Text = "BOSHQARUV TIZIMI";
+            _lblSidebarCaption.Dock = DockStyle.Bottom;
+            _lblSidebarCaption.Height = 22;
+            _lblSidebarCaption.TextAlign = ContentAlignment.MiddleCenter;
+            _lblSidebarCaption.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 8.5f, FontStyle.Bold);
+            _lblSidebarCaption.ForeColor = Color.FromArgb(177, 205, 244);
+            _lblSidebarCaption.BackColor = Color.Transparent;
+            _sidebarBrand.Controls.Add(_lblSidebarCaption);
+
             _lblTitleOson.Text = "OsonTrack SRM tizimi";
             _lblTitleOson.AutoSize = false;
             _lblTitleOson.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 22, FontStyle.Bold);
-            _lblTitleOson.Left = appIcon.Right + 12;
+            _lblTitleOson.Left = 24;
             _lblTitleOson.Top = 14;
             _lblTitleOson.Height = 40;
             _lblTitleOson.TextAlign = ContentAlignment.MiddleCenter;
             _lblTitleOson.AutoEllipsis = true;
-            _lblTitleOson.BackColor = _header.BackColor;
+            _lblTitleOson.BackColor = Color.Transparent;
             _lblTitleOson.Text = GetHeaderAddressText();
 
             _lblHeaderAlerts.AutoSize = false;
             _lblHeaderAlerts.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10.5f, FontStyle.Bold);
             _lblHeaderAlerts.TextAlign = ContentAlignment.MiddleCenter;
             _lblHeaderAlerts.AutoEllipsis = true;
-            _lblHeaderAlerts.BackColor = _header.BackColor;
+            _lblHeaderAlerts.BackColor = Color.Transparent;
             _lblHeaderAlerts.ForeColor = Color.FromArgb(255, 196, 84);
             _lblHeaderAlerts.Text = GetCriticalHeaderWarningsText();
             _lblHeaderAlerts.Cursor = Cursors.Hand;
@@ -156,7 +189,7 @@ namespace SantexnikaSRM.Forms
             string? roleIconFile = GetRoleIconFileName(_currentUser.Role);
             Image? roleIconImage = string.IsNullOrWhiteSpace(roleIconFile) ? null : BrandingAssets.TryLoadAssetImage(roleIconFile);
             _picRole.Size = new Size(16, 16);
-            _picRole.Left = appIcon.Right + 14;
+            _picRole.Left = 24;
             _picRole.Top = 51;
             _picRole.BackColor = Color.Transparent;
             _picRole.SizeMode = PictureBoxSizeMode.Zoom;
@@ -170,11 +203,10 @@ namespace SantexnikaSRM.Forms
             _lblRole.Text = GetRoleDisplayText(_currentUser.Role);
             _lblRole.AutoSize = true;
             _lblRole.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10.5f, FontStyle.Bold);
-            _lblRole.Left = appIcon.Right + 14;
+            _lblRole.Left = 24;
             _lblRole.Top = 53;
-            _lblRole.BackColor = _header.BackColor;
+            _lblRole.BackColor = Color.Transparent;
 
-            _header.Controls.Add(appIcon);
             _header.Controls.Add(_lblTitleOson);
             _header.Controls.Add(_lblHeaderAlerts);
             _header.Controls.Add(_picRole);
@@ -184,27 +216,68 @@ namespace SantexnikaSRM.Forms
             _header.Resize += (s, e) => LayoutRoleBadge();
             _header.Resize += (s, e) => LayoutHeaderCenterText();
 
-            _body.Dock = DockStyle.Fill;
-            _body.Padding = new Padding(26, 20, 26, 12);
-            _body.AutoScroll = true;
-
             _tilesGrid.Dock = DockStyle.Top;
             _tilesGrid.AutoSize = false;
             _tilesGrid.Height = 600;
             _tilesGrid.ColumnCount = TileColumns;
             _tilesGrid.RowCount = 1;
             _tilesGrid.GrowStyle = TableLayoutPanelGrowStyle.FixedSize;
-            _tilesGrid.Padding = new Padding(0, 2, 0, 2);
-            _tilesGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
-            _tilesGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
-            _tilesGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
+            _tilesGrid.Padding = new Padding(0, 8, 0, 2);
+            _tilesGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            _sidebar.Controls.Add(_tilesGrid);
+            _sidebar.Controls.Add(_sidebarBrand);
 
-            _actionPanel.Dock = DockStyle.Top;
-            _actionPanel.Height = 90;
-            _actionPanel.Padding = new Padding(0, 10, 0, 8);
+            _body.Dock = DockStyle.Fill;
+            _body.Padding = new Padding(24, 22, 24, 16);
+            _body.AutoScroll = true;
+
+            _welcomePanel.Dock = DockStyle.Top;
+            _welcomePanel.Height = 240;
+            _welcomePanel.Padding = new Padding(30);
+            _welcomePanel.Paint += (s, e) =>
+            {
+                if (_welcomePanel.ClientSize.Width <= 0 || _welcomePanel.ClientSize.Height <= 0)
+                {
+                    return;
+                }
+
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle bounds = new Rectangle(1, 1, _welcomePanel.Width - 3, _welcomePanel.Height - 3);
+                using GraphicsPath path = RoundedRect(bounds, 18);
+                bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
+                Color start = isLight ? Color.White : Color.FromArgb(22, 31, 44);
+                Color end = isLight ? Color.FromArgb(228, 239, 255) : Color.FromArgb(28, 43, 62);
+                using LinearGradientBrush fill = new LinearGradientBrush(bounds, start, end, 0f);
+                e.Graphics.FillPath(fill, path);
+                using Pen border = new Pen(UiTheme.Border, 1f);
+                e.Graphics.DrawPath(border, path);
+            };
+            _welcomePanel.Resize += (s, e) => UpdateCardRegion(_welcomePanel);
+
+            _lblWelcomeTitle.Text = "Bosh sahifa";
+            _lblWelcomeTitle.AutoSize = false;
+            _lblWelcomeTitle.SetBounds(30, 48, 700, 42);
+            _lblWelcomeTitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 26, FontStyle.Bold);
+            _lblWelcomeTitle.TextAlign = ContentAlignment.MiddleLeft;
+            _lblWelcomeTitle.BackColor = Color.Transparent;
+            _lblWelcomeTitle.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+            _lblWelcomeSubtitle.Text = "Kerakli bo‘limni chap menyudan tanlang.";
+            _lblWelcomeSubtitle.AutoSize = false;
+            _lblWelcomeSubtitle.SetBounds(32, 98, 700, 32);
+            _lblWelcomeSubtitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
+            _lblWelcomeSubtitle.TextAlign = ContentAlignment.MiddleLeft;
+            _lblWelcomeSubtitle.BackColor = Color.Transparent;
+            _lblWelcomeSubtitle.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _welcomePanel.Controls.Add(_lblWelcomeTitle);
+            _welcomePanel.Controls.Add(_lblWelcomeSubtitle);
+
+            _actionPanel.Dock = DockStyle.Bottom;
+            _actionPanel.Height = 112;
+            _actionPanel.Padding = new Padding(0, 6, 0, 6);
 
             _actionsFlow.FlowDirection = FlowDirection.LeftToRight;
-            _actionsFlow.WrapContents = false;
+            _actionsFlow.WrapContents = true;
             _actionsFlow.AutoSize = true;
             _actionsFlow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             _actionsFlow.BackColor = Color.Transparent;
@@ -254,7 +327,7 @@ namespace SantexnikaSRM.Forms
                     fallbackText,
                     new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold),
                     _picThemeAction.ClientRectangle,
-                    Color.FromArgb(46, 65, 96),
+                    UiTheme.CurrentMode == UiTheme.ThemeMode.Light ? Color.FromArgb(46, 65, 96) : Color.White,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
             _picThemeAction.Click += (s, e) =>
@@ -275,22 +348,26 @@ namespace SantexnikaSRM.Forms
             _actionPanel.Controls.Add(_actionsFlow);
             _actionPanel.Resize += (s, e) =>
             {
+                _actionsFlow.MaximumSize = new Size(Math.Max(1, _actionPanel.ClientSize.Width), 0);
                 _actionsFlow.Left = Math.Max(0, (_actionPanel.ClientSize.Width - _actionsFlow.Width) / 2);
                 _actionsFlow.Top = Math.Max(0, (_actionPanel.ClientSize.Height - _actionsFlow.Height) / 2);
             };
 
             _lblFooter.Text = "(c) 2026 Osontrack SRM tizimi - Barcha huquqlar himoyalangan";
-            _lblFooter.Dock = DockStyle.Top;
+            _lblFooter.Dock = DockStyle.Bottom;
             _lblFooter.Height = 44;
             _lblFooter.TextAlign = ContentAlignment.MiddleCenter;
             _lblFooter.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
 
-            _body.Controls.Add(_lblFooter);
+            _body.Controls.Add(_welcomePanel);
             _body.Controls.Add(_actionPanel);
-            _body.Controls.Add(_tilesGrid);
+            _body.Controls.Add(_lblFooter);
 
-            Controls.Add(_body);
-            Controls.Add(_header);
+            _workspace.Dock = DockStyle.Fill;
+            _workspace.Controls.Add(_body);
+            _workspace.Controls.Add(_header);
+            Controls.Add(_workspace);
+            Controls.Add(_sidebar);
 
             _revealTimer.Interval = 70;
             _revealTimer.Tick += RevealTimer_Tick;
@@ -320,7 +397,7 @@ namespace SantexnikaSRM.Forms
                 LayoutRoleBadge();
                 LayoutHeaderCenterText();
                 int rows = Math.Max(1, _tilesGrid.RowCount);
-                _tilesGrid.Height = (rows * TileRowHeight) + 12;
+                _tilesGrid.Height = (rows * TileRowHeight) + 10;
                 UpdateBodyScrollArea();
             };
         }
@@ -396,8 +473,8 @@ namespace SantexnikaSRM.Forms
         {
             Panel card = new Panel
             {
-                Margin = new Padding(10),
-                Padding = new Padding(20, 18, 20, 16),
+                Margin = new Padding(3),
+                Padding = new Padding(8, 6, 8, 6),
                 Cursor = Cursors.Hand,
                 Dock = DockStyle.Fill
             };
@@ -407,9 +484,9 @@ namespace SantexnikaSRM.Forms
             bool useImageIcon = tileImage != null;
             Panel iconBox = new Panel
             {
-                Size = useImageIcon ? new Size(68, 68) : new Size(54, 54),
-                Left = 24,
-                Top = 20,
+                Size = useImageIcon ? new Size(42, 42) : new Size(38, 38),
+                Left = 12,
+                Top = 10,
                 BackColor = Color.Transparent
             };
             iconBox.Paint += (s, e) =>
@@ -444,7 +521,7 @@ namespace SantexnikaSRM.Forms
                     Text = def.Icon,
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleCenter,
-                    Font = UiTheme.IconFont(22),
+                    Font = UiTheme.IconFont(18),
                     ForeColor = Color.White,
                     BackColor = Color.Transparent
                 };
@@ -455,8 +532,8 @@ namespace SantexnikaSRM.Forms
             {
                 Text = def.Title,
                 AutoSize = false,
-                Height = 34,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold),
+                Height = 24,
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11.5f, FontStyle.Bold),
                 BackColor = Color.Transparent
             };
 
@@ -464,8 +541,8 @@ namespace SantexnikaSRM.Forms
             {
                 Text = def.Subtitle,
                 AutoSize = false,
-                Height = 24,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10.5f, FontStyle.Regular),
+                Height = 20,
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9, FontStyle.Regular),
                 BackColor = Color.Transparent
             };
             UpdateTileLayout(card, iconBox, title, subtitle);
@@ -484,6 +561,14 @@ namespace SantexnikaSRM.Forms
             {
                 UpdateCardRegion(card);
                 UpdateTileLayout(card, iconBox, title, subtitle);
+            };
+            card.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle borderBounds = new Rectangle(1, 1, Math.Max(1, card.Width - 3), Math.Max(1, card.Height - 3));
+                using GraphicsPath borderPath = RoundedRect(borderBounds, 16);
+                using Pen border = new Pen(UiTheme.Border, 1f);
+                e.Graphics.DrawPath(border, borderPath);
             };
 
             var tileUi = new TileUi(card, title, subtitle, iconBox, iconControl, useImageIcon);
@@ -533,32 +618,44 @@ namespace SantexnikaSRM.Forms
         private void ApplyThemeStyles()
         {
             bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
-            BackColor = isLight ? Color.FromArgb(230, 236, 245) : Color.FromArgb(12, 18, 29);
-            _header.BackColor = Color.FromArgb(20, 30, 44);
+            BackColor = isLight ? Color.FromArgb(236, 243, 253) : Color.FromArgb(12, 18, 29);
+            _header.BackColor = isLight ? Color.FromArgb(222, 234, 252) : Color.FromArgb(22, 38, 63);
             _actionPanel.BackColor = BackColor;
             _actionsFlow.BackColor = BackColor;
             _body.BackColor = BackColor;
             _tilesGrid.BackColor = BackColor;
 
-            _lblTitleOson.BackColor = _header.BackColor;
-            _lblHeaderAlerts.BackColor = _header.BackColor;
-            _lblRole.BackColor = _header.BackColor;
-            _lblTitleOson.ForeColor = Color.FromArgb(238, 245, 255);
+            _lblTitleOson.BackColor = Color.Transparent;
+            _lblHeaderAlerts.BackColor = Color.Transparent;
+            _lblRole.BackColor = Color.Transparent;
+            _lblTitleOson.ForeColor = isLight ? Color.FromArgb(26, 48, 82) : Color.FromArgb(238, 245, 255);
+            _lblHeaderAlerts.ForeColor = isLight ? Color.FromArgb(157, 91, 0) : Color.FromArgb(255, 196, 84);
             UpdateThemeActionImage();
             UpdateActionImages();
-            _roleTextBaseColor = isLight ? Color.FromArgb(156, 201, 255) : Color.FromArgb(168, 212, 255);
-            _roleTextPulseColor = isLight ? Color.FromArgb(235, 247, 255) : Color.FromArgb(212, 233, 255);
+            _roleTextBaseColor = isLight ? Color.FromArgb(44, 104, 186) : Color.FromArgb(168, 212, 255);
+            _roleTextPulseColor = isLight ? Color.FromArgb(25, 62, 115) : Color.FromArgb(212, 233, 255);
             UpdateRoleTextColor();
             _lblFooter.ForeColor = isLight ? Color.FromArgb(90, 112, 147) : Color.FromArgb(134, 156, 188);
 
             foreach (TileUi tile in _tiles)
             {
-                tile.BaseColor = isLight ? Color.FromArgb(246, 249, 253) : Color.FromArgb(22, 33, 50);
-                tile.HoverColor = isLight ? Color.FromArgb(236, 243, 252) : Color.FromArgb(30, 45, 66);
+                tile.BaseColor = isLight ? Color.FromArgb(15, 54, 108) : Color.FromArgb(19, 34, 55);
+                tile.HoverColor = isLight ? Color.FromArgb(20, 91, 174) : Color.FromArgb(29, 55, 87);
                 tile.Card.BackColor = tile.BaseColor;
-                tile.Title.ForeColor = isLight ? Color.FromArgb(37, 50, 74) : Color.FromArgb(238, 244, 252);
-                tile.Subtitle.ForeColor = isLight ? Color.FromArgb(90, 110, 138) : Color.FromArgb(156, 179, 207);
+                tile.Title.ForeColor = Color.FromArgb(245, 249, 255);
+                tile.Subtitle.ForeColor = isLight ? Color.FromArgb(184, 209, 241) : Color.FromArgb(156, 179, 207);
+                tile.Card.Invalidate();
             }
+
+            _sidebar.BackColor = isLight ? Color.FromArgb(10, 43, 94) : Color.FromArgb(13, 24, 41);
+            _sidebarBrand.BackColor = _sidebar.BackColor;
+            _sidebarBrand.Invalidate();
+            _lblSidebarCaption.ForeColor = isLight ? Color.FromArgb(177, 205, 244) : Color.FromArgb(144, 169, 202);
+            _tilesGrid.BackColor = _sidebar.BackColor;
+            _welcomePanel.BackColor = UiTheme.Card;
+            _welcomePanel.Invalidate();
+            _lblWelcomeTitle.ForeColor = UiTheme.Text;
+            _lblWelcomeSubtitle.ForeColor = UiTheme.Muted;
 
             foreach (Control panelControl in _actionPanel.Controls)
             {
@@ -961,7 +1058,7 @@ namespace SantexnikaSRM.Forms
                     tile.HoverProgress = Math.Max(0f, tile.HoverProgress - step);
                 }
 
-                tile.IconBox.Top = 20 - (int)(3 * tile.HoverProgress);
+                tile.IconBox.Top = Math.Max(0, (tile.Card.ClientSize.Height - tile.IconBox.Height) / 2) - (int)(3 * tile.HoverProgress);
                 tile.Card.BackColor = LerpColor(tile.BaseColor, tile.HoverColor, tile.HoverProgress);
                 if (tile.HoverProgress > 0.01f)
                 {
@@ -1023,7 +1120,7 @@ namespace SantexnikaSRM.Forms
 
         private void UpdateBodyScrollArea()
         {
-            int contentHeight = _tilesGrid.Height + _actionPanel.Height + _lblFooter.Height + _body.Padding.Top + _body.Padding.Bottom + 24;
+            int contentHeight = _welcomePanel.Height + _actionPanel.Height + _lblFooter.Height + _body.Padding.Top + _body.Padding.Bottom + 24;
             _body.AutoScrollMinSize = new Size(0, contentHeight);
         }
 
@@ -1036,13 +1133,15 @@ namespace SantexnikaSRM.Forms
 
         private static void UpdateTileLayout(Panel card, Panel iconBox, Label title, Label subtitle)
         {
-            int iconTop = 20;
-            iconBox.Left = (card.ClientSize.Width - iconBox.Width) / 2;
-            iconBox.Top = iconTop;
-            title.SetBounds(14, iconBox.Bottom + 16, Math.Max(1, card.ClientSize.Width - 28), title.Height);
-            title.TextAlign = ContentAlignment.MiddleCenter;
-            subtitle.SetBounds(14, title.Bottom + 2, Math.Max(1, card.ClientSize.Width - 28), subtitle.Height);
-            subtitle.TextAlign = ContentAlignment.MiddleCenter;
+            int iconLeft = 12;
+            int iconTop = Math.Max(0, (card.ClientSize.Height - iconBox.Height) / 2);
+            int textLeft = iconLeft + iconBox.Width + 12;
+            int textWidth = Math.Max(1, card.ClientSize.Width - textLeft - 8);
+            iconBox.SetBounds(iconLeft, iconTop, iconBox.Width, iconBox.Height);
+            title.SetBounds(textLeft, 7, textWidth, 24);
+            title.TextAlign = ContentAlignment.MiddleLeft;
+            subtitle.SetBounds(textLeft, 32, textWidth, 20);
+            subtitle.TextAlign = ContentAlignment.MiddleLeft;
         }
 
         private static void SetImageIconBounds(PictureBox imageIcon, Panel iconBox, float hoverProgress)
@@ -1094,7 +1193,7 @@ namespace SantexnikaSRM.Forms
 
         private void LayoutHeaderCenterText()
         {
-            int safeLeft = (_appLogoControl?.Right ?? 0) + 18;
+            int safeLeft = 24;
             int safeRight = (_picRole.Visible ? _picRole.Left : _header.Width) - 18;
             int maxWidth = Math.Max(220, safeRight - safeLeft);
 
@@ -1134,9 +1233,10 @@ namespace SantexnikaSRM.Forms
         private void RefreshHeaderWarnings()
         {
             _lblHeaderAlerts.Text = GetCriticalHeaderWarningsText();
+            bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
             _lblHeaderAlerts.ForeColor = _lblHeaderAlerts.Text.StartsWith("OK:", StringComparison.OrdinalIgnoreCase)
-                ? Color.FromArgb(117, 228, 169)
-                : Color.FromArgb(255, 196, 84);
+                ? (isLight ? Color.FromArgb(22, 126, 78) : Color.FromArgb(117, 228, 169))
+                : (isLight ? Color.FromArgb(157, 91, 0) : Color.FromArgb(255, 196, 84));
         }
 
         private void HeaderAlerts_Click(object? sender, EventArgs e)
@@ -1834,7 +1934,3 @@ namespace SantexnikaSRM.Forms
 
     }
 }
-
-
-
-
