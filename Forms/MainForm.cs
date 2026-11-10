@@ -44,8 +44,12 @@ namespace SantexnikaSRM.Forms
         private readonly Panel _homeDashboardPanel = new Panel();
         private readonly Panel _homeDashboardChart = new Panel();
         private readonly Panel _homeDashboardSummary = new Panel();
-        private readonly Label _lblDashboardSubtitle = new Label();
+        private readonly Panel _homeStatusPanel = new Panel();
+        private readonly Label _lblHomeStatus = new Label();
+        private readonly Label _lblDashboardSection = new Label();
         private readonly Button _btnDashboardRefresh = new Button();
+        private readonly Button _btnNewSale = new Button();
+        private readonly FlowLayoutPanel _homeQuickActions = new FlowLayoutPanel();
         private readonly List<(Panel Card, Label Title, Label Value, Label Detail)> _dashboardCards =
             new List<(Panel Card, Label Title, Label Value, Label Detail)>();
         private readonly Panel _pageHost = new Panel();
@@ -76,6 +80,9 @@ namespace SantexnikaSRM.Forms
         private string? _lastUpdateCheckError;
         private bool _isUpdateDownloading;
         private HomeDashboardSnapshot? _homeDashboardSnapshot;
+        private string? _homeDashboardErrorMessage;
+        private string _selectedNavigationTitle = "Bosh sahifa";
+        private static readonly Color DashboardSalesColor = Color.FromArgb(91, 91, 240);
 
         public MainForm(AppUser currentUser)
         {
@@ -129,19 +136,17 @@ namespace SantexnikaSRM.Forms
             _sidebar.AutoScroll = true;
 
             _header.Dock = DockStyle.Top;
-            _header.Height = 98;
+            _header.Height = 80;
             _header.Padding = new Padding(24, 14, 24, 14);
-            _header.BackColor = Color.FromArgb(20, 30, 44);
+            _header.BackColor = UiTheme.Card;
             _header.Paint += (s, e) =>
             {
-                bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
-                Color background = isLight ? Color.FromArgb(232, 238, 247) : Color.FromArgb(23, 36, 52);
                 if (_header.ClientSize.Width > 0 && _header.ClientSize.Height > 0)
                 {
-                    using SolidBrush brush = new SolidBrush(background);
+                    using SolidBrush brush = new SolidBrush(UiTheme.Card);
                     e.Graphics.FillRectangle(brush, _header.ClientRectangle);
                 }
-                using Pen line = new Pen(isLight ? Color.FromArgb(201, 211, 226) : Color.FromArgb(55, 70, 88));
+                using Pen line = new Pen(UiTheme.Border);
                 e.Graphics.DrawLine(line, 0, _header.Height - 1, _header.Width, _header.Height - 1);
             };
 
@@ -177,18 +182,18 @@ namespace SantexnikaSRM.Forms
 
             _lblTitleOson.Text = "OsonTrack SRM tizimi";
             _lblTitleOson.AutoSize = false;
-            _lblTitleOson.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 22, FontStyle.Bold);
+            _lblTitleOson.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             _lblTitleOson.Left = 24;
             _lblTitleOson.Top = 14;
-            _lblTitleOson.Height = 40;
-            _lblTitleOson.TextAlign = ContentAlignment.MiddleCenter;
+            _lblTitleOson.Height = 28;
+            _lblTitleOson.TextAlign = ContentAlignment.MiddleLeft;
             _lblTitleOson.AutoEllipsis = true;
             _lblTitleOson.BackColor = Color.Transparent;
             _lblTitleOson.Text = GetHeaderAddressText();
 
             _lblHeaderAlerts.AutoSize = false;
-            _lblHeaderAlerts.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10.5f, FontStyle.Bold);
-            _lblHeaderAlerts.TextAlign = ContentAlignment.MiddleCenter;
+            _lblHeaderAlerts.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 9, FontStyle.Regular);
+            _lblHeaderAlerts.TextAlign = ContentAlignment.MiddleLeft;
             _lblHeaderAlerts.AutoEllipsis = true;
             _lblHeaderAlerts.BackColor = Color.Transparent;
             _lblHeaderAlerts.ForeColor = Color.FromArgb(255, 196, 84);
@@ -242,43 +247,25 @@ namespace SantexnikaSRM.Forms
             _body.AutoScroll = true;
 
             _welcomePanel.Dock = DockStyle.Fill;
-            _welcomePanel.Height = 100;
-            _welcomePanel.Padding = new Padding(22);
-            _welcomePanel.Paint += (s, e) =>
-            {
-                if (_welcomePanel.ClientSize.Width <= 0 || _welcomePanel.ClientSize.Height <= 0)
-                {
-                    return;
-                }
-
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                Rectangle bounds = new Rectangle(1, 1, _welcomePanel.Width - 3, _welcomePanel.Height - 3);
-                using GraphicsPath path = RoundedRect(bounds, 18);
-                bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
-                Color start = isLight ? Color.White : Color.FromArgb(22, 31, 44);
-                Color end = isLight ? Color.FromArgb(228, 239, 255) : Color.FromArgb(28, 43, 62);
-                using LinearGradientBrush fill = new LinearGradientBrush(bounds, start, end, 0f);
-                e.Graphics.FillPath(fill, path);
-                using Pen border = new Pen(UiTheme.Border, 1f);
-                e.Graphics.DrawPath(border, path);
-            };
-            _welcomePanel.Resize += (s, e) => UpdateCardRegion(_welcomePanel);
+            _welcomePanel.Height = 76;
+            _welcomePanel.BackColor = Color.Transparent;
 
             _lblWelcomeTitle.Text = "Bosh sahifa";
             _lblWelcomeTitle.AutoSize = false;
-            _lblWelcomeTitle.SetBounds(22, 18, 700, 34);
-            _lblWelcomeTitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 22, FontStyle.Bold);
+            _lblWelcomeTitle.SetBounds(0, 4, 560, 38);
+            _lblWelcomeTitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 24, FontStyle.Bold);
             _lblWelcomeTitle.TextAlign = ContentAlignment.MiddleLeft;
             _lblWelcomeTitle.BackColor = Color.Transparent;
-            _lblWelcomeTitle.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _lblWelcomeTitle.Anchor = AnchorStyles.Top | AnchorStyles.Left;
 
-            _lblWelcomeSubtitle.Text = "Kerakli bo‘limni chap menyudan tanlang.";
+            _lblWelcomeSubtitle.Text = "Savdo, ombor va moliyaviy holat — bir joyda.";
             _lblWelcomeSubtitle.AutoSize = false;
-            _lblWelcomeSubtitle.SetBounds(24, 55, 700, 24);
-            _lblWelcomeSubtitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
+            _lblWelcomeSubtitle.SetBounds(2, 43, 600, 24);
+            _lblWelcomeSubtitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10.5f, FontStyle.Regular);
             _lblWelcomeSubtitle.TextAlign = ContentAlignment.MiddleLeft;
             _lblWelcomeSubtitle.BackColor = Color.Transparent;
-            _lblWelcomeSubtitle.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _lblWelcomeSubtitle.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            _lblWelcomeSubtitle.AutoEllipsis = true;
             _welcomePanel.Controls.Add(_lblWelcomeTitle);
             _welcomePanel.Controls.Add(_lblWelcomeSubtitle);
 
@@ -288,8 +275,8 @@ namespace SantexnikaSRM.Forms
             _pageHost.Visible = false;
 
             _actionPanel.Dock = DockStyle.Bottom;
-            _actionPanel.Height = 112;
-            _actionPanel.Padding = new Padding(0, 6, 0, 6);
+            _actionPanel.Height = 96;
+            _actionPanel.Padding = new Padding(0, 4, 0, 4);
 
             _actionsFlow.FlowDirection = FlowDirection.LeftToRight;
             _actionsFlow.WrapContents = true;
@@ -370,7 +357,7 @@ namespace SantexnikaSRM.Forms
 
             _lblFooter.Text = "(c) 2026 Osontrack SRM tizimi - Barcha huquqlar himoyalangan";
             _lblFooter.Dock = DockStyle.Bottom;
-            _lblFooter.Height = 44;
+            _lblFooter.Height = 34;
             _lblFooter.TextAlign = ContentAlignment.MiddleCenter;
             _lblFooter.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
 
@@ -503,53 +490,38 @@ namespace SantexnikaSRM.Forms
         private void BuildHomeDashboard()
         {
             _homeDashboardPanel.Dock = DockStyle.Fill;
-            _homeDashboardPanel.Padding = new Padding(0, 8, 0, 0);
+            _homeDashboardPanel.Padding = new Padding(0, 2, 0, 0);
             _homeDashboardPanel.BackColor = Color.Transparent;
 
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 3,
+                RowCount = 4,
                 BackColor = Color.Transparent,
                 Margin = Padding.Empty,
                 Padding = Padding.Empty
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34f));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 88f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 120f));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 104f));
 
-            var header = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
-            var title = new Label
-            {
-                Text = "Bugungi ko'rsatkichlar",
-                Dock = DockStyle.Left,
-                Width = 205,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = UiTheme.ButtonFont,
-                ForeColor = UiTheme.Text
-            };
-            _lblDashboardSubtitle.Dock = DockStyle.Fill;
-            _lblDashboardSubtitle.TextAlign = ContentAlignment.MiddleLeft;
-            _lblDashboardSubtitle.Font = UiTheme.BodyFont;
-            _lblDashboardSubtitle.ForeColor = UiTheme.Muted;
-            _lblDashboardSubtitle.Text = "Ma'lumotlar yuklanmoqda...";
-            _lblDashboardSubtitle.AutoEllipsis = true;
-            _lblDashboardSubtitle.Padding = new Padding(8, 0, 4, 0);
-
-            _btnDashboardRefresh.Text = "Yangilash";
-            _btnDashboardRefresh.Dock = DockStyle.Right;
-            _btnDashboardRefresh.Width = 108;
-            _btnDashboardRefresh.Height = 32;
-            _btnDashboardRefresh.Margin = new Padding(6, 2, 0, 2);
-            UiTheme.StyleNeutralButton(_btnDashboardRefresh);
-            _btnDashboardRefresh.Click += (_, __) => LoadHomeDashboard();
-
-            header.Controls.Add(_lblDashboardSubtitle);
-            header.Controls.Add(_btnDashboardRefresh);
-            header.Controls.Add(title);
-            layout.Controls.Add(header, 0, 0);
+            _homeStatusPanel.Dock = DockStyle.Fill;
+            _homeStatusPanel.Margin = new Padding(0, 0, 0, 8);
+            _homeStatusPanel.Paint += HomeStatusPanel_Paint;
+            _lblHomeStatus.Dock = DockStyle.Fill;
+            _lblHomeStatus.Padding = new Padding(14, 0, 12, 0);
+            _lblHomeStatus.TextAlign = ContentAlignment.MiddleLeft;
+            _lblHomeStatus.Font = UiTheme.BodyFont;
+            _lblHomeStatus.AutoEllipsis = true;
+            _lblHomeStatus.Cursor = Cursors.Hand;
+            _lblHomeStatus.Click += HeaderAlerts_Click;
+            _homeStatusPanel.Controls.Add(_lblHomeStatus);
+            _homeStatusPanel.Cursor = Cursors.Hand;
+            _homeStatusPanel.Click += HeaderAlerts_Click;
+            layout.Controls.Add(_homeStatusPanel, 0, 0);
 
             var cards = new TableLayoutPanel
             {
@@ -571,39 +543,88 @@ namespace SantexnikaSRM.Forms
             cards.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             layout.Controls.Add(cards, 0, 1);
 
-            var chartRow = new TableLayoutPanel
+            var visualRow = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 1,
                 BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 8),
+                Padding = Padding.Empty
+            };
+            visualRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66f));
+            visualRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34f));
+            visualRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
+            _homeDashboardChart.Dock = DockStyle.Fill;
+            _homeDashboardChart.Margin = new Padding(0, 0, 6, 0);
+            _homeDashboardChart.BackColor = UiTheme.Card;
+            _homeDashboardChart.Paint += HomeDashboardChart_Paint;
+            visualRow.Controls.Add(_homeDashboardChart, 0, 0);
+
+            _homeDashboardSummary.Dock = DockStyle.Fill;
+            _homeDashboardSummary.Margin = new Padding(6, 0, 0, 0);
+            _homeDashboardSummary.BackColor = UiTheme.Card;
+            _homeDashboardSummary.Paint += HomeDashboardSummary_Paint;
+            visualRow.Controls.Add(_homeDashboardSummary, 1, 0);
+
+            layout.Controls.Add(visualRow, 0, 2);
+
+            var quickActionsSection = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.Transparent,
                 Margin = Padding.Empty,
                 Padding = Padding.Empty
             };
-            chartRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66f));
-            chartRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34f));
-            chartRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            quickActionsSection.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            quickActionsSection.RowStyles.Add(new RowStyle(SizeType.Absolute, 24f));
+            quickActionsSection.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            _lblDashboardSection.Text = "Tezkor amallar";
+            _lblDashboardSection.Dock = DockStyle.Fill;
+            _lblDashboardSection.Font = UiTheme.ButtonFont;
+            _lblDashboardSection.ForeColor = UiTheme.Text;
+            _lblDashboardSection.TextAlign = ContentAlignment.MiddleLeft;
+            quickActionsSection.Controls.Add(_lblDashboardSection, 0, 0);
 
-            _homeDashboardChart.Dock = DockStyle.Fill;
-            _homeDashboardChart.Margin = new Padding(0, 0, 6, 2);
-            _homeDashboardChart.BackColor = UiTheme.Card;
-            _homeDashboardChart.Paint += HomeDashboardChart_Paint;
-            chartRow.Controls.Add(_homeDashboardChart, 0, 0);
+            _homeQuickActions.Dock = DockStyle.Fill;
+            _homeQuickActions.WrapContents = false;
+            _homeQuickActions.FlowDirection = FlowDirection.LeftToRight;
+            _homeQuickActions.Margin = new Padding(-6, 2, -6, 0);
+            AddHomeQuickActions();
+            quickActionsSection.Controls.Add(_homeQuickActions, 0, 1);
+            _homeQuickActions.Resize += (_, __) => LayoutHomeQuickActions();
+            layout.Controls.Add(quickActionsSection, 0, 3);
 
-            _homeDashboardSummary.Dock = DockStyle.Fill;
-            _homeDashboardSummary.Margin = new Padding(6, 0, 0, 2);
-            _homeDashboardSummary.BackColor = UiTheme.Card;
-            _homeDashboardSummary.Paint += HomeDashboardSummary_Paint;
-            chartRow.Controls.Add(_homeDashboardSummary, 1, 0);
+            _btnDashboardRefresh.Text = "Yangilash";
+            _btnDashboardRefresh.Size = new Size(108, 36);
+            _btnDashboardRefresh.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            UiTheme.StyleNeutralButton(_btnDashboardRefresh);
+            _btnDashboardRefresh.Click += (_, __) => LoadHomeDashboard();
+            _welcomePanel.Controls.Add(_btnDashboardRefresh);
 
-            layout.Controls.Add(chartRow, 0, 2);
+            _btnNewSale.Text = "Yangi sotuv";
+            _btnNewSale.Size = new Size(132, 36);
+            _btnNewSale.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            UiTheme.StylePrimaryButton(_btnNewSale);
+            _btnNewSale.Visible = AuthorizationService.CanCreateSales(_currentUser);
+            _btnNewSale.Click += (_, __) =>
+            {
+                OpenPage(() => new SaleForm(_currentUser));
+                UpdateNavigationSelection("Sotuv");
+            };
+            _welcomePanel.Controls.Add(_btnNewSale);
+            _welcomePanel.Resize += (_, __) => LayoutHomeHeaderControls();
+            LayoutHomeHeaderControls();
             _homeDashboardPanel.Controls.Add(layout);
         }
 
         private void BuildHomeContent()
         {
             _homeContentPanel.Dock = DockStyle.Top;
-            _homeContentPanel.Height = 455;
+            _homeContentPanel.Height = 610;
             _homeContentPanel.BackColor = Color.Transparent;
 
             var layout = new TableLayoutPanel
@@ -616,11 +637,136 @@ namespace SantexnikaSRM.Forms
                 Padding = Padding.Empty
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 100f));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76f));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             layout.Controls.Add(_welcomePanel, 0, 0);
             layout.Controls.Add(_homeDashboardPanel, 0, 1);
             _homeContentPanel.Controls.Add(layout);
+        }
+
+        private void LayoutHomeHeaderControls()
+        {
+            const int gap = 8;
+            int right = Math.Max(0, _welcomePanel.ClientSize.Width - 2);
+            _btnNewSale.Location = new Point(right - _btnNewSale.Width, 8);
+            _btnDashboardRefresh.Location = new Point(
+                _btnNewSale.Visible
+                    ? _btnNewSale.Left - gap - _btnDashboardRefresh.Width
+                    : right - _btnDashboardRefresh.Width,
+                8);
+            int textWidth = Math.Max(120, _btnDashboardRefresh.Left - 16);
+            _lblWelcomeTitle.Width = textWidth;
+            _lblWelcomeSubtitle.Width = textWidth;
+        }
+
+        private void AddHomeQuickActions()
+        {
+            var actions = new List<(string Title, string Detail, string Icon, Action Open)>
+            {
+                ("Tovar qo'shish", "Omborga yangi tovar", "\uECAA", () =>
+                {
+                    OpenPage(() => new ProductForm(_currentUser));
+                    UpdateNavigationSelection("Tovarlar");
+                }),
+                ("Mijoz qo'shish", "Mijozlar bazasiga yozish", "\uE77B", () =>
+                {
+                    OpenPage(() => new CustomersForm(_currentUser));
+                    UpdateNavigationSelection("Mijozlar");
+                }),
+                ("Xarajat kiritish", "Chiqimni qayd etish", "\uE8C7", () =>
+                {
+                    OpenPage(() => new ExpenseForm(_currentUser));
+                    UpdateNavigationSelection("Rasxod");
+                })
+            };
+
+            actions.RemoveAll(action =>
+                (action.Title == "Tovar qo'shish" && !AuthorizationService.CanViewProducts(_currentUser)) ||
+                (action.Title == "Mijoz qo'shish" && !AuthorizationService.CanManageDebts(_currentUser)) ||
+                (action.Title == "Xarajat kiritish" && !AuthorizationService.CanManageExpenses(_currentUser)));
+
+            foreach ((string title, string detail, string icon, Action open) in actions)
+            {
+                _homeQuickActions.Controls.Add(CreateHomeQuickAction(title, detail, icon, open));
+            }
+        }
+
+        private void LayoutHomeQuickActions()
+        {
+            int count = _homeQuickActions.Controls.Count;
+            if (count == 0)
+            {
+                return;
+            }
+
+            int width = Math.Max(150, (_homeQuickActions.ClientSize.Width - count * 12) / count);
+            foreach (Control control in _homeQuickActions.Controls)
+            {
+                control.Width = width;
+            }
+        }
+
+        private Panel CreateHomeQuickAction(string title, string detail, string icon, Action open)
+        {
+            var card = new Panel
+            {
+                Width = 260,
+                Height = 68,
+                BackColor = UiTheme.Card,
+                Cursor = Cursors.Hand,
+                Tag = "home-quick-action"
+            };
+            var iconLabel = new Label
+            {
+                Text = icon,
+                Font = UiTheme.IconFont(18),
+                ForeColor = UiTheme.Primary,
+                BackColor = UiTheme.Background,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Bounds = new Rectangle(12, 14, 40, 40)
+            };
+            var titleLabel = new Label
+            {
+                Text = title,
+                Font = UiTheme.ButtonFont,
+                ForeColor = UiTheme.Text,
+                BackColor = Color.Transparent,
+                AutoEllipsis = true,
+                Bounds = new Rectangle(62, 12, 190, 22)
+            };
+            var detailLabel = new Label
+            {
+                Text = detail,
+                Font = UiTheme.BodyFont,
+                ForeColor = UiTheme.Muted,
+                BackColor = Color.Transparent,
+                AutoEllipsis = true,
+                Bounds = new Rectangle(62, 36, 190, 20)
+            };
+            card.Controls.Add(iconLabel);
+            card.Controls.Add(titleLabel);
+            card.Controls.Add(detailLabel);
+            card.Paint += (_, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle bounds = new Rectangle(0, 0, card.Width - 1, card.Height - 1);
+                using GraphicsPath path = RoundedRect(bounds, 9);
+                using SolidBrush fill = new SolidBrush(UiTheme.Card);
+                using Pen border = new Pen(UiTheme.Border, 1);
+                e.Graphics.FillPath(fill, path);
+                e.Graphics.DrawPath(border, path);
+            };
+            card.Resize += (_, __) =>
+            {
+                int textWidth = Math.Max(1, card.ClientSize.Width - 76);
+                titleLabel.Width = textWidth;
+                detailLabel.Width = textWidth;
+            };
+            card.Click += (_, __) => open();
+            iconLabel.Click += (_, __) => open();
+            titleLabel.Click += (_, __) => open();
+            detailLabel.Click += (_, __) => open();
+            return card;
         }
 
         private static (Panel Card, Label Title, Label Value, Label Detail) CreateDashboardMetricCard()
@@ -682,10 +828,8 @@ namespace SantexnikaSRM.Forms
             try
             {
                 _homeDashboardSnapshot = _homeDashboardService.GetSnapshot(_currentUser, DateTime.Today);
-                _lblDashboardSubtitle.Text = _homeDashboardSnapshot.IsAdministrator
-                    ? $"Admin ko'rsatkichlari  |  {DateTime.Today:dd.MM.yyyy}"
-                    : $"Mijozlar va qarzlar  |  {DateTime.Today:dd.MM.yyyy}";
-                _lblDashboardSubtitle.ForeColor = UiTheme.Muted;
+                _homeDashboardErrorMessage = null;
+                UpdateHomeStatus();
                 _btnDashboardRefresh.Enabled = true;
                 UpdateHomeDashboardCards(_homeDashboardSnapshot);
                 _homeDashboardChart.Invalidate();
@@ -694,8 +838,8 @@ namespace SantexnikaSRM.Forms
             catch (Exception ex)
             {
                 _homeDashboardSnapshot = null;
-                _lblDashboardSubtitle.Text = $"Ko'rsatkichlarni yuklab bo'lmadi: {ex.Message}";
-                _lblDashboardSubtitle.ForeColor = UiTheme.Danger;
+                _homeDashboardErrorMessage = $"Ko'rsatkichlarni yuklab bo'lmadi: {ex.Message}";
+                UpdateHomeStatus();
                 _btnDashboardRefresh.Enabled = true;
                 foreach (var card in _dashboardCards)
                 {
@@ -707,6 +851,44 @@ namespace SantexnikaSRM.Forms
             }
         }
 
+        private void UpdateHomeStatus()
+        {
+            string warnings = GetCriticalHeaderWarningsText();
+            bool isHealthy = warnings.StartsWith("OK:", StringComparison.OrdinalIgnoreCase);
+            bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
+            _lblHomeStatus.Text = _homeDashboardErrorMessage
+                ?? (isHealthy
+                    ? "Muhim ogohlantirishlar yo'q. Barcha ko'rsatkichlar me'yorda."
+                    : warnings);
+            _lblHomeStatus.ForeColor = _homeDashboardErrorMessage != null
+                ? (isLight ? Color.FromArgb(165, 49, 45) : Color.FromArgb(255, 151, 145))
+                : isHealthy
+                    ? (isLight ? Color.FromArgb(22, 126, 78) : Color.FromArgb(117, 228, 169))
+                    : (isLight ? Color.FromArgb(157, 91, 0) : Color.FromArgb(255, 196, 84));
+            _homeStatusPanel.Invalidate();
+        }
+
+        private void HomeStatusPanel_Paint(object? sender, PaintEventArgs e)
+        {
+            Panel panel = _homeStatusPanel;
+            if (panel.ClientSize.Width <= 0 || panel.ClientSize.Height <= 0)
+            {
+                return;
+            }
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            Rectangle bounds = new Rectangle(0, 0, panel.Width - 1, panel.Height - 1);
+            using GraphicsPath path = RoundedRect(bounds, 8);
+            bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
+            Color fillColor = _homeDashboardErrorMessage != null
+                ? (isLight ? Color.FromArgb(253, 235, 234) : Color.FromArgb(57, 34, 34))
+                : _lblHomeStatus.Text.StartsWith("Muhim ogohlantirishlar", StringComparison.Ordinal)
+                    ? (isLight ? Color.FromArgb(231, 244, 238) : Color.FromArgb(30, 52, 45))
+                    : (isLight ? Color.FromArgb(250, 243, 224) : Color.FromArgb(54, 46, 31));
+            using SolidBrush fill = new SolidBrush(fillColor);
+            e.Graphics.FillPath(fill, path);
+        }
+
         private void UpdateHomeDashboardCards(HomeDashboardSnapshot snapshot)
         {
             string[] titles = snapshot.IsAdministrator
@@ -715,32 +897,32 @@ namespace SantexnikaSRM.Forms
             string[] values = snapshot.IsAdministrator
                 ? new[]
                 {
-                    $"{snapshot.TodaySalesUZS:N0} UZS",
-                    $"{snapshot.TodayNetUZS:N0} UZS",
-                    $"{snapshot.TodayExpensesUZS:N0} UZS",
-                    $"{snapshot.OutstandingUZS:N0} UZS"
+                    $"{snapshot.TodaySalesUZS:N0}",
+                    $"{snapshot.TodayNetUZS:N0}",
+                    $"{snapshot.TodayExpensesUZS:N0}",
+                    $"{snapshot.OutstandingUZS:N0}"
                 }
                 : new[]
                 {
                     snapshot.CustomerCount.ToString("N0"),
                     snapshot.OpenDebts.ToString("N0"),
                     snapshot.OverdueDebts.ToString("N0"),
-                    $"{snapshot.OutstandingUZS:N0} UZS"
+                    $"{snapshot.OutstandingUZS:N0}"
                 };
             string[] details = snapshot.IsAdministrator
                 ? new[]
                 {
-                    "Bugun yakunlangan sotuvlar",
-                    $"Sotuv foydasi minus xarajatlar | foyda: {snapshot.TodayProfitUZS:N0}",
-                    "Bugun qayd etilgan xarajatlar",
-                    $"Muddati o'tgan: {snapshot.OverdueUZS:N0} UZS"
+                    "UZS  Bugun yakunlangan sotuvlar",
+                    $"UZS  Foyda: {snapshot.TodayProfitUZS:N0}",
+                    "UZS  Bugun qayd etilgan xarajatlar",
+                    $"UZS  Muddati o'tgan: {snapshot.OverdueUZS:N0}"
                 }
                 : new[]
                 {
                     "Mijozlar bazasidagi jami",
                     "Ochiq qarzlar soni",
                     "To'lov muddati o'tgan qarzlar",
-                    $"Muddati o'tgan: {snapshot.OverdueUZS:N0} UZS"
+                    $"UZS  Muddati o'tgan: {snapshot.OverdueUZS:N0}"
                 };
 
             for (int i = 0; i < _dashboardCards.Count; i++)
@@ -753,6 +935,7 @@ namespace SantexnikaSRM.Forms
 
             if (snapshot.IsAdministrator)
             {
+                _dashboardCards[0].Value.ForeColor = DashboardSalesColor;
                 _dashboardCards[1].Value.ForeColor = snapshot.TodayNetUZS < 0 ? UiTheme.Danger : UiTheme.Accent;
                 _dashboardCards[3].Value.ForeColor = snapshot.OutstandingUZS > 0 ? UiTheme.Primary : UiTheme.Text;
             }
@@ -790,9 +973,19 @@ namespace SantexnikaSRM.Forms
                 graphics,
                 chartTitle,
                 UiTheme.ButtonFont,
-                new Rectangle(16, 8, 220, 24),
+                new Rectangle(16, 8, 190, 24),
                 UiTheme.Text,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            if (snapshot?.IsAdministrator == true)
+            {
+                TextRenderer.DrawText(
+                    graphics,
+                    "Sotuv va xarajatlar dinamikasi",
+                    UiTheme.BodyFont,
+                    new Rectangle(16, 31, 240, 19),
+                    UiTheme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            }
 
             if (snapshot == null)
             {
@@ -839,7 +1032,7 @@ namespace SantexnikaSRM.Forms
 
             TextRenderer.DrawText(
                 graphics,
-                snapshot?.IsAdministrator == true ? "Holat ko'rinishi" : "Qarzlar holati",
+                "Do'kon holati",
                 UiTheme.ButtonFont,
                 new Rectangle(14, 8, panel.Width - 28, 22),
                 UiTheme.Text,
@@ -857,7 +1050,7 @@ namespace SantexnikaSRM.Forms
                     panel.ClientSize,
                     y: 44,
                     "Ombordagi tovarlar",
-                    $"{snapshot.ProductCount:N0} jami  |  {snapshot.LowStockCount:N0} kam",
+                    $"{snapshot.ProductCount:N0} ta jami  |  {snapshot.LowStockCount:N0} ta kam",
                     Math.Max(0, snapshot.ProductCount - snapshot.LowStockCount),
                     snapshot.LowStockCount,
                     Color.FromArgb(48, 148, 112),
@@ -867,7 +1060,7 @@ namespace SantexnikaSRM.Forms
                     panel.ClientSize,
                     y: 112,
                     "Qarzlar",
-                    $"{snapshot.OpenDebts:N0} faol  |  {snapshot.OverdueDebts:N0} muddati o'tgan",
+                    $"{snapshot.OpenDebts:N0} ta faol  |  {snapshot.OverdueDebts:N0} ta muddati o'tgan",
                     snapshot.OpenDebts,
                     snapshot.OverdueDebts,
                     UiTheme.Primary,
@@ -895,7 +1088,7 @@ namespace SantexnikaSRM.Forms
                     panel.ClientSize,
                     y: 118,
                     "Qarzlar",
-                    $"{snapshot.OpenDebts:N0} faol  |  {snapshot.OverdueDebts:N0} muddati o'tgan",
+                    $"{snapshot.OpenDebts:N0} ta faol  |  {snapshot.OverdueDebts:N0} ta muddati o'tgan",
                     snapshot.OpenDebts,
                     snapshot.OverdueDebts,
                     UiTheme.Primary,
@@ -964,7 +1157,7 @@ namespace SantexnikaSRM.Forms
 
         private static void DrawDashboardLegend(Graphics graphics, int width, bool isAdministrator)
         {
-            Color firstColor = UiTheme.Primary;
+            Color firstColor = isAdministrator ? DashboardSalesColor : UiTheme.Primary;
             Color secondColor = isAdministrator ? UiTheme.Accent : Color.FromArgb(224, 120, 55);
             string firstLabel = isAdministrator ? "Sotuv" : "Faol";
             string secondLabel = isAdministrator ? "Xarajat" : "Muddati o'tgan";
@@ -1037,7 +1230,7 @@ namespace SantexnikaSRM.Forms
         {
             int left = 54;
             int right = bounds.Width - 20;
-            int top = 52;
+            int top = 54;
             int bottom = bounds.Height - 32;
             int plotHeight = bottom - top;
             int plotWidth = right - left;
@@ -1048,7 +1241,7 @@ namespace SantexnikaSRM.Forms
 
             maxValue = maxValue <= 0 ? 1 : maxValue * 1.15;
             using (Pen gridPen = new Pen(UiTheme.Border, 1))
-            using (SolidBrush firstBrush = new SolidBrush(UiTheme.Primary))
+            using (SolidBrush firstBrush = new SolidBrush(isCurrency ? DashboardSalesColor : UiTheme.Primary))
             using (SolidBrush secondBrush = new SolidBrush(secondSeriesColor ?? UiTheme.Accent))
             using (Font axisFont = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 8f))
             {
@@ -1169,8 +1362,9 @@ namespace SantexnikaSRM.Forms
                 _lblFooter.Visible = true;
                 _homeContentPanel.Visible = true;
                 _body.AutoScroll = true;
-                _header.Height = 98;
+                _header.Height = 80;
                 LayoutHeaderCenterText();
+                UpdateNavigationSelection("Bosh sahifa");
                 UpdateBodyScrollArea();
                 LoadHomeDashboard();
             };
@@ -1183,17 +1377,42 @@ namespace SantexnikaSRM.Forms
         private void ShowHomePage()
         {
             CloseActivePage();
+            UpdateNavigationSelection("Bosh sahifa");
             _pageHost.Visible = false;
             _pageHost.AutoScrollMinSize = Size.Empty;
             _actionPanel.Visible = true;
             _lblFooter.Visible = true;
             _homeContentPanel.Visible = true;
             _body.AutoScroll = true;
-            _header.Height = 98;
+            _header.Height = 80;
             LayoutHeaderCenterText();
             UpdateBodyScrollArea();
             _body.PerformLayout();
             LoadHomeDashboard();
+        }
+
+        private void UpdateNavigationSelection(string title)
+        {
+            _selectedNavigationTitle = title;
+            bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
+            foreach (TileUi tile in _tiles)
+            {
+                bool selected = string.Equals(tile.Title.Text, title, StringComparison.Ordinal);
+                tile.BaseColor = selected
+                    ? DashboardSalesColor
+                    : isLight
+                        ? Color.FromArgb(20, 39, 62)
+                        : Color.FromArgb(19, 34, 55);
+                tile.HoverColor = selected
+                    ? Color.FromArgb(77, 77, 220)
+                    : isLight
+                        ? Color.FromArgb(34, 57, 86)
+                        : Color.FromArgb(29, 55, 87);
+                tile.Card.BackColor = tile.HoverProgress > 0
+                    ? LerpColor(tile.BaseColor, tile.HoverColor, tile.HoverProgress)
+                    : tile.BaseColor;
+                tile.Card.Invalidate();
+            }
         }
 
         private void ToggleSidebar()
@@ -1318,7 +1537,11 @@ namespace SantexnikaSRM.Forms
             };
             UpdateTileLayout(card, iconControl, title, subtitle, _sidebarCollapsed);
 
-            EventHandler click = (s, e) => def.OnClick();
+            EventHandler click = (s, e) =>
+            {
+                def.OnClick();
+                UpdateNavigationSelection(def.Title);
+            };
             card.Click += click;
             iconBox.Click += click;
             iconControl.Click += click;
@@ -1402,12 +1625,17 @@ namespace SantexnikaSRM.Forms
             _homeDashboardPanel.BackColor = BackColor;
             _homeDashboardChart.BackColor = UiTheme.Card;
             _homeDashboardSummary.BackColor = UiTheme.Card;
+            _homeStatusPanel.BackColor = BackColor;
             _btnDashboardRefresh.BackColor = isLight ? Color.FromArgb(87, 102, 122) : Color.FromArgb(58, 79, 103);
             _btnDashboardRefresh.ForeColor = Color.White;
             _btnDashboardRefresh.FlatAppearance.MouseOverBackColor = isLight
                 ? Color.FromArgb(70, 85, 106)
                 : Color.FromArgb(71, 94, 121);
-            _lblDashboardSubtitle.ForeColor = UiTheme.Muted;
+            UiTheme.StyleNeutralButton(_btnDashboardRefresh);
+            if (_btnNewSale.Visible)
+            {
+                UiTheme.StylePrimaryButton(_btnNewSale);
+            }
             foreach (var card in _dashboardCards)
             {
                 card.Card.Invalidate();
@@ -1421,6 +1649,7 @@ namespace SantexnikaSRM.Forms
             }
             _homeDashboardChart.Invalidate();
             _homeDashboardSummary.Invalidate();
+            UpdateHomeStatus();
 
             _lblTitleOson.BackColor = Color.Transparent;
             _lblHeaderAlerts.BackColor = Color.Transparent;
@@ -1435,24 +1664,38 @@ namespace SantexnikaSRM.Forms
 
             foreach (TileUi tile in _tiles)
             {
-                tile.BaseColor = isLight ? Color.FromArgb(20, 49, 88) : Color.FromArgb(25, 39, 57);
-                tile.HoverColor = isLight ? Color.FromArgb(31, 68, 115) : Color.FromArgb(37, 55, 77);
+                tile.BaseColor = isLight ? Color.FromArgb(20, 39, 62) : Color.FromArgb(19, 34, 55);
+                tile.HoverColor = isLight ? Color.FromArgb(34, 57, 86) : Color.FromArgb(29, 55, 87);
                 tile.Card.BackColor = tile.BaseColor;
                 tile.Title.ForeColor = Color.FromArgb(245, 249, 255);
                 tile.Subtitle.ForeColor = isLight ? Color.FromArgb(193, 207, 225) : Color.FromArgb(165, 180, 199);
                 tile.Card.Invalidate();
             }
+            UpdateNavigationSelection(_selectedNavigationTitle);
 
-            _sidebar.BackColor = isLight ? Color.FromArgb(10, 43, 94) : Color.FromArgb(13, 24, 41);
+            _sidebar.BackColor = isLight ? Color.FromArgb(20, 37, 59) : Color.FromArgb(13, 24, 41);
             _sidebarBrand.BackColor = _sidebar.BackColor;
             _sidebarToggleButton.BackColor = _sidebar.BackColor;
             _sidebarBrand.Invalidate();
             _lblSidebarCaption.ForeColor = isLight ? Color.FromArgb(177, 205, 244) : Color.FromArgb(144, 169, 202);
             _tilesGrid.BackColor = _sidebar.BackColor;
-            _welcomePanel.BackColor = UiTheme.Card;
-            _welcomePanel.Invalidate();
+            _welcomePanel.BackColor = Color.Transparent;
             _lblWelcomeTitle.ForeColor = UiTheme.Text;
             _lblWelcomeSubtitle.ForeColor = UiTheme.Muted;
+            _lblDashboardSection.ForeColor = UiTheme.Text;
+            foreach (Control control in _homeQuickActions.Controls)
+            {
+                if (control is not Panel actionCard || actionCard.Controls.Count < 3)
+                {
+                    continue;
+                }
+
+                actionCard.Controls[0].ForeColor = UiTheme.Primary;
+                actionCard.Controls[0].BackColor = UiTheme.Background;
+                actionCard.Controls[1].ForeColor = UiTheme.Text;
+                actionCard.Controls[2].ForeColor = UiTheme.Muted;
+                actionCard.Invalidate();
+            }
 
             foreach (Control panelControl in _actionPanel.Controls)
             {
@@ -1961,23 +2204,12 @@ namespace SantexnikaSRM.Forms
 
         private void LayoutHeaderCenterText()
         {
-            bool compact = _header.Height < 90;
             int safeLeft = 24;
             int safeRight = (_picRole.Visible ? _picRole.Left : _header.Width) - 18;
-            int maxWidth = Math.Max(220, safeRight - safeLeft);
-
-            int desiredWidth = Math.Min(maxWidth, 840);
-            int centeredLeft = (_header.ClientSize.Width - desiredWidth) / 2;
-            int left = Math.Max(safeLeft, Math.Min(centeredLeft, safeRight - desiredWidth));
-
-            if (safeRight <= safeLeft + 40)
-            {
-                left = safeLeft;
-                desiredWidth = Math.Max(120, _header.Width - safeLeft - 24);
-            }
-
-            _lblTitleOson.SetBounds(left, compact ? 2 : 8, desiredWidth, compact ? 32 : 40);
-            _lblHeaderAlerts.SetBounds(left, compact ? 34 : 48, desiredWidth, 22);
+            int desiredWidth = Math.Max(120, safeRight - safeLeft);
+            int titleTop = _header.Height < 80 ? 2 : 8;
+            _lblTitleOson.SetBounds(safeLeft, titleTop, desiredWidth, 28);
+            _lblHeaderAlerts.SetBounds(safeLeft, titleTop + 31, desiredWidth, 22);
             _lblHeaderAlerts.BringToFront();
         }
 
@@ -2006,6 +2238,7 @@ namespace SantexnikaSRM.Forms
             _lblHeaderAlerts.ForeColor = _lblHeaderAlerts.Text.StartsWith("OK:", StringComparison.OrdinalIgnoreCase)
                 ? (isLight ? Color.FromArgb(22, 126, 78) : Color.FromArgb(117, 228, 169))
                 : (isLight ? Color.FromArgb(157, 91, 0) : Color.FromArgb(255, 196, 84));
+            UpdateHomeStatus();
         }
 
         private void HeaderAlerts_Click(object? sender, EventArgs e)

@@ -6,10 +6,10 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>1.2.54</Version>
-    <AssemblyVersion>1.2.54.0</AssemblyVersion>
-    <FileVersion>1.2.54.0</FileVersion>
-    <InformationalVersion>1.2.54</InformationalVersion>
+    <Version>1.2.55</Version>
+    <AssemblyVersion>1.2.55.0</AssemblyVersion>
+    <FileVersion>1.2.55.0</FileVersion>
+    <InformationalVersion>1.2.55</InformationalVersion>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishTrimmed>false</PublishTrimmed>
