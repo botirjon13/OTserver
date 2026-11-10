@@ -48,8 +48,8 @@ namespace SantexnikaSRM.Forms
             Size = new Size(1420, 880);
             MinimumSize = new Size(940, 620);
             StartPosition = FormStartPosition.CenterParent;
-            BackColor = Color.FromArgb(239, 242, 248);
-            Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
             DoubleBuffered = true;
 
             Panel canvas = new Panel
@@ -87,7 +87,7 @@ namespace SantexnikaSRM.Forms
                 titleIcon.Paint += (s, e) =>
                 {
                     e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    using LinearGradientBrush brush = new LinearGradientBrush(titleIcon.ClientRectangle, Color.FromArgb(74, 56, 230), Color.FromArgb(90, 95, 246), 45f);
+                    using LinearGradientBrush brush = new LinearGradientBrush(titleIcon.ClientRectangle, UiTheme.Primary, Color.FromArgb(0, 91, 128), 45f);
                     using GraphicsPath path = RoundedRect(titleIcon.ClientRectangle, 16);
                     e.Graphics.FillPath(brush, path);
                     TextRenderer.DrawText(e.Graphics, "\uE9D2", UiTheme.IconFont(24), titleIcon.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -99,8 +99,8 @@ namespace SantexnikaSRM.Forms
                 Left = 66,
                 Top = 4,
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 23, FontStyle.Bold),
-                ForeColor = Color.FromArgb(28, 42, 65)
+                Font = UiTheme.TitleFont,
+                ForeColor = UiTheme.Text
             };
             Label lblSub = new Label
             {
@@ -108,8 +108,8 @@ namespace SantexnikaSRM.Forms
                 Left = 68,
                 Top = 40,
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
-                ForeColor = Color.FromArgb(70, 89, 116)
+                Font = UiTheme.BodyFont,
+                ForeColor = UiTheme.Muted
             };
             header.Controls.Add(titleIcon);
             header.Controls.Add(lblTitle);
@@ -145,7 +145,7 @@ namespace SantexnikaSRM.Forms
         {
             Panel card = NewCard();
 
-            Panel titleBar = NewBar("Hisobot Davri", Color.FromArgb(136, 31, 226), Color.FromArgb(172, 70, 234), "\uE823", "tile-reports.png");
+            Panel titleBar = NewBar("Hisobot Davri", UiTheme.Primary, Color.FromArgb(0, 91, 128), "\uE823", "tile-reports.png");
             titleBar.Dock = DockStyle.Top;
 
             Panel body = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(26, 16, 26, 20) };
@@ -180,7 +180,7 @@ namespace SantexnikaSRM.Forms
             _dtTo.Width = 404;
             toWrap.Controls.Add(_dtTo);
 
-            Button btnLoad = NewActionButton("KO'RISH", Color.FromArgb(40, 106, 243), Color.FromArgb(33, 95, 224), 12);
+            Button btnLoad = NewActionButton("KO'RISH", UiTheme.Primary, Color.FromArgb(0, 91, 128), 12);
             btnLoad.SetBounds(924, 42, 122, 48);
             btnLoad.Click += (s, e) => LoadReportToScreen();
 
@@ -226,14 +226,14 @@ namespace SantexnikaSRM.Forms
         {
             Panel card = NewCard();
 
-            Panel titleBar = NewBar("Moliyaviy Natijalar", Color.FromArgb(74, 56, 230), Color.FromArgb(90, 95, 246), "\uE9D2", "tile-reports.png");
+            Panel titleBar = NewBar("Moliyaviy Natijalar", UiTheme.Primary, Color.FromArgb(0, 91, 128), "\uE9D2", "tile-reports.png");
             titleBar.Dock = DockStyle.Top;
 
             Panel body = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(26, 18, 26, 20) };
 
             Panel rowSales = BuildMetricRow(Color.FromArgb(60, 133, 247), Color.FromArgb(237, 246, 255), "Jami Sotuv:", _lblSales, "money");
             Panel rowProfit = BuildMetricRow(Color.FromArgb(8, 188, 87), Color.FromArgb(238, 250, 243), "Jami Foyda:", _lblProfit, "profit");
-            Panel rowExpense = BuildMetricRow(Color.FromArgb(255, 110, 0), Color.FromArgb(252, 247, 236), "Jami Xarajat:", _lblExpenses, "expense");
+            Panel rowExpense = BuildMetricRow(Color.FromArgb(76, 96, 120), Color.FromArgb(245, 248, 252), "Jami Xarajat:", _lblExpenses, "expense");
 
             rowSales.SetBounds(0, 30, 100, 72);
             rowProfit.SetBounds(0, 118, 100, 72);
@@ -829,6 +829,5 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
 
 

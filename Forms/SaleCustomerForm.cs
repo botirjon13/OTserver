@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -61,7 +62,7 @@ namespace SantexnikaSRM.Forms
             ClientSize = new Size(_debtMode ? 690 : 526, _debtMode ? 760 : 690);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.None;
-            BackColor = Color.FromArgb(238, 240, 246);
+            BackColor = UiTheme.Background;
             MinimizeBox = false;
             MaximizeBox = false;
             KeyPreview = true;
@@ -88,8 +89,8 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle rect = new Rectangle(0, 0, _root.Width - 1, _root.Height - 1);
                 using GraphicsPath path = RoundedRect(rect, 18);
-                using SolidBrush fill = new SolidBrush(Color.FromArgb(245, 247, 251));
-                using Pen border = new Pen(Color.FromArgb(188, 199, 220), 1.3f);
+                using SolidBrush fill = new SolidBrush(UiTheme.Card);
+                using Pen border = new Pen(UiTheme.Border, 1.2f);
                 e.Graphics.FillPath(fill, path);
                 e.Graphics.DrawPath(border, path);
             };
@@ -119,8 +120,8 @@ namespace SantexnikaSRM.Forms
             {
                 using LinearGradientBrush brush = new LinearGradientBrush(
                     _header.ClientRectangle,
-                    Color.FromArgb(35, 98, 238),
-                    Color.FromArgb(80, 58, 228),
+                    UiTheme.Primary,
+                    Color.FromArgb(0, 91, 128),
                     0f);
                 e.Graphics.FillRectangle(brush, _header.ClientRectangle);
             };
@@ -131,7 +132,7 @@ namespace SantexnikaSRM.Forms
                 Left = 24,
                 Top = 15,
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 17f, FontStyle.Bold),
+                Font = UiTheme.TitleFont,
                 ForeColor = Color.White,
                 BackColor = Color.Transparent
             };

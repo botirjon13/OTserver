@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
 using SantexnikaSRM.Services;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -19,6 +20,8 @@ namespace SantexnikaSRM.Forms
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(850, 520);
             MinimumSize = new Size(700, 420);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
 
             var root = new TableLayoutPanel
             {
@@ -41,9 +44,11 @@ namespace SantexnikaSRM.Forms
             _to.Value = DateTime.Today;
             filters.Controls.Add(_to);
             var load = new Button { Text = "Ko'rish", Width = 90, Height = 30, Margin = new Padding(10, 0, 0, 0) };
+            UiTheme.StylePrimaryButton(load);
             load.Click += (_, __) => LoadHistory();
             filters.Controls.Add(load);
             var reprint = new Button { Text = "Qayta chop etish", Width = 140, Height = 30, Margin = new Padding(8, 0, 0, 0) };
+            UiTheme.StyleNeutralButton(reprint);
             reprint.Click += ReprintSelected;
             filters.Controls.Add(reprint);
             root.Controls.Add(filters, 0, 0);
@@ -58,6 +63,9 @@ namespace SantexnikaSRM.Forms
             _grid.AutoGenerateColumns = false;
             _grid.RowHeadersVisible = false;
             _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            UiTheme.StyleGrid(_grid);
+            _grid.RowTemplate.Height = 36;
+            _grid.DefaultCellStyle.Padding = new Padding(6, 2, 6, 2);
             _grid.DoubleClick += ReprintSelected;
             _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "ReturnId", HeaderText = "Qaytarish hujjati", FillWeight = 22 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "OriginalReceipt", HeaderText = "Asl chek", FillWeight = 22 });

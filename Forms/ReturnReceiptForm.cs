@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using SantexnikaSRM.Models;
+using SantexnikaSRM.Utils;
 
 namespace SantexnikaSRM.Forms
 {
@@ -32,6 +33,8 @@ namespace SantexnikaSRM.Forms
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(430, 760);
             MinimumSize = new Size(390, 600);
+            BackColor = UiTheme.Background;
+            Font = UiTheme.BodyFont;
 
             var root = new TableLayoutPanel
             {
@@ -48,6 +51,7 @@ namespace SantexnikaSRM.Forms
             var top = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
             top.Controls.Add(new Label { Text = "Chek o'lchami:", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
             _cmbPaper.DropDownStyle = ComboBoxStyle.DropDownList;
+            UiTheme.StyleInput(_cmbPaper);
             _cmbPaper.Items.AddRange(new object[] { "80mm", "58mm" });
             _cmbPaper.SelectedIndex = 0;
             _cmbPaper.SelectedIndexChanged += (_, __) => RefreshPreview();
@@ -74,8 +78,10 @@ namespace SantexnikaSRM.Forms
                 FlowDirection = FlowDirection.RightToLeft
             };
             var close = new Button { Text = "Yopish", Width = 90, Height = 34 };
+            UiTheme.StyleNeutralButton(close);
             close.Click += (_, __) => Close();
             var print = new Button { Text = "Chop etish", Width = 110, Height = 34 };
+            UiTheme.StylePrimaryButton(print);
             print.Click += Print_Click;
             buttons.Controls.Add(close);
             buttons.Controls.Add(print);

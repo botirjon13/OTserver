@@ -41,7 +41,7 @@ namespace SantexnikaSRM.Forms
         private readonly Panel _titleBadge = new Panel();
         private readonly Label _lblTitleIcon = new Label();
         private readonly Label _lblSearchIcon = new Label();
-        private static readonly Color InputBorderColor = Color.FromArgb(58, 113, 212);
+        private static readonly Color InputBorderColor = Color.FromArgb(180, 196, 218);
 
         private List<Debt> _debts = new List<Debt>();
 
@@ -68,13 +68,13 @@ namespace SantexnikaSRM.Forms
             Size = new Size(1280, 780);
             MinimumSize = new Size(980, 640);
             StartPosition = FormStartPosition.CenterParent;
-            BackColor = Color.FromArgb(236, 242, 252);
+            BackColor = SantexnikaSRM.Utils.UiTheme.Background;
             Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
             DoubleBuffered = true;
 
             Controls.Add(_container);
 
-            _titleBadge.BackColor = Color.FromArgb(245, 2, 49);
+            _titleBadge.BackColor = SantexnikaSRM.Utils.UiTheme.Primary;
             _titleBadge.Size = new Size(52, 52);
             Image? debtorsHeaderIcon = BrandingAssets.TryLoadAssetImage("tile-customers-stat-debtors.png");
             if (debtorsHeaderIcon != null)
@@ -102,28 +102,28 @@ namespace SantexnikaSRM.Forms
             {
                 Text = "Qarzdorlar ro'yxati",
                 AutoSize = true,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 32, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 47, 76)
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 24, FontStyle.Bold),
+                ForeColor = SantexnikaSRM.Utils.UiTheme.Text
             };
             Label lblSub = new Label
             {
                 Text = "Barcha qarzlar va to'lovlar ma'lumoti",
                 AutoSize = true,
                 Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
-                ForeColor = Color.FromArgb(91, 110, 142)
+                ForeColor = SantexnikaSRM.Utils.UiTheme.Muted
             };
 
-            InitSummaryCard(_cardOutstanding, "Jami qoldiq", _lblOutstanding, "money", Color.FromArgb(255, 33, 78), Color.FromArgb(240, 4, 64), "tile-debtors-stat-total.png");
-            InitSummaryCard(_cardOverdue, "Muddati o'tgan", _lblOverdue, "overdue", Color.FromArgb(255, 133, 0), Color.FromArgb(242, 38, 0), "tile-debtors-stat-overdue.png");
-            InitSummaryCard(_cardStatus, "Holat", _lblStatusSummary, "status", Color.FromArgb(56, 111, 235), Color.FromArgb(78, 58, 224), "tile-debtors-stat-status.png");
+            InitSummaryCard(_cardOutstanding, "Jami qoldiq", _lblOutstanding, "money", Color.FromArgb(176, 52, 60), Color.FromArgb(160, 44, 52), "tile-debtors-stat-total.png");
+            InitSummaryCard(_cardOverdue, "Muddati o'tgan", _lblOverdue, "overdue", Color.FromArgb(184, 110, 20), Color.FromArgb(168, 98, 16), "tile-debtors-stat-overdue.png");
+            InitSummaryCard(_cardStatus, "Holat", _lblStatusSummary, "status", Color.FromArgb(0, 104, 145), Color.FromArgb(0, 92, 130), "tile-debtors-stat-status.png");
 
             _searchWrap.BackColor = Color.FromArgb(250, 252, 255);
             _searchWrap.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(2, 2, Math.Max(1, _searchWrap.Width - 5), Math.Max(1, _searchWrap.Height - 5));
-                using Pen border = new Pen(InputBorderColor, 3f) { LineJoin = LineJoin.Round };
-                using GraphicsPath path = RoundedRect(bounds, 14);
+                using Pen border = new Pen(InputBorderColor, 1.5f) { LineJoin = LineJoin.Round };
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.DrawPath(border, path);
             };
 
@@ -157,8 +157,8 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(2, 2, Math.Max(1, _statusWrap.Width - 5), Math.Max(1, _statusWrap.Height - 5));
-                using Pen border = new Pen(InputBorderColor, 3f) { LineJoin = LineJoin.Round };
-                using GraphicsPath path = RoundedRect(bounds, 14);
+                using Pen border = new Pen(InputBorderColor, 1.5f) { LineJoin = LineJoin.Round };
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.DrawPath(border, path);
             };
             _cmbStatus.Dock = DockStyle.Fill;
@@ -172,11 +172,11 @@ namespace SantexnikaSRM.Forms
             _statusArrowMask.BringToFront();
             _statusWrap.Click += (s, e) => _cmbStatus.DroppedDown = true;
 
-            StyleActionButton(_btnRefresh, "Yangilash", "\uE72C", Color.FromArgb(56, 112, 242), Color.FromArgb(74, 83, 232));
+            StyleActionButton(_btnRefresh, "Yangilash", "\uE72C", Color.FromArgb(0, 112, 156), Color.FromArgb(0, 98, 140));
             _btnRefresh.Click += (s, e) => ReloadData();
-            StyleActionButton(_btnAddPayment, "To'lov qo'shish", "\uECC8", Color.FromArgb(0, 186, 109), Color.FromArgb(0, 162, 87));
+            StyleActionButton(_btnAddPayment, "To'lov qo'shish", "\uECC8", Color.FromArgb(22, 128, 92), Color.FromArgb(18, 116, 83));
             _btnAddPayment.Click += AddPayment_Click;
-            StyleActionButton(_btnClose, "Yopish", "\uE711", Color.FromArgb(73, 92, 126), Color.FromArgb(53, 73, 106));
+            StyleActionButton(_btnClose, "Yopish", "\uE711", Color.FromArgb(71, 85, 105), Color.FromArgb(62, 75, 94));
             _btnClose.Click += (s, e) => Close();
 
             _gridWrap.BackColor = Color.White;
@@ -184,8 +184,8 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using SolidBrush fill = new SolidBrush(Color.White);
-                using Pen border = new Pen(Color.FromArgb(201, 216, 236));
-                using GraphicsPath path = RoundedRect(_gridWrap.ClientRectangle, 16);
+                using Pen border = new Pen(SantexnikaSRM.Utils.UiTheme.Border);
+                using GraphicsPath path = RoundedRect(new Rectangle(0, 0, _gridWrap.Width - 1, _gridWrap.Height - 1), 8);
                 e.Graphics.FillPath(fill, path);
                 e.Graphics.DrawPath(border, path);
             };
@@ -205,23 +205,23 @@ namespace SantexnikaSRM.Forms
             _grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             _grid.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             _grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            _grid.GridColor = Color.FromArgb(230, 236, 246);
-            _grid.ColumnHeadersHeight = 48;
-            _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(244, 2, 49);
+            _grid.GridColor = Color.FromArgb(226, 233, 243);
+            _grid.ColumnHeadersHeight = 40;
+            _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(34, 58, 90);
             _grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            _grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(244, 2, 49);
+            _grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(34, 58, 90);
             _grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
-            _grid.ColumnHeadersDefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
+            _grid.ColumnHeadersDefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(0, 2, 0, 2);
             _grid.DefaultCellStyle.BackColor = Color.White;
             _grid.DefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
             _grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(241, 235, 247);
+            _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(226, 238, 247);
             _grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(25, 39, 64);
-            _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 252, 255);
-            _grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(241, 235, 247);
-            _grid.RowTemplate.Height = 46;
+            _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(247, 250, 253);
+            _grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(226, 238, 247);
+            _grid.RowTemplate.Height = 40;
             _grid.CellDoubleClick += (s, e) => AddPayment_Click(s, EventArgs.Empty);
             _grid.CellFormatting += Grid_CellFormatting;
 
@@ -255,7 +255,7 @@ namespace SantexnikaSRM.Forms
                 _container.SetBounds(left, 16, containerWidth, ClientSize.Height - 24);
 
                 _titleBadge.Location = new Point(0, 4);
-                _titleBadge.Region = new Region(RoundedRect(new Rectangle(0, 0, _titleBadge.Width, _titleBadge.Height), 16));
+                _titleBadge.Region = new Region(RoundedRect(new Rectangle(0, 0, _titleBadge.Width, _titleBadge.Height), 8));
                 lblTitle.Location = new Point(_titleBadge.Right + 14, -2);
                 lblSub.Location = new Point(_titleBadge.Right + 16, 56);
 
@@ -285,12 +285,12 @@ namespace SantexnikaSRM.Forms
                 _lblRows.Left = Math.Max(0, (containerWidth - _lblRows.Width) / 2);
                 _lblRows.Top = _gridWrap.Bottom + 10;
 
-                _cardOutstanding.Region = new Region(RoundedRect(new Rectangle(0, 0, _cardOutstanding.Width, _cardOutstanding.Height), 14));
-                _cardOverdue.Region = new Region(RoundedRect(new Rectangle(0, 0, _cardOverdue.Width, _cardOverdue.Height), 14));
-                _cardStatus.Region = new Region(RoundedRect(new Rectangle(0, 0, _cardStatus.Width, _cardStatus.Height), 14));
-                _searchWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, _searchWrap.Width, _searchWrap.Height), 14));
-                _statusWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, _statusWrap.Width, _statusWrap.Height), 14));
-                _gridWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, _gridWrap.Width, _gridWrap.Height), 16));
+                _cardOutstanding.Region = new Region(RoundedRect(new Rectangle(0, 0, _cardOutstanding.Width, _cardOutstanding.Height), 8));
+                _cardOverdue.Region = new Region(RoundedRect(new Rectangle(0, 0, _cardOverdue.Width, _cardOverdue.Height), 8));
+                _cardStatus.Region = new Region(RoundedRect(new Rectangle(0, 0, _cardStatus.Width, _cardStatus.Height), 8));
+                _searchWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, _searchWrap.Width, _searchWrap.Height), 8));
+                _statusWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, _statusWrap.Width, _statusWrap.Height), 8));
+                _gridWrap.Region = new Region(RoundedRect(new Rectangle(0, 0, _gridWrap.Width, _gridWrap.Height), 8));
             }
 
             Resize += (s, e) => ApplyLayout();
@@ -342,7 +342,7 @@ namespace SantexnikaSRM.Forms
                 else
                 {
                     Rectangle iconRect = new Rectangle(card.Width - 62, (card.Height - 46) / 2, 46, 46);
-                    DrawCardIcon(e.Graphics, iconKind, iconRect, Color.FromArgb(140, 255, 255, 255));
+                    DrawCardIcon(e.Graphics, iconKind, iconRect, Color.FromArgb(110, 255, 255, 255));
                 }
             };
         }
@@ -401,7 +401,7 @@ namespace SantexnikaSRM.Forms
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using LinearGradientBrush brush = new LinearGradientBrush(button.ClientRectangle, c1, c2, 0f);
-                using GraphicsPath path = RoundedRect(button.ClientRectangle, 14);
+                using GraphicsPath path = RoundedRect(button.ClientRectangle, 8);
                 e.Graphics.FillPath(brush, path);
 
                 string glyph = button.Tag?.ToString() ?? string.Empty;
@@ -424,7 +424,7 @@ namespace SantexnikaSRM.Forms
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
             button.Resize += (s, e) =>
-                button.Region = new Region(RoundedRect(new Rectangle(0, 0, button.Width, button.Height), 14));
+                button.Region = new Region(RoundedRect(new Rectangle(0, 0, button.Width, button.Height), 8));
         }
 
         private bool TryApplyInitialStatusFilter()
@@ -544,27 +544,27 @@ namespace SantexnikaSRM.Forms
             string col = _grid.Columns[e.ColumnIndex].Name;
             if (col == "Tolangan")
             {
-                style.ForeColor = Color.FromArgb(0, 163, 70);
+                style.ForeColor = Color.FromArgb(22, 128, 92);
                 style.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
             }
             else if (col == "Qoldiq")
             {
-                style.ForeColor = Color.FromArgb(224, 13, 44);
+                style.ForeColor = Color.FromArgb(190, 40, 52);
                 style.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
             }
             else if (col == "Holat" && e.Value is string status)
             {
                 if (string.Equals(status, "Closed", StringComparison.OrdinalIgnoreCase))
                 {
-                    style.ForeColor = Color.FromArgb(0, 152, 72);
+                    style.ForeColor = Color.FromArgb(22, 128, 92);
                 }
                 else if (string.Equals(status, "Overdue", StringComparison.OrdinalIgnoreCase))
                 {
-                    style.ForeColor = Color.FromArgb(218, 26, 26);
+                    style.ForeColor = Color.FromArgb(190, 40, 52);
                 }
                 else
                 {
-                    style.ForeColor = Color.FromArgb(30, 84, 224);
+                    style.ForeColor = Color.FromArgb(0, 104, 145);
                 }
                 style.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11, FontStyle.Bold);
             }
