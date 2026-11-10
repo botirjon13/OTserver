@@ -35,9 +35,9 @@ namespace SantexnikaSRM.Forms
         private int _loadingFrame;
         private bool _loginHover;
         private bool _loginPressed;
-        private Color _cardFill = Color.FromArgb(20, 30, 44);
-        private Color _inputRowBg = Color.FromArgb(31, 43, 60);
-        private Color _inputRowBorder = Color.FromArgb(0, 235, 140);
+        private Color _cardFill = UiTheme.Card;
+        private Color _inputRowBg = UiTheme.BackgroundSecondary;
+        private Color _inputRowBorder = UiTheme.Border;
         private readonly Dictionary<TextBox, string> _placeholders = new Dictionary<TextBox, string>();
 
         public LoginForm()
@@ -50,20 +50,15 @@ namespace SantexnikaSRM.Forms
         private void InitializeComponent()
         {
             Text = "Osontrack SRM tizimi";
-            Size = new Size(980, 780);
-            MinimumSize = new Size(420, 600);
+            Size = new Size(760, 700);
+            MinimumSize = new Size(420, 560);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.Sizable;
             BackColor = UiTheme.Background;
             Font = UiTheme.BodyFont;
             DoubleBuffered = true;
 
-            Paint += (s, e) =>
-            {
-                e.Graphics.Clear(Color.White);
-            };
-
-            btnTheme.Size = new Size(96, 36);
+            btnTheme.Size = new Size(112, 34);
             btnTheme.FlatStyle = FlatStyle.Flat;
             btnTheme.FlatAppearance.BorderSize = 1;
             btnTheme.Cursor = Cursors.Hand;
@@ -75,41 +70,40 @@ namespace SantexnikaSRM.Forms
                 Invalidate();
             };
 
-            card.Size = new Size(470, 640);
-            card.Padding = new Padding(34, 28, 34, 30);
+            card.Size = new Size(460, 560);
+            card.Padding = new Padding(28);
             card.Paint += Card_Paint;
 
             lblTitle.Text = "Tizimga kirish";
             lblTitle.AutoSize = true;
-            lblTitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
+            lblTitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 20, FontStyle.Bold);
 
-            lblSubtitle.Text = string.Empty;
+            lblSubtitle.Text = "Davom etish uchun login va parolingizni kiriting.";
             lblSubtitle.AutoSize = true;
-            lblSubtitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
-            lblSubtitle.Visible = false;
+            lblSubtitle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular);
 
             Image? logoImage = BrandingAssets.TryLoadLogo();
-            _logoSize = logoImage != null ? new Size(320, 130) : new Size(74, 74);
+            _logoSize = logoImage != null ? new Size(260, 88) : new Size(56, 56);
             _logoControl = BrandingAssets.CreateLogoControl(_logoSize, 20, "\uE77B");
 
-            lblLogin.Text = "Login";
+            lblLogin.Text = "Foydalanuvchi nomi";
             lblLogin.AutoSize = true;
-            lblLogin.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiLight"), 12, FontStyle.Regular);
+            lblLogin.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10, FontStyle.Bold);
 
-            SetupInputRow(usernameRow, "\uE77B", txtUsername, "Loginni kiriting");
+            SetupInputRow(usernameRow, txtUsername, "Loginni kiriting");
 
             lblPassword.Text = "Parol";
             lblPassword.AutoSize = true;
-            lblPassword.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiLight"), 12, FontStyle.Regular);
+            lblPassword.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10, FontStyle.Bold);
 
-            SetupInputRow(passwordRow, "\uE72E", txtPassword, "Parolni kiriting");
+            SetupInputRow(passwordRow, txtPassword, "Parolni kiriting");
             txtPassword.PasswordChar = '*';
 
-            btnPasswordToggle.Size = new Size(52, 34);
+            btnPasswordToggle.Size = new Size(56, 34);
             btnPasswordToggle.FlatStyle = FlatStyle.Flat;
             btnPasswordToggle.FlatAppearance.BorderSize = 0;
             btnPasswordToggle.Cursor = Cursors.Hand;
-            btnPasswordToggle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 9, FontStyle.Bold);
+            btnPasswordToggle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 9, FontStyle.Regular);
             btnPasswordToggle.Text = "KO'R";
             btnPasswordToggle.Click += (s, e) =>
             {
@@ -119,7 +113,7 @@ namespace SantexnikaSRM.Forms
                     txtPassword.PasswordChar = _showPassword ? '\0' : '*';
                 }
                 btnPasswordToggle.Text = _showPassword ? "YOP" : "KO'R";
-                btnPasswordToggle.ForeColor = _showPassword ? Color.FromArgb(56, 88, 233) : UiTheme.Muted;
+                btnPasswordToggle.ForeColor = _showPassword ? UiTheme.Primary : UiTheme.Muted;
             };
             passwordRow.Controls.Add(btnPasswordToggle);
             btnPasswordToggle.Location = new Point(passwordRow.Width - 60, 10);
@@ -129,9 +123,9 @@ namespace SantexnikaSRM.Forms
             lnkForgot.AutoSize = true;
             lnkForgot.LinkBehavior = LinkBehavior.HoverUnderline;
             lnkForgot.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 11, FontStyle.Regular);
-            lnkForgot.LinkColor = Color.FromArgb(80, 72, 255);
-            lnkForgot.ActiveLinkColor = Color.FromArgb(58, 45, 235);
-            lnkForgot.VisitedLinkColor = Color.FromArgb(80, 72, 255);
+            lnkForgot.LinkColor = UiTheme.Primary;
+            lnkForgot.ActiveLinkColor = UiTheme.Primary;
+            lnkForgot.VisitedLinkColor = UiTheme.Primary;
             lnkForgot.Click += (s, e) =>
             {
                 MessageBox.Show(
@@ -142,11 +136,11 @@ namespace SantexnikaSRM.Forms
             };
 
             btnLogin.Text = "KIRISH";
-            btnLogin.Size = new Size(400, 56);
+            btnLogin.Size = new Size(400, 48);
             btnLogin.FlatStyle = FlatStyle.Flat;
             btnLogin.FlatAppearance.BorderSize = 0;
             btnLogin.Cursor = Cursors.Hand;
-            btnLogin.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 16, FontStyle.Bold);
+            btnLogin.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
             btnLogin.ForeColor = Color.White;
             btnLogin.Paint += BtnLogin_Paint;
             btnLogin.MouseEnter += (s, e) => { _loginHover = true; btnLogin.Invalidate(); };
@@ -231,35 +225,25 @@ namespace SantexnikaSRM.Forms
             Close();
         }
 
-        private void SetupInputRow(Panel row, string iconGlyph, TextBox textBox, string placeholder)
+        private void SetupInputRow(Panel row, TextBox textBox, string placeholder)
         {
-            row.Size = new Size(400, 54);
-            row.Padding = new Padding(14, 8, 12, 8);
+            row.Size = new Size(400, 50);
+            row.Padding = new Padding(12, 7, 12, 7);
             row.BackColor = _inputRowBg;
             row.Paint += InputRow_Paint;
 
-            Label icon = new Label
-            {
-                Text = iconGlyph,
-                AutoSize = false,
-                Width = 28,
-                Dock = DockStyle.Left,
-                Font = UiTheme.IconFont(14),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
             textBox.BorderStyle = BorderStyle.None;
-            textBox.Left = 44;
-            textBox.Top = 14;
-            textBox.Width = row.Width - 58;
+            textBox.Left = 12;
+            textBox.Top = 12;
+            textBox.Width = row.Width - 36;
             textBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            textBox.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 14, FontStyle.Regular);
+            textBox.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular);
             textBox.PlaceholderText = string.Empty;
             AttachPlaceholder(textBox, placeholder, textBox == txtPassword);
+            textBox.GotFocus += (s, e) => row.Invalidate();
+            textBox.LostFocus += (s, e) => row.Invalidate();
 
             row.Controls.Add(textBox);
-            row.Controls.Add(icon);
         }
 
         private void SetLoadingState(bool loading)
@@ -285,20 +269,20 @@ namespace SantexnikaSRM.Forms
 
         private void ApplyTheme()
         {
-            BackColor = Color.White;
-            _cardFill = Color.FromArgb(20, 30, 44);
+            BackColor = UiTheme.Background;
+            _cardFill = UiTheme.Card;
             card.BackColor = Color.Transparent;
-            _inputRowBg = Color.FromArgb(31, 43, 60);
-            _inputRowBorder = Color.FromArgb(0, 235, 140);
+            _inputRowBg = UiTheme.CurrentMode == UiTheme.ThemeMode.Light
+                ? Color.White
+                : UiTheme.BackgroundSecondary;
+            _inputRowBorder = UiTheme.Border;
             Color inputBg = _inputRowBg;
-            Color titleColor = Color.FromArgb(238, 245, 255);
-            Color subText = Color.FromArgb(168, 186, 212);
+            Color titleColor = UiTheme.Text;
+            Color subText = UiTheme.Muted;
 
-            btnTheme.Text = UiTheme.CurrentMode == UiTheme.ThemeMode.Light ? "QORA" : "OQ";
-            btnTheme.BackColor = UiTheme.CurrentMode == UiTheme.ThemeMode.Light
-                ? Color.FromArgb(248, 251, 255)
-                : Color.FromArgb(30, 40, 56);
-            btnTheme.ForeColor = titleColor;
+            btnTheme.Text = UiTheme.CurrentMode == UiTheme.ThemeMode.Light ? "Tungi rejim" : "Yorug' rejim";
+            btnTheme.BackColor = UiTheme.Card;
+            btnTheme.ForeColor = UiTheme.Text;
             btnTheme.FlatAppearance.BorderColor = UiTheme.Border;
 
             lblTitle.ForeColor = titleColor;
@@ -311,18 +295,15 @@ namespace SantexnikaSRM.Forms
             lblPassword.BackColor = Color.Transparent;
             lnkForgot.BackColor = Color.Transparent;
 
-            lnkForgot.LinkColor = UiTheme.CurrentMode == UiTheme.ThemeMode.Light ? Color.FromArgb(80, 72, 255) : Color.FromArgb(149, 167, 255);
-            lnkForgot.ActiveLinkColor = UiTheme.CurrentMode == UiTheme.ThemeMode.Light ? Color.FromArgb(58, 45, 235) : Color.FromArgb(178, 196, 255);
+            lnkForgot.LinkColor = UiTheme.Primary;
+            lnkForgot.ActiveLinkColor = UiTheme.Primary;
             lnkForgot.VisitedLinkColor = lnkForgot.LinkColor;
 
-            ApplyRowIconColor(usernameRow, subText);
-            ApplyRowIconColor(passwordRow, subText);
-
             txtUsername.BackColor = inputBg;
-            txtUsername.ForeColor = IsPlaceholderActive(txtUsername) ? Color.FromArgb(162, 182, 212) : titleColor;
+            txtUsername.ForeColor = IsPlaceholderActive(txtUsername) ? subText : titleColor;
             txtUsername.BorderStyle = BorderStyle.None;
             txtPassword.BackColor = inputBg;
-            txtPassword.ForeColor = IsPlaceholderActive(txtPassword) ? Color.FromArgb(162, 182, 212) : titleColor;
+            txtPassword.ForeColor = IsPlaceholderActive(txtPassword) ? subText : titleColor;
             txtPassword.BorderStyle = BorderStyle.None;
             usernameRow.BackColor = inputBg;
             passwordRow.BackColor = inputBg;
@@ -330,7 +311,7 @@ namespace SantexnikaSRM.Forms
             btnPasswordToggle.UseVisualStyleBackColor = false;
             btnPasswordToggle.FlatAppearance.MouseOverBackColor = inputBg;
             btnPasswordToggle.FlatAppearance.MouseDownBackColor = inputBg;
-            btnPasswordToggle.ForeColor = _showPassword ? Color.FromArgb(110, 150, 255) : Color.FromArgb(170, 190, 220);
+            btnPasswordToggle.ForeColor = _showPassword ? UiTheme.Primary : UiTheme.Muted;
 
             Invalidate(true);
         }
@@ -346,7 +327,7 @@ namespace SantexnikaSRM.Forms
                 }
 
                 textBox.Text = string.Empty;
-                textBox.ForeColor = Color.FromArgb(238, 245, 255);
+                textBox.ForeColor = UiTheme.Text;
                 if (isPassword)
                 {
                     textBox.PasswordChar = _showPassword ? '\0' : '*';
@@ -370,7 +351,7 @@ namespace SantexnikaSRM.Forms
             }
 
             textBox.Text = placeholder;
-            textBox.ForeColor = Color.FromArgb(162, 182, 212);
+            textBox.ForeColor = UiTheme.Muted;
             if (isPassword)
             {
                 textBox.PasswordChar = '\0';
@@ -388,20 +369,10 @@ namespace SantexnikaSRM.Forms
             return IsPlaceholderActive(textBox) ? string.Empty : textBox.Text;
         }
 
-        private static void ApplyRowIconColor(Panel row, Color color)
-        {
-            foreach (Control c in row.Controls)
-            {
-                if (c is Label lbl)
-                {
-                    lbl.ForeColor = color;
-                    lbl.BackColor = Color.Transparent;
-                }
-            }
-        }
-
         private void Relayout()
         {
+            card.Width = Math.Min(460, ClientSize.Width - 40);
+            card.Height = Math.Min(560, ClientSize.Height - 40);
             card.Left = (ClientSize.Width - card.Width) / 2;
             card.Top = (ClientSize.Height - card.Height) / 2;
 
@@ -409,39 +380,46 @@ namespace SantexnikaSRM.Forms
             btnTheme.Top = card.Top + 16;
             btnTheme.Region = new Region(RoundedRect(new Rectangle(0, 0, btnTheme.Width, btnTheme.Height), 14));
 
+            int logoBlockHeight = 80;
             _logoControl.Left = (card.Width - _logoControl.Width) / 2;
-            _logoControl.Top = 30;
+            _logoControl.Top = 52 + (logoBlockHeight - _logoControl.Height) / 2;
 
             lblTitle.Left = (card.Width - lblTitle.Width) / 2;
-            lblTitle.Top = _logoControl.Bottom + 12;
+            lblTitle.Top = 52 + logoBlockHeight + 10;
 
             lblSubtitle.Left = (card.Width - lblSubtitle.Width) / 2;
-            lblSubtitle.Top = lblTitle.Bottom + 6;
+            lblSubtitle.Top = lblTitle.Bottom + 5;
 
-            lblLogin.Left = 34;
-            lblLogin.Top = lblTitle.Bottom + 20;
+            int contentLeft = 28;
+            int contentWidth = card.Width - contentLeft * 2;
+            lblLogin.Left = contentLeft;
+            lblLogin.Top = lblSubtitle.Bottom + 20;
 
-            usernameRow.Left = 34;
+            usernameRow.Left = contentLeft;
             usernameRow.Top = lblLogin.Bottom + 8;
+            usernameRow.Width = contentWidth;
+            txtUsername.Width = usernameRow.Width - 24;
 
-            lblPassword.Left = 34;
-            lblPassword.Top = usernameRow.Bottom + 16;
+            lblPassword.Left = contentLeft;
+            lblPassword.Top = usernameRow.Bottom + 14;
 
-            passwordRow.Left = 34;
+            passwordRow.Left = contentLeft;
             passwordRow.Top = lblPassword.Bottom + 8;
+            passwordRow.Width = contentWidth;
             btnPasswordToggle.Left = passwordRow.Width - btnPasswordToggle.Width - 8;
             btnPasswordToggle.Top = 10;
             txtPassword.Width = btnPasswordToggle.Left - txtPassword.Left - 8;
 
             lnkForgot.Left = card.Width - lnkForgot.Width - 34;
-            lnkForgot.Top = passwordRow.Bottom + 12;
+            lnkForgot.Top = passwordRow.Bottom + 10;
 
-            btnLogin.Left = 34;
-            btnLogin.Top = lnkForgot.Bottom + 22;
+            btnLogin.Left = contentLeft;
+            btnLogin.Width = contentWidth;
+            btnLogin.Top = lnkForgot.Bottom + 18;
 
-            usernameRow.Region = new Region(RoundedRect(new Rectangle(0, 0, usernameRow.Width, usernameRow.Height), 16));
-            passwordRow.Region = new Region(RoundedRect(new Rectangle(0, 0, passwordRow.Width, passwordRow.Height), 16));
-            btnLogin.Region = new Region(RoundedRect(new Rectangle(0, 0, btnLogin.Width, btnLogin.Height), 16));
+            usernameRow.Region = new Region(RoundedRect(new Rectangle(0, 0, usernameRow.Width, usernameRow.Height), 8));
+            passwordRow.Region = new Region(RoundedRect(new Rectangle(0, 0, passwordRow.Width, passwordRow.Height), 8));
+            btnLogin.Region = new Region(RoundedRect(new Rectangle(0, 0, btnLogin.Width, btnLogin.Height), 8));
         }
 
         private void Card_Paint(object? sender, PaintEventArgs e)
@@ -449,11 +427,11 @@ namespace SantexnikaSRM.Forms
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.Clear(card.Parent?.BackColor ?? UiTheme.Background);
             Rectangle borderRect = new Rectangle(1, 1, card.ClientSize.Width - 3, card.ClientSize.Height - 3);
-            using GraphicsPath path = RoundedRect(borderRect, 28);
+            using GraphicsPath path = RoundedRect(borderRect, 14);
             using SolidBrush brush = new SolidBrush(_cardFill);
             e.Graphics.FillPath(brush, path);
 
-            using Pen border = new Pen(Color.FromArgb(0, 214, 122), 1.8f);
+            using Pen border = new Pen(UiTheme.Border, 1f);
             e.Graphics.DrawPath(border, path);
         }
 
@@ -466,16 +444,12 @@ namespace SantexnikaSRM.Forms
 
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            e.Graphics.Clear(row.Parent?.BackColor ?? _cardFill);
+            e.Graphics.Clear(_cardFill);
             Rectangle borderRect = new Rectangle(1, 1, row.ClientSize.Width - 3, row.ClientSize.Height - 3);
-            using GraphicsPath path = RoundedRect(borderRect, 15);
+            using GraphicsPath path = RoundedRect(borderRect, 8);
             using SolidBrush brush = new SolidBrush(row.BackColor);
-            using Pen border = new Pen(_inputRowBorder, 2f)
-            {
-                LineJoin = LineJoin.Round,
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round
-            };
+            Color borderColor = row.ContainsFocus ? UiTheme.Primary : _inputRowBorder;
+            using Pen border = new Pen(borderColor, 1f);
             e.Graphics.FillPath(brush, path);
             e.Graphics.DrawPath(border, path);
         }
@@ -484,24 +458,17 @@ namespace SantexnikaSRM.Forms
         {
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Rectangle rect = btnLogin.ClientRectangle;
-            Color c1 = Color.FromArgb(38, 102, 250);
-            Color c2 = Color.FromArgb(85, 61, 235);
+            Color buttonColor = UiTheme.Primary;
             if (_loginHover)
             {
-                c1 = Color.FromArgb(49, 112, 255);
-                c2 = Color.FromArgb(95, 72, 244);
+                buttonColor = ControlPaint.Dark(buttonColor, 0.08f);
             }
             if (_loginPressed)
             {
-                c1 = Color.FromArgb(30, 90, 230);
-                c2 = Color.FromArgb(72, 50, 220);
+                buttonColor = ControlPaint.Dark(buttonColor, 0.16f);
             }
-            using LinearGradientBrush brush = new LinearGradientBrush(
-                rect,
-                c1,
-                c2,
-                0f);
-            using GraphicsPath path = RoundedRect(rect, 16);
+            using SolidBrush brush = new SolidBrush(buttonColor);
+            using GraphicsPath path = RoundedRect(rect, 8);
             e.Graphics.FillPath(brush, path);
             TextRenderer.DrawText(
                 e.Graphics,
