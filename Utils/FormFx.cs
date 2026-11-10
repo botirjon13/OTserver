@@ -13,7 +13,7 @@ namespace SantexnikaSRM.Utils
         {
             void Fit()
             {
-                if (form.IsDisposed || form.WindowState != FormWindowState.Normal)
+                if (form.IsDisposed || !form.TopLevel || form.WindowState != FormWindowState.Normal)
                 {
                     return;
                 }

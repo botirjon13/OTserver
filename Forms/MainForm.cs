@@ -37,6 +37,7 @@ namespace SantexnikaSRM.Forms
         private readonly Panel _header = new Panel();
         private readonly Panel _body = new Panel();
         private readonly Panel _welcomePanel = new Panel();
+        private readonly Panel _pageHost = new Panel();
         private readonly Label _lblWelcomeTitle = new Label();
         private readonly Label _lblWelcomeSubtitle = new Label();
         private readonly TableLayoutPanel _tilesGrid = new TableLayoutPanel();
@@ -70,6 +71,7 @@ namespace SantexnikaSRM.Forms
         private const int TileColumns = 1;
         private const int TileRowHeight = 68;
         private AppUpdateInfo? _pendingUpdate;
+        private Form? _activePage;
         private string? _lastUpdateCheckError;
         private bool _isUpdateDownloading;
 
@@ -156,6 +158,9 @@ namespace SantexnikaSRM.Forms
             _sidebarBrand.Height = 124;
             _sidebarBrand.BackColor = Color.FromArgb(12, 43, 91);
             _sidebarBrand.Controls.Add(appIcon);
+            _sidebarBrand.Cursor = Cursors.Hand;
+            _sidebarBrand.Click += (_, __) => ShowHomePage();
+            appIcon.Click += (_, __) => ShowHomePage();
             _lblSidebarCaption.Text = "BOSHQARUV TIZIMI";
             _lblSidebarCaption.Dock = DockStyle.Bottom;
             _lblSidebarCaption.Height = 22;
@@ -163,6 +168,8 @@ namespace SantexnikaSRM.Forms
             _lblSidebarCaption.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 8.5f, FontStyle.Bold);
             _lblSidebarCaption.ForeColor = Color.FromArgb(177, 205, 244);
             _lblSidebarCaption.BackColor = Color.Transparent;
+            _lblSidebarCaption.Cursor = Cursors.Hand;
+            _lblSidebarCaption.Click += (_, __) => ShowHomePage();
             _sidebarBrand.Controls.Add(_lblSidebarCaption);
 
             _lblTitleOson.Text = "OsonTrack SRM tizimi";
@@ -272,6 +279,10 @@ namespace SantexnikaSRM.Forms
             _welcomePanel.Controls.Add(_lblWelcomeTitle);
             _welcomePanel.Controls.Add(_lblWelcomeSubtitle);
 
+            _pageHost.Dock = DockStyle.Fill;
+            _pageHost.BackColor = UiTheme.Background;
+            _pageHost.Visible = false;
+
             _actionPanel.Dock = DockStyle.Bottom;
             _actionPanel.Height = 112;
             _actionPanel.Padding = new Padding(0, 6, 0, 6);
@@ -362,6 +373,7 @@ namespace SantexnikaSRM.Forms
             _body.Controls.Add(_welcomePanel);
             _body.Controls.Add(_actionPanel);
             _body.Controls.Add(_lblFooter);
+            _body.Controls.Add(_pageHost);
 
             _workspace.Dock = DockStyle.Fill;
             _workspace.Controls.Add(_body);
@@ -390,7 +402,15 @@ namespace SantexnikaSRM.Forms
                 StartRevealAnimation();
                 _ = CheckForUpdatesAsync();
             };
-            FormClosed += (s, e) => _headerWarningsTimer.Stop();
+            FormClosed += (s, e) =>
+            {
+                _headerWarningsTimer.Stop();
+                _revealTimer.Stop();
+                _roleTextAnimTimer.Stop();
+                _logoAnimTimer.Stop();
+                _actionHoverTimer.Stop();
+                CloseActivePage();
+            };
 
             Resize += (s, e) =>
             {
@@ -404,48 +424,60 @@ namespace SantexnikaSRM.Forms
 
         private void BuildTiles()
         {
-            var defs = new List<TileDefinition>();
+            var defs = new List<TileDefinition>
+            {
+                new TileDefinition(
+                    "Bosh sahifa",
+                    "Asosiy sahifaga qaytish",
+                    "\uE80F",
+                    Color.FromArgb(64, 120, 216),
+                    ShowHomePage)
+            };
 
             bool isAdmin = string.Equals(_currentUser.Role, DatabaseHelper.RoleAdmin, StringComparison.OrdinalIgnoreCase);
             bool isSeller = string.Equals(_currentUser.Role, DatabaseHelper.RoleSeller, StringComparison.OrdinalIgnoreCase);
 
             if (isAdmin && AuthorizationService.CanViewProducts(_currentUser))
             {
-                defs.Add(new TileDefinition("Tovarlar", "Ombor va narxlar", "\uECAA", Color.FromArgb(20, 143, 230), () => new ProductForm(_currentUser).ShowDialog(this), "tile-products.png"));
+                defs.Add(new TileDefinition("Tovarlar", "Ombor va narxlar", "\uECAA", Color.FromArgb(20, 143, 230), () => OpenPage(() => new ProductForm(_currentUser)), "tile-products.png"));
             }
 
             if (AuthorizationService.CanCreateSales(_currentUser))
             {
-                defs.Add(new TileDefinition("Sotuv", "Yangi savdo operatsiyasi", "\uE7BF", Color.FromArgb(13, 178, 108), () => new SaleForm(_currentUser).ShowDialog(this), "tile-sales.png"));
+                defs.Add(new TileDefinition("Sotuv", "Yangi savdo operatsiyasi", "\uE7BF", Color.FromArgb(13, 178, 108), () => OpenPage(() => new SaleForm(_currentUser)), "tile-sales.png"));
             }
 
             if (AuthorizationService.CanManageExpenses(_currentUser))
             {
-                defs.Add(new TileDefinition("Rasxod", "Xarajatlarni boshqarish", "\uE8C7", Color.FromArgb(245, 34, 77), () => new ExpenseForm(_currentUser).ShowDialog(this), "tile-expenses.png"));
+                defs.Add(new TileDefinition("Rasxod", "Xarajatlarni boshqarish", "\uE8C7", Color.FromArgb(245, 34, 77), () => OpenPage(() => new ExpenseForm(_currentUser)), "tile-expenses.png"));
             }
 
             if (AuthorizationService.CanManageDebts(_currentUser))
             {
-                defs.Add(new TileDefinition("Mijozlar", "Mijozlar bazasi", "\uE77B", Color.FromArgb(237, 146, 0), () => new CustomersForm(_currentUser).ShowDialog(this), "tile-customers.png"));
+                defs.Add(new TileDefinition("Mijozlar", "Mijozlar bazasi", "\uE77B", Color.FromArgb(237, 146, 0), () => OpenPage(() => new CustomersForm(_currentUser)), "tile-customers.png"));
             }
 
             if (isAdmin && AuthorizationService.CanViewReports(_currentUser))
             {
-                defs.Add(new TileDefinition("Hisobot", "Tahlil va eksport", "\uE9D2", Color.FromArgb(67, 80, 231), () => new ReportForm(_currentUser).ShowDialog(this), "tile-reports.png"));
+                defs.Add(new TileDefinition("Hisobot", "Tahlil va eksport", "\uE9D2", Color.FromArgb(67, 80, 231), () => OpenPage(() => new ReportForm(_currentUser)), "tile-reports.png"));
             }
 
             if (isAdmin)
             {
-                defs.Add(new TileDefinition("Foydalanuvchilar", "Rol va akkauntlar", "\uE716", Color.FromArgb(75, 88, 114), () => new UserManagementForm(_currentUser).ShowDialog(this), "tile-users.png"));
-                defs.Add(new TileDefinition("Backup / Restore", "Zaxira va tiklash", "\uE7F1", Color.FromArgb(75, 88, 114), () => new BackupRestoreForm(_currentUser).ShowDialog(this), "tile-backup.png"));
-                defs.Add(new TileDefinition("Chek Rekvizitlari", "Chek sozlamalari", "\uE8A5", Color.FromArgb(32, 129, 214), () => new FiscalSettingsForm(_currentUser).ShowDialog(this), "tile-receipt.png"));
-                defs.Add(new TileDefinition("Foiz va chegirmalar", "Chegirma sozlamalari", "%", Color.FromArgb(16, 161, 121), () => new PricingDiscountForm(_currentUser).ShowDialog(this), "tile-discount.png"));
+                defs.Add(new TileDefinition("Foydalanuvchilar", "Rol va akkauntlar", "\uE716", Color.FromArgb(75, 88, 114), () => OpenPage(() => new UserManagementForm(_currentUser)), "tile-users.png"));
+                defs.Add(new TileDefinition("Backup / Restore", "Zaxira va tiklash", "\uE7F1", Color.FromArgb(75, 88, 114), () => OpenPage(() => new BackupRestoreForm(_currentUser)), "tile-backup.png"));
+                defs.Add(new TileDefinition("Chek Rekvizitlari", "Chek sozlamalari", "\uE8A5", Color.FromArgb(32, 129, 214), () => OpenPage(() => new FiscalSettingsForm(_currentUser)), "tile-receipt.png"));
+                defs.Add(new TileDefinition("Foiz va chegirmalar", "Chegirma sozlamalari", "%", Color.FromArgb(16, 161, 121), () => OpenPage(() => new PricingDiscountForm(_currentUser)), "tile-discount.png"));
             }
 
             if (isSeller)
             {
                 // Seller uchun faqat ishchi kartalar ko'rinadi.
-                defs.RemoveAll(x => x.Title != "Sotuv" && x.Title != "Rasxod" && x.Title != "Mijozlar");
+                defs.RemoveAll(x =>
+                    x.Title != "Bosh sahifa" &&
+                    x.Title != "Sotuv" &&
+                    x.Title != "Rasxod" &&
+                    x.Title != "Mijozlar");
             }
 
             int rows = (defs.Count + (TileColumns - 1)) / TileColumns;
@@ -466,6 +498,71 @@ namespace SantexnikaSRM.Forms
                 tile.Card.Visible = false;
                 _tiles.Add(tile);
                 _tilesGrid.Controls.Add(tile.Card, i % TileColumns, i / TileColumns);
+            }
+        }
+
+        private void OpenPage(Func<Form> createPage)
+        {
+            ArgumentNullException.ThrowIfNull(createPage);
+
+            Form page = createPage();
+            CloseActivePage();
+
+            page.TopLevel = false;
+            page.FormBorderStyle = FormBorderStyle.None;
+            page.Dock = DockStyle.Fill;
+            page.MinimumSize = Size.Empty;
+            page.BackColor = UiTheme.BackgroundSecondary;
+            page.Font = UiTheme.BodyFont;
+
+            _activePage = page;
+            _body.AutoScroll = false;
+            _welcomePanel.Visible = false;
+            _pageHost.Visible = true;
+            _pageHost.Controls.Add(page);
+            page.FormClosed += (_, __) =>
+            {
+                if (!ReferenceEquals(_activePage, page))
+                {
+                    return;
+                }
+
+                _activePage = null;
+                _pageHost.Controls.Remove(page);
+                _pageHost.Visible = false;
+                _welcomePanel.Visible = true;
+                _body.AutoScroll = true;
+                UpdateBodyScrollArea();
+            };
+            page.Show();
+            page.BringToFront();
+            _body.PerformLayout();
+        }
+
+        private void ShowHomePage()
+        {
+            CloseActivePage();
+            _pageHost.Visible = false;
+            _welcomePanel.Visible = true;
+            _body.AutoScroll = true;
+            UpdateBodyScrollArea();
+            _body.PerformLayout();
+        }
+
+        private void CloseActivePage()
+        {
+            if (_activePage == null)
+            {
+                return;
+            }
+
+            Form page = _activePage;
+            _activePage = null;
+            _pageHost.Controls.Remove(page);
+            if (!page.IsDisposed)
+            {
+                page.Close();
+                page.Dispose();
             }
         }
 
@@ -623,6 +720,7 @@ namespace SantexnikaSRM.Forms
             _actionPanel.BackColor = BackColor;
             _actionsFlow.BackColor = BackColor;
             _body.BackColor = BackColor;
+            _pageHost.BackColor = UiTheme.Background;
             _tilesGrid.BackColor = BackColor;
 
             _lblTitleOson.BackColor = Color.Transparent;
@@ -1420,8 +1518,7 @@ namespace SantexnikaSRM.Forms
                 return;
             }
 
-            using var form = new DebtorsForm(_currentUser, "Overdue");
-            form.ShowDialog(this);
+            OpenPage(() => new DebtorsForm(_currentUser, "Overdue"));
             RefreshHeaderWarnings();
         }
 
@@ -1432,8 +1529,7 @@ namespace SantexnikaSRM.Forms
                 return;
             }
 
-            using var form = new ProductForm(_currentUser, "Kam qolgan");
-            form.ShowDialog(this);
+            OpenPage(() => new ProductForm(_currentUser, "Kam qolgan"));
             RefreshHeaderWarnings();
         }
 
