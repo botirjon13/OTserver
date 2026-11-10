@@ -79,14 +79,13 @@ namespace SantexnikaSRM.Forms
             InitializeComponent();
             SantexnikaSRM.Utils.FormFx.EnsureFitsScreen(this);
             LoadData();
-            StartRevealAnimation();
         }
 
         private void InitializeComponent()
         {
             Text = "Omborxonadagi Tovarlar";
-            Size = new Size(1360, 820);
-            MinimumSize = new Size(1020, 680);
+            Size = new Size(1080, 700);
+            MinimumSize = new Size(900, 620);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(233, 239, 247);
             DoubleBuffered = true;
@@ -95,56 +94,23 @@ namespace SantexnikaSRM.Forms
             Panel topArea = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 376,
-                Padding = new Padding(24, 20, 24, 14)
+                Height = 320,
+                Padding = new Padding(18, 8, 18, 8)
             };
 
             Panel header = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 68
+                Height = 56
             };
-
-            Panel icon = new Panel
-            {
-                Left = 0,
-                Top = 4,
-                Width = 54,
-                Height = 54
-            };
-            Image? productHeaderIcon = BrandingAssets.TryLoadAssetImage("tile-products.png");
-            icon.Paint += (s, e) =>
-            {
-                if (productHeaderIcon != null)
-                {
-                    return;
-                }
-
-                using var brush = new LinearGradientBrush(icon.ClientRectangle, Color.FromArgb(48, 115, 250), Color.FromArgb(70, 61, 231), 45f);
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using GraphicsPath path = RoundedRect(icon.ClientRectangle, 16);
-                e.Graphics.FillPath(brush, path);
-                TextRenderer.DrawText(e.Graphics, "\uECAA", UiTheme.IconFont(26), icon.ClientRectangle, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            };
-            if (productHeaderIcon != null)
-            {
-                icon.BackColor = Color.Transparent;
-                icon.Controls.Add(new PictureBox
-                {
-                    Dock = DockStyle.Fill,
-                    BackColor = Color.Transparent,
-                    SizeMode = PictureBoxSizeMode.Zoom,
-                    Image = productHeaderIcon
-                });
-            }
 
             Label lblTitle = new Label
             {
                 Text = "Omborxonadagi Tovarlar",
                 AutoSize = true,
-                Left = 66,
+                Left = 0,
                 Top = 2,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 23, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 19, FontStyle.Bold),
                 ForeColor = Color.FromArgb(33, 45, 68)
             };
 
@@ -152,66 +118,35 @@ namespace SantexnikaSRM.Forms
             {
                 Text = "Mahsulotlar ro'yxati va inventarizatsiya",
                 AutoSize = true,
-                Left = 68,
-                Top = 40,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
+                Left = 2,
+                Top = 34,
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular),
                 ForeColor = Color.FromArgb(82, 103, 133)
             };
 
-            _rateBadge.Width = 270;
-            _rateBadge.Height = 42;
-            _rateBadge.Top = 10;
+            _rateBadge.Width = 240;
+            _rateBadge.Height = 36;
+            _rateBadge.Top = 8;
             _rateBadge.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             _rateBadge.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(1, 1, Math.Max(1, _rateBadge.Width - 3), Math.Max(1, _rateBadge.Height - 3));
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(232, 252, 242));
-                using Pen border = new Pen(Color.FromArgb(14, 156, 90), 3f);
-                using GraphicsPath path = RoundedRect(bounds, 14);
+                using SolidBrush brush = new SolidBrush(UiTheme.Card);
+                using Pen border = new Pen(UiTheme.Border, 1f);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
 
-            Image? rateIconImage = BrandingAssets.TryLoadAssetImage("tile-products-rate.png");
-            Control lblDollar;
-            if (rateIconImage != null)
-            {
-                lblDollar = new PictureBox
-                {
-                    Width = 24,
-                    Height = 24,
-                    Left = 18,
-                    Top = 9,
-                    BackColor = Color.Transparent,
-                    SizeMode = PictureBoxSizeMode.Zoom,
-                    Image = rateIconImage
-                };
-            }
-            else
-            {
-                lblDollar = new Label
-                {
-                    Text = "$",
-                    Width = 24,
-                    Height = 24,
-                    Left = 18,
-                    Top = 10,
-                    Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 15, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(9, 149, 94),
-                    BackColor = Color.Transparent
-                };
-            }
             _lblRate.AutoSize = true;
-            _lblRate.Left = 46;
-            _lblRate.Top = 12;
-            _lblRate.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 12, FontStyle.Bold);
-            _lblRate.ForeColor = Color.FromArgb(41, 63, 91);
+            _lblRate.Left = 10;
+            _lblRate.Top = 9;
+            _lblRate.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 10, FontStyle.Bold);
+            _lblRate.ForeColor = UiTheme.Text;
             _lblRate.BackColor = Color.Transparent;
-            _rateBadge.Controls.Add(lblDollar);
             _rateBadge.Controls.Add(_lblRate);
 
-            header.Controls.Add(icon);
             header.Controls.Add(lblTitle);
             header.Controls.Add(lblSub);
             header.Controls.Add(_rateBadge);
@@ -219,13 +154,13 @@ namespace SantexnikaSRM.Forms
             Panel stats = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 96,
-                Top = 76
+                Height = 72,
+                Top = 56
             };
 
-            BuildStatCard(_cardProducts, "Jami Tovarlar", _lblStatProducts, Color.FromArgb(57, 123, 226), Color.FromArgb(48, 105, 200), "\uECAA", "tile-products-stat-items.png");
-            BuildStatCard(_cardQty, "Jami Miqdor", _lblStatQty, Color.FromArgb(121, 87, 218), Color.FromArgb(103, 70, 196), "\uE9D2", "tile-products-stat-qty.png");
-            BuildStatCard(_cardValue, "Umumiy Qiymat", _lblStatValue, Color.FromArgb(24, 156, 109), Color.FromArgb(18, 138, 96), "$", "tile-products-stat-value.png");
+            BuildStatCard(_cardProducts, "Jami Tovarlar", _lblStatProducts, Color.FromArgb(57, 123, 226));
+            BuildStatCard(_cardQty, "Jami Miqdor", _lblStatQty, Color.FromArgb(121, 87, 218));
+            BuildStatCard(_cardValue, "Umumiy Qiymat", _lblStatValue, Color.FromArgb(24, 156, 109));
 
             _statCards.Add(_cardProducts);
             _statCards.Add(_cardQty);
@@ -233,14 +168,13 @@ namespace SantexnikaSRM.Forms
             foreach (var card in _statCards)
             {
                 stats.Controls.Add(card);
-                AttachCardHover(card);
             }
 
             Panel inputs = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 118,
-                Padding = new Padding(0, 14, 0, 0)
+                Height = 112,
+                Padding = new Padding(0, 8, 0, 0)
             };
 
             PrepareInputContainer(_nameBox, _txtName, "Nomi");
@@ -320,8 +254,8 @@ namespace SantexnikaSRM.Forms
             Panel searchRow = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 80,
-                Padding = new Padding(0, 10, 0, 0)
+                Height = 64,
+                Padding = new Padding(0, 6, 0, 0)
             };
 
             Panel searchWrap = new Panel
@@ -427,7 +361,7 @@ namespace SantexnikaSRM.Forms
             Panel gridCard = new Panel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(24, 10, 24, 8)
+                Padding = new Padding(12, 4, 12, 4)
             };
 
             Panel gridHolder = new Panel
@@ -457,7 +391,7 @@ namespace SantexnikaSRM.Forms
             _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _grid.BackgroundColor = Color.White;
             _grid.BorderStyle = BorderStyle.None;
-            _grid.ScrollBars = ScrollBars.None;
+            _grid.ScrollBars = ScrollBars.Vertical;
             _grid.GridColor = Color.FromArgb(188, 202, 224);
             _grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(44, 62, 92);
@@ -466,7 +400,7 @@ namespace SantexnikaSRM.Forms
             _grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(44, 62, 92);
             _grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            _grid.ColumnHeadersHeight = 54;
+            _grid.ColumnHeadersHeight = 42;
             _grid.DefaultCellStyle.BackColor = Color.White;
             _grid.DefaultCellStyle.ForeColor = Color.FromArgb(45, 60, 87);
             _grid.DefaultCellStyle.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 13, FontStyle.Regular);
@@ -474,7 +408,7 @@ namespace SantexnikaSRM.Forms
             _grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 37, 58);
             _grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 251, 255);
-            _grid.RowTemplate.Height = 52;
+            _grid.RowTemplate.Height = 40;
             _grid.ColumnHeaderMouseClick += Grid_ColumnHeaderMouseClick;
             _grid.CellContentClick += Grid_CellContentClick;
             _grid.CellFormatting += Grid_CellFormatting;
@@ -540,53 +474,39 @@ namespace SantexnikaSRM.Forms
             LayoutTopBlocks();
         }
 
-        private void BuildStatCard(Panel panel, string caption, Label valueLabel, Color c1, Color c2, string glyph, string? iconImageFile = null)
+        private void BuildStatCard(Panel panel, string caption, Label valueLabel, Color accent)
         {
-            Image? cardIconImage = string.IsNullOrWhiteSpace(iconImageFile) ? null : BrandingAssets.TryLoadAssetImage(iconImageFile);
             panel.Width = 380;
-            panel.Height = 82;
+            panel.Height = 64;
             panel.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using var brush = new LinearGradientBrush(panel.ClientRectangle, c1, c2, 20f);
-                using GraphicsPath path = RoundedRect(panel.ClientRectangle, 14);
-                e.Graphics.FillPath(brush, path);
-                if (cardIconImage != null)
-                {
-                    Rectangle imageRect = new Rectangle(panel.Width - 68, 14, 50, 50);
-                    e.Graphics.DrawImage(cardIconImage, imageRect);
-                }
-                else
-                {
-                    Font iconFont = glyph == "$"
-                        ? new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 30, FontStyle.Bold)
-                        : UiTheme.IconFont(28);
-                    TextRenderer.DrawText(
-                        e.Graphics,
-                        glyph,
-                        iconFont,
-                        new Rectangle(panel.Width - 72, 14, 52, 52),
-                        Color.FromArgb(135, 255, 255, 255),
-                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-                }
+                Rectangle bounds = new Rectangle(0, 0, Math.Max(1, panel.Width - 1), Math.Max(1, panel.Height - 1));
+                using SolidBrush fill = new SolidBrush(UiTheme.Card);
+                using Pen border = new Pen(UiTheme.Border, 1f);
+                using GraphicsPath path = RoundedRect(bounds, 8);
+                e.Graphics.FillPath(fill, path);
+                e.Graphics.DrawPath(border, path);
+                using SolidBrush accentBrush = new SolidBrush(accent);
+                e.Graphics.FillRectangle(accentBrush, 0, 8, 3, Math.Max(1, panel.Height - 16));
             };
 
             Label lblCap = new Label
             {
                 Text = caption,
                 AutoSize = true,
-                Left = 16,
-                Top = 14,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 12, FontStyle.Regular),
-                ForeColor = Color.FromArgb(230, 245, 255),
+                Left = 12,
+                Top = 8,
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 10, FontStyle.Regular),
+                ForeColor = UiTheme.Muted,
                 BackColor = Color.Transparent
             };
 
             valueLabel.AutoSize = true;
-            valueLabel.Left = 16;
-            valueLabel.Top = 40;
-            valueLabel.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 24, FontStyle.Bold);
-            valueLabel.ForeColor = Color.White;
+            valueLabel.Left = 12;
+            valueLabel.Top = 30;
+            valueLabel.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 18, FontStyle.Bold);
+            valueLabel.ForeColor = UiTheme.Text;
             valueLabel.BackColor = Color.Transparent;
 
             panel.Controls.Add(lblCap);
@@ -603,14 +523,14 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(1, 1, Math.Max(1, container.Width - 3), Math.Max(1, container.Height - 3));
                 using SolidBrush brush = new SolidBrush(Color.FromArgb(247, 250, 255));
-                using Pen border = new Pen(Color.FromArgb(101, 138, 198), 2f);
-                using GraphicsPath path = RoundedRect(bounds, 11);
+                using Pen border = new Pen(Color.FromArgb(122, 143, 171), 1f);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
             container.Resize += (s, e) =>
             {
-                container.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, container.Width), Math.Max(1, container.Height)), 11));
+                container.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, container.Width), Math.Max(1, container.Height)), 8));
             };
 
             box.BorderStyle = BorderStyle.None;
@@ -632,14 +552,14 @@ namespace SantexnikaSRM.Forms
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(1, 1, Math.Max(1, container.Width - 3), Math.Max(1, container.Height - 3));
                 using SolidBrush brush = new SolidBrush(Color.FromArgb(247, 250, 255));
-                using Pen border = new Pen(Color.FromArgb(101, 138, 198), 2f);
-                using GraphicsPath path = RoundedRect(bounds, 11);
+                using Pen border = new Pen(Color.FromArgb(122, 143, 171), 1f);
+                using GraphicsPath path = RoundedRect(bounds, 8);
                 e.Graphics.FillPath(brush, path);
                 e.Graphics.DrawPath(border, path);
             };
             container.Resize += (s, e) =>
             {
-                container.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, container.Width), Math.Max(1, container.Height)), 11));
+                container.Region = new Region(RoundedRect(new Rectangle(0, 0, Math.Max(1, container.Width), Math.Max(1, container.Height)), 8));
             };
 
             box.Dock = DockStyle.Fill;
@@ -756,23 +676,23 @@ namespace SantexnikaSRM.Forms
             Panel searchRow = topArea.Controls[0] as Panel ?? new Panel();
             _rateBadge.Left = Math.Max(0, header.ClientSize.Width - _rateBadge.Width);
 
-            int fullWidth = topArea.ClientSize.Width;
-            int gap = 16;
+            int fullWidth = stats.ClientSize.Width;
+            int gap = 12;
             int cardWidth = (fullWidth - gap * 2) / 3;
-            cardWidth = Math.Max(320, Math.Min(cardWidth, 390));
+            cardWidth = Math.Max(180, Math.Min(cardWidth, 390));
             int cardsBlockWidth = (cardWidth * 3) + (gap * 2);
             int cardsLeft = Math.Max(0, (fullWidth - cardsBlockWidth) / 2);
 
-            _cardProducts.SetBounds(cardsLeft, 10, cardWidth, 82);
-            _cardQty.SetBounds(cardsLeft + cardWidth + gap, 10, cardWidth, 82);
-            _cardValue.SetBounds(cardsLeft + (cardWidth + gap) * 2, 10, cardWidth, 82);
+            _cardProducts.SetBounds(cardsLeft, 4, cardWidth, 64);
+            _cardQty.SetBounds(cardsLeft + cardWidth + gap, 4, cardWidth, 64);
+            _cardValue.SetBounds(cardsLeft + (cardWidth + gap) * 2, 4, cardWidth, 64);
 
             _nameBox.SetBounds(0, 10, 210, 40);
             _currencyBox.SetBounds(220, 10, 80, 40);
             _priceUsdBox.SetBounds(310, 10, 130, 40);
             _qtyBox.SetBounds(450, 10, 120, 40);
             _priceUzsBox.SetBounds(580, 10, 150, 40);
-            _imageBox.SetBounds(0, 58, Math.Max(420, fullWidth - 20), 48);
+            _imageBox.SetBounds(0, 58, Math.Max(420, inputs.ClientSize.Width - 20), 48);
             _picNewProductImage.SetBounds(0, 0, 46, 46);
             _btnSelectImage.SetBounds(58, 7, 132, 32);
             _btnClearImage.SetBounds(198, 7, 132, 32);
@@ -2096,6 +2016,3 @@ namespace SantexnikaSRM.Forms
         }
     }
 }
-
-
-
