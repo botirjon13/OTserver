@@ -138,14 +138,18 @@ namespace SantexnikaSRM.Forms
             _sidebarBrand.Height = 58;
             _sidebarBrand.BackColor = Color.FromArgb(12, 43, 91);
             _lblSidebarCaption.Text = "BO'LIMLAR";
-            _lblSidebarCaption.Dock = DockStyle.Fill;
-            _lblSidebarCaption.Padding = new Padding(48, 0, 0, 0);
+            _lblSidebarCaption.SetBounds(48, 0, _sidebarBrand.Width - 48, _sidebarBrand.Height);
+            _lblSidebarCaption.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             _lblSidebarCaption.TextAlign = ContentAlignment.MiddleCenter;
             _lblSidebarCaption.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 9, FontStyle.Bold);
             _lblSidebarCaption.ForeColor = Color.FromArgb(177, 205, 244);
             _lblSidebarCaption.BackColor = Color.Transparent;
             _sidebarBrand.Controls.Add(_lblSidebarCaption);
-            _sidebarToggleButton.SetBounds(8, 10, 34, 34);
+            _sidebarBrand.Resize += (_, __) =>
+            {
+                _lblSidebarCaption.SetBounds(48, 0, Math.Max(0, _sidebarBrand.ClientSize.Width - 48), _sidebarBrand.ClientSize.Height);
+            };
+            _sidebarToggleButton.SetBounds(4, 8, 40, 40);
             _sidebarToggleButton.Text = "\u2039";
             _sidebarToggleButton.AccessibleName = "Yon menyuni yig'ish";
             _sidebarToggleButton.FlatStyle = FlatStyle.Flat;
@@ -154,8 +158,10 @@ namespace SantexnikaSRM.Forms
             _sidebarToggleButton.ForeColor = Color.White;
             _sidebarToggleButton.Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift"), 18, FontStyle.Regular);
             _sidebarToggleButton.Cursor = Cursors.Hand;
+            _sidebarToggleButton.TabStop = true;
             _sidebarToggleButton.Click += (_, __) => ToggleSidebar();
             _sidebarBrand.Controls.Add(_sidebarToggleButton);
+            _sidebarToggleButton.BringToFront();
 
             _lblTitleOson.Text = "OsonTrack SRM tizimi";
             _lblTitleOson.AutoSize = false;
@@ -555,17 +561,21 @@ namespace SantexnikaSRM.Forms
         private void ToggleSidebar()
         {
             _sidebarCollapsed = !_sidebarCollapsed;
+            _sidebar.SuspendLayout();
             _sidebar.Width = _sidebarCollapsed ? 56 : 248;
             _sidebar.Padding = _sidebarCollapsed
                 ? new Padding(6, 8, 6, 8)
                 : new Padding(12, 10, 12, 12);
-            _sidebarBrand.Height = _sidebarCollapsed ? 48 : 58;
+            _sidebarBrand.Height = 58;
             _lblSidebarCaption.Visible = !_sidebarCollapsed;
             _tilesGrid.Visible = !_sidebarCollapsed;
+            _sidebarToggleButton.SetBounds(4, 8, 40, 40);
             _sidebarToggleButton.Text = _sidebarCollapsed ? "\u203A" : "\u2039";
             _sidebarToggleButton.AccessibleName = _sidebarCollapsed
                 ? "Yon menyuni ochish"
                 : "Yon menyuni yig'ish";
+            _sidebarToggleButton.BringToFront();
+            _sidebar.ResumeLayout(true);
 
             if (_activePage != null)
             {
