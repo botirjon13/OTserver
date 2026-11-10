@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+tmp_publish_fd/
+tmp_publish_velopack/
+ReleaseBundles/
+publish_single/
+publish_test/
+*.db
+*.log
+LicenseAdminClient/bin/
+LicenseAdminClient/obj/
+
+tmp_test_backups/

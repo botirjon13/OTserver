@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>1.2.41</Version>
+    <AssemblyVersion>1.2.41.0</AssemblyVersion>
+    <FileVersion>1.2.41.0</FileVersion>
+    <InformationalVersion>1.2.41</InformationalVersion>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ServiceTests\**\*.cs" />
+    <Compile Remove="LicenseAdminServer\**\*.cs" />
+    <Compile Remove="LicenseAdminClient\**\*.cs" />
+    <Compile Remove="Updater\**\*.cs" />
+    <EmbeddedResource Remove="ServiceTests\**\*" />
+    <None Remove="ServiceTests\**\*" />
+    <EmbeddedResource Remove="LicenseAdminServer\**\*" />
+    <EmbeddedResource Remove="LicenseAdminClient\**\*" />
+    <EmbeddedResource Remove="Updater\**\*" />
+    <None Remove="LicenseAdminServer\**\*" />
+    <None Remove="LicenseAdminClient\**\*" />
+    <None Remove="Updater\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\**\*.png" />
+    <EmbeddedResource Include="Assets\**\*.ico" />
+  </ItemGroup>
+
+</Project>

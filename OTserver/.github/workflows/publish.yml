@@ -1,0 +1,130 @@
+name: Windows stable release
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Three-part application version, for example 1.2.41
+        required: true
+        default: "1.2.41"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /*
+            !/releases/**
+          sparse-checkout-cone-mode: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Resolve and validate version
+        id: version
+        shell: pwsh
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          [xml]$project = Get-Content "SantexnikaSRM.csproj" -Raw
+          $projectVersion = $project.Project.PropertyGroup |
+            ForEach-Object { $_.Version } |
+            Where-Object { $_ } |
+            Select-Object -First 1
+
+          if ($env:REF_TYPE -eq "tag") {
+            $version = $env:REF_NAME -replace '^v', ''
+          } elseif ($env:EVENT_NAME -eq "workflow_dispatch") {
+            $version = $env:INPUT_VERSION
+          } else {
+            $version = $projectVersion
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version '$version' must use x.y.z format."
+          }
+          if ($env:REF_TYPE -eq "tag" -and $version -ne $projectVersion) {
+            throw "Release tag/input version $version does not match SantexnikaSRM.csproj version $projectVersion."
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build solution
+        run: dotnet build SantexnikaSRM.sln -c Release
+
+      - name: Run service regression tests
+        run: dotnet run --project ServiceTests/ServiceTests.csproj -c Release
+
+      - name: Build Velopack installer and update feed
+        shell: pwsh
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.value }}
+          OUTPUT_DIRECTORY: ${{ github.workspace }}/artifacts/velopack
+        run: ./scripts/build-velopack.ps1 -Version $env:BUILD_VERSION -OutputDir $env:OUTPUT_DIRECTORY
+
+      - name: Verify release outputs
+        shell: pwsh
+        run: |
+          $output = "${{ github.workspace }}/artifacts/velopack"
+          foreach ($file in @(
+            "releases.stable.json",
+            "assets.stable.json",
+            "OsontrackSRM-stable-Setup.exe",
+            "OsontrackSRM-stable-Portable.zip"
+          )) {
+            if (-not (Test-Path (Join-Path $output $file))) {
+              throw "Expected Velopack output not found: $file"
+            }
+          }
+
+      - name: Save release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: velopack-${{ steps.version.outputs.value }}
+          path: artifacts/velopack/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    environment: stable-release
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: velopack-${{ needs.build.outputs.version }}
+          path: artifacts/velopack
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: OsontrackSRM ${{ needs.build.outputs.version }}
+          generate_release_notes: true
+          prerelease: false
+          make_latest: true
+          files: artifacts/velopack/*
