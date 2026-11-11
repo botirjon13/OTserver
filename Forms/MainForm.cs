@@ -66,6 +66,9 @@ namespace SantexnikaSRM.Forms
         private readonly TableLayoutPanel _tilesGrid = new TableLayoutPanel();
         private readonly Panel _actionPanel = new Panel();
         private readonly FlowLayoutPanel _actionsFlow = new FlowLayoutPanel();
+        private readonly Dictionary<PictureBox, Panel> _sidebarActionRows = new Dictionary<PictureBox, Panel>();
+        private readonly Dictionary<PictureBox, Label> _sidebarActionLabels = new Dictionary<PictureBox, Label>();
+        private readonly Dictionary<PictureBox, bool> _sidebarActionVisibility = new Dictionary<PictureBox, bool>();
         private readonly PictureBox _picLogoutAction = new PictureBox();
         private readonly PictureBox _picExitAction = new PictureBox();
         private readonly PictureBox _picLicenseAction = new PictureBox();
@@ -97,7 +100,9 @@ namespace SantexnikaSRM.Forms
         private Rectangle _appLogoBaseBounds;
         private Size _activePagePreferredSize;
         private const int TileColumns = 1;
-        private const int TileRowHeight = 46;
+        private const int TileRowHeight = 44;
+        private const int SidebarSectionHeaderHeight = 26;
+        private const int SidebarActionRowHeight = 32;
         private static readonly Color DashboardSalesColor = Color.FromArgb(91, 91, 240);
         private AppUpdateInfo? _pendingUpdate;
         private Form? _activePage;
@@ -333,41 +338,48 @@ namespace SantexnikaSRM.Forms
             _pageHost.Visible = false;
 
             _actionPanel.Dock = DockStyle.Bottom;
-            _actionPanel.Height = 48;
-            _actionPanel.Padding = new Padding(6);
+            _actionPanel.Height = 144;
+            _actionPanel.Padding = new Padding(0, 8, 0, 0);
 
-            _actionsFlow.FlowDirection = FlowDirection.LeftToRight;
+            _actionsFlow.FlowDirection = FlowDirection.TopDown;
             _actionsFlow.WrapContents = false;
-            _actionsFlow.AutoSize = true;
-            _actionsFlow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            _actionsFlow.AutoSize = false;
+            _actionsFlow.Dock = DockStyle.Fill;
             _actionsFlow.BackColor = Color.Transparent;
+            _actionPanel.Paint += (s, e) =>
+            {
+                using Pen separator = new Pen(Color.FromArgb(49, 67, 91));
+                e.Graphics.DrawLine(separator, 12, 0, Math.Max(12, _actionPanel.Width - 12), 0);
+            };
 
             SetupActionImageBox(_picLogoutAction, "Akkauntdan chiqish", Color.FromArgb(17, 139, 201), Color.FromArgb(14, 118, 178));
-            _picLogoutAction.Click += (s, e) =>
+            AddSidebarAction(_picLogoutAction, "Tizimdan chiqish", () =>
             {
                 if (MessageBox.Show("Akkauntdan chiqilsinmi?", "Tasdiq", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     DialogResult = DialogResult.Retry;
                     Close();
                 }
-            };
+            });
 
             SetupActionImageBox(_picExitAction, "Dasturdan chiqish", Color.FromArgb(232, 71, 71), Color.FromArgb(214, 53, 53));
-            _picExitAction.Click += (s, e) =>
+            AddSidebarAction(_picExitAction, "Dasturni yopish", () =>
             {
                 if (MessageBox.Show("Dastur yopilsinmi?", "Tasdiq", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     DialogResult = DialogResult.Cancel;
                     Close();
                 }
-            };
+            });
 
             SetupActionImageBox(_picLicenseAction, "License holati", Color.FromArgb(64, 120, 216), Color.FromArgb(52, 104, 194));
-            _picLicenseAction.Click += (s, e) => new LicenseStatusForm().ShowDialog(this);
+            if (AuthorizationService.IsAdmin(_currentUser))
+            {
+                AddSidebarAction(_picLicenseAction, "Litsenziya", () => new LicenseStatusForm().ShowDialog(this));
+            }
 
             SetupActionImageBox(_picUpdateAction, "Dastur yangilash", Color.FromArgb(230, 150, 12), Color.FromArgb(204, 120, 0));
-            _picUpdateAction.Visible = false;
-            _picUpdateAction.Click += UpdateAction_Click;
+            AddSidebarAction(_picUpdateAction, "Yangilash", () => UpdateAction_Click(_picUpdateAction, EventArgs.Empty), visible: false);
 
             _picThemeAction.Size = new Size(28, 28);
             _picThemeAction.Margin = new Padding(2);
@@ -390,33 +402,15 @@ namespace SantexnikaSRM.Forms
                     UiTheme.CurrentMode == UiTheme.ThemeMode.Light ? Color.FromArgb(46, 65, 96) : Color.White,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
-            _picThemeAction.Click += (s, e) =>
+            AddSidebarAction(_picThemeAction, UiTheme.GetThemeToggleButtonText(), () =>
             {
                 UiTheme.ToggleTheme();
                 ApplyThemeStyles();
-            };
+            });
             AttachActionHoverMagnify(_picThemeAction);
 
-            _actionsFlow.Controls.Add(_picLogoutAction);
-            _actionsFlow.Controls.Add(_picExitAction);
-            if (AuthorizationService.IsAdmin(_currentUser))
-            {
-                _actionsFlow.Controls.Add(_picLicenseAction);
-            }
-            _actionsFlow.Controls.Add(_picUpdateAction);
-            _actionsFlow.Controls.Add(_picThemeAction);
             _actionPanel.Controls.Add(_actionsFlow);
-            _actionPanel.Resize += (s, e) =>
-            {
-                _actionsFlow.MaximumSize = new Size(Math.Max(1, _actionPanel.ClientSize.Width), 0);
-                _actionsFlow.Left = Math.Max(0, (_actionPanel.ClientSize.Width - _actionsFlow.Width) / 2);
-                _actionsFlow.Top = Math.Max(0, (_actionPanel.ClientSize.Height - _actionsFlow.Height) / 2);
-            };
-            _navigationToolTip.SetToolTip(_picLogoutAction, "Akkauntdan chiqish");
-            _navigationToolTip.SetToolTip(_picExitAction, "Dasturdan chiqish");
-            _navigationToolTip.SetToolTip(_picLicenseAction, "Dastur va litsenziya holati");
-            _navigationToolTip.SetToolTip(_picUpdateAction, "Dastur yangilanishi");
-            _navigationToolTip.SetToolTip(_picThemeAction, UiTheme.GetThemeToggleButtonText());
+            _actionsFlow.Resize += (s, e) => LayoutSidebarActionRows();
 
             _lblFooter.Text = "© 2026 OsonTrack SRM";
             _lblFooter.Dock = DockStyle.Right;
@@ -492,8 +486,7 @@ namespace SantexnikaSRM.Forms
             {
                 LayoutRoleBadge();
                 LayoutHeaderCenterText();
-                int rows = Math.Max(1, _tilesGrid.RowCount);
-                _tilesGrid.Height = (rows * (_isSidebarCollapsed ? 56 : TileRowHeight)) + 10;
+                UpdateSidebarGridHeight();
                 UpdateBodyScrollArea();
             };
         }
@@ -541,10 +534,10 @@ namespace SantexnikaSRM.Forms
 
             if (isAdmin)
             {
-                defs.Add(new TileDefinition("Foydalanuvchilar", "Rol va akkauntlar", "\uE716", Color.FromArgb(75, 88, 114), () => OpenPage(() => new UserManagementForm(_currentUser)), "pdf-nav-users.png"));
-                defs.Add(new TileDefinition("Backup / Restore", "Zaxira va tiklash", "\uE7F1", Color.FromArgb(75, 88, 114), () => OpenPage(() => new BackupRestoreForm(_currentUser)), "pdf-nav-backup.png"));
-                defs.Add(new TileDefinition("Chek Rekvizitlari", "Chek sozlamalari", "\uE8A5", Color.FromArgb(32, 129, 214), () => OpenPage(() => new FiscalSettingsForm(_currentUser)), "pdf-nav-receipt.png"));
-                defs.Add(new TileDefinition("Foiz va chegirmalar", "Chegirma sozlamalari", "%", Color.FromArgb(16, 161, 121), () => OpenPage(() => new PricingDiscountForm(_currentUser)), "pdf-nav-discounts.png"));
+                defs.Add(new TileDefinition("Foydalanuvchilar", "Rol va akkauntlar", "\uE716", Color.FromArgb(75, 88, 114), () => OpenPage(() => new UserManagementForm(_currentUser)), "pdf-nav-users.png", "BOSHQARUV"));
+                defs.Add(new TileDefinition("Backup / Restore", "Zaxira va tiklash", "\uE7F1", Color.FromArgb(75, 88, 114), () => OpenPage(() => new BackupRestoreForm(_currentUser)), "pdf-nav-backup.png", "BOSHQARUV"));
+                defs.Add(new TileDefinition("Chek Rekvizitlari", "Chek sozlamalari", "\uE8A5", Color.FromArgb(32, 129, 214), () => OpenPage(() => new FiscalSettingsForm(_currentUser)), "pdf-nav-receipt.png", "BOSHQARUV"));
+                defs.Add(new TileDefinition("Foiz va chegirmalar", "Chegirma sozlamalari", "%", Color.FromArgb(16, 161, 121), () => OpenPage(() => new PricingDiscountForm(_currentUser)), "pdf-nav-discounts.png", "BOSHQARUV"));
             }
 
             if (isSeller)
@@ -557,25 +550,44 @@ namespace SantexnikaSRM.Forms
                     x.Title != "Mijozlar");
             }
 
-            int rows = (defs.Count + (TileColumns - 1)) / TileColumns;
             _tilesGrid.Controls.Clear();
             _tilesGrid.RowStyles.Clear();
-            for (int i = 0; i < rows; i++)
-            {
-                _tilesGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, TileRowHeight));
-            }
-            _tilesGrid.RowCount = rows;
-            _tilesGrid.Height = (rows * TileRowHeight) + 12;
-            UpdateBodyScrollArea();
-
+            _tilesGrid.RowCount = defs.Count + defs
+                .Select(definition => definition.Section)
+                .Distinct(StringComparer.Ordinal)
+                .Count();
             _tiles.Clear();
-            for (int i = 0; i < defs.Count; i++)
+            string? currentSection = null;
+            int row = 0;
+            foreach (TileDefinition definition in defs)
             {
-                TileUi tile = CreateTile(defs[i]);
+                if (!string.Equals(currentSection, definition.Section, StringComparison.Ordinal))
+                {
+                    currentSection = definition.Section;
+                    var heading = new Label
+                    {
+                        Text = currentSection,
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.BottomLeft,
+                        Padding = new Padding(12, 0, 0, 4),
+                        Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 8.5f, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(151, 168, 190),
+                        BackColor = Color.Transparent,
+                        AutoSize = false,
+                        Tag = "sidebar-section"
+                    };
+                    _tilesGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, SidebarSectionHeaderHeight));
+                    _tilesGrid.Controls.Add(heading, 0, row++);
+                }
+
+                TileUi tile = CreateTile(definition);
                 tile.Card.Visible = false;
                 _tiles.Add(tile);
-                _tilesGrid.Controls.Add(tile.Card, i % TileColumns, i / TileColumns);
+                _tilesGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, TileRowHeight));
+                _tilesGrid.Controls.Add(tile.Card, 0, row++);
             }
+            UpdateSidebarGridHeight();
+            UpdateBodyScrollArea();
         }
 
         private void BuildHomeDashboard()
@@ -764,19 +776,19 @@ namespace SantexnikaSRM.Forms
             note.Controls.Add(noteText);
             layout.Controls.Add(note, 0, 4);
 
-            _btnDashboardRefresh.Size = new Size(122, 42);
+            _btnDashboardRefresh.Size = new Size(124, 42);
             _btnDashboardRefresh.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             UiTheme.StyleNeutralButton(_btnDashboardRefresh);
             _btnDashboardRefresh.Text = "Yangilash";
             _btnDashboardRefresh.Image = BrandingAssets.TryLoadAssetImage("pdf-button-refresh.png");
             _btnDashboardRefresh.ImageAlign = ContentAlignment.MiddleLeft;
             _btnDashboardRefresh.TextImageRelation = TextImageRelation.ImageBeforeText;
-            _btnDashboardRefresh.Padding = new Padding(18, 0, 14, 0);
+            _btnDashboardRefresh.Padding = new Padding(8, 0, 8, 0);
             _btnDashboardRefresh.BackColor = Color.White;
             _btnDashboardRefresh.ForeColor = Color.FromArgb(30, 43, 64);
             _btnDashboardRefresh.FlatAppearance.BorderSize = 1;
             _btnDashboardRefresh.FlatAppearance.BorderColor = Color.FromArgb(222, 229, 238);
-            _btnDashboardRefresh.Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 10.5f, FontStyle.Regular);
+            _btnDashboardRefresh.Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 9.5f, FontStyle.Regular);
             if (_btnDashboardRefresh.Image != null)
             {
                 _btnDashboardRefresh.Image = new Bitmap(_btnDashboardRefresh.Image, new Size(18, 18));
@@ -813,8 +825,7 @@ namespace SantexnikaSRM.Forms
 
         private void BuildHomeContent()
         {
-            _homeContentPanel.Dock = DockStyle.Top;
-            _homeContentPanel.Height = 610;
+            _homeContentPanel.Dock = DockStyle.Fill;
             _homeContentPanel.BackColor = Color.Transparent;
 
             var layout = new TableLayoutPanel
@@ -1576,8 +1587,8 @@ namespace SantexnikaSRM.Forms
             foreach (TileUi tile in _tiles)
             {
                 bool selected = string.Equals(tile.Title.Text, title, StringComparison.Ordinal);
-                tile.BaseColor = selected
-                    ? Color.FromArgb(91, 91, 240)
+                    tile.BaseColor = selected
+                        ? Color.FromArgb(93, 95, 239)
                     : _sidebar.BackColor;
                 tile.HoverColor = selected
                     ? Color.FromArgb(77, 77, 220)
@@ -1620,11 +1631,8 @@ namespace SantexnikaSRM.Forms
             _sidebar.Padding = collapsed
                 ? new Padding(6, 8, 6, 10)
                 : new Padding(12, 10, 12, 12);
-            _actionsFlow.FlowDirection = collapsed ? FlowDirection.TopDown : FlowDirection.LeftToRight;
+            _actionsFlow.FlowDirection = FlowDirection.TopDown;
             _actionsFlow.WrapContents = false;
-            _actionPanel.Height = collapsed
-                ? (_actionsFlow.Controls.Cast<Control>().Count(control => control.Visible) * 32) + 12
-                : 48;
             _sidebarBrand.Visible = true;
 
             _btnSidebarToggle.Dock = DockStyle.None;
@@ -1644,9 +1652,7 @@ namespace SantexnikaSRM.Forms
             _btnSidebarToggle.FlatAppearance.BorderColor = Color.FromArgb(71, 116, 177);
             _btnSidebarToggle.FlatAppearance.MouseOverBackColor = Color.FromArgb(25, 68, 125);
 
-            _tilesGrid.Padding = collapsed
-                ? new Padding(8, 8, 8, 2)
-                : new Padding(8, 8, 8, 2);
+            _tilesGrid.Padding = new Padding(0, 8, 0, 2);
             _appLogoControl?.SetBounds(collapsed ? 18 : 16, 22, collapsed ? 36 : 144, collapsed ? 26 : 48);
             if (_appLogoControl is PictureBox logo)
             {
@@ -1654,30 +1660,44 @@ namespace SantexnikaSRM.Forms
                     ?? BrandingAssets.TryLoadLogo();
             }
             _sidebarBrand.Height = 108;
+            foreach (Control control in _tilesGrid.Controls)
+            {
+                if (control is Label heading && Equals(heading.Tag, "sidebar-section"))
+                {
+                    int row = _tilesGrid.GetRow(heading);
+                    heading.Visible = !collapsed;
+                    _tilesGrid.RowStyles[row].Height = collapsed ? 0 : SidebarSectionHeaderHeight;
+                }
+            }
             foreach (TileUi tile in _tiles)
             {
                 tile.Title.Visible = !collapsed;
-                tile.Subtitle.Visible = !collapsed;
-                tile.Card.Padding = collapsed
-                    ? new Padding(4, 2, 4, 2)
-                    : new Padding(8, 2, 8, 2);
-                tile.Card.Margin = new Padding(0, 1, 0, 1);
+                tile.Subtitle.Visible = false;
+                tile.Card.Padding = Padding.Empty;
+                tile.Card.Margin = Padding.Empty;
                 UpdateTileLayout(tile.Card, tile.IconBox, tile.Title, tile.Subtitle, collapsed);
 
-                string tooltip = $"{tile.Title.Text}: {tile.Subtitle.Text}";
+                string tooltip = string.IsNullOrWhiteSpace(tile.Subtitle.Text)
+                    ? tile.Title.Text
+                    : $"{tile.Title.Text}: {tile.Subtitle.Text}";
                 _navigationToolTip.SetToolTip(tile.Card, tooltip);
                 _navigationToolTip.SetToolTip(tile.IconBox, tooltip);
                 _navigationToolTip.SetToolTip(tile.IconControl, tooltip);
                 tile.Card.AccessibleName = tile.Title.Text;
                 tile.Card.AccessibleRole = AccessibleRole.PushButton;
+                int row = _tilesGrid.GetRow(tile.Card);
+                _tilesGrid.RowStyles[row].Height = TileRowHeight;
             }
 
-            int rowHeight = TileRowHeight;
-            for (int i = 0; i < _tilesGrid.RowStyles.Count; i++)
+            foreach ((PictureBox icon, Panel row) in _sidebarActionRows)
             {
-                _tilesGrid.RowStyles[i].Height = rowHeight;
+                Label label = _sidebarActionLabels[icon];
+                label.Visible = !collapsed;
+                row.AccessibleName = label.Text;
+                row.AccessibleRole = AccessibleRole.PushButton;
             }
-            _tilesGrid.Height = (_tilesGrid.RowCount * rowHeight) + 10;
+            LayoutSidebarActionRows();
+            UpdateSidebarGridHeight();
             _tilesGrid.ResumeLayout(true);
             _sidebar.ResumeLayout(true);
             LayoutActivePage();
@@ -1726,8 +1746,8 @@ namespace SantexnikaSRM.Forms
         {
             Panel card = new Panel
             {
-                Margin = new Padding(3),
-                Padding = new Padding(8, 6, 8, 6),
+                Margin = Padding.Empty,
+                Padding = Padding.Empty,
                 Cursor = Cursors.Hand,
                 Dock = DockStyle.Fill
             };
@@ -1789,7 +1809,7 @@ namespace SantexnikaSRM.Forms
             {
                 Text = def.Title,
                 AutoSize = false,
-                Height = 24,
+                Height = TileRowHeight,
                 Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11.5f, FontStyle.Bold),
                 BackColor = Color.Transparent
             };
@@ -1822,14 +1842,6 @@ namespace SantexnikaSRM.Forms
             {
                 UpdateCardRegion(card);
                 UpdateTileLayout(card, iconBox, title, subtitle, _isSidebarCollapsed);
-            };
-            card.Paint += (s, e) =>
-            {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                Rectangle borderBounds = new Rectangle(1, 1, Math.Max(1, card.Width - 3), Math.Max(1, card.Height - 3));
-                using GraphicsPath borderPath = RoundedRect(borderBounds, 16);
-                using Pen border = new Pen(UiTheme.Border, 1f);
-                e.Graphics.DrawPath(border, borderPath);
             };
 
             var tileUi = new TileUi(card, title, subtitle, iconBox, iconControl, useImageIcon, tileImage, selectedTileImage);
@@ -1879,7 +1891,7 @@ namespace SantexnikaSRM.Forms
         private void ApplyThemeStyles()
         {
             bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
-            BackColor = isLight ? Color.FromArgb(236, 243, 253) : Color.FromArgb(12, 18, 29);
+            BackColor = isLight ? Color.FromArgb(245, 247, 250) : Color.FromArgb(12, 18, 29);
             _header.BackColor = UiTheme.Card;
             _footerPanel.BackColor = UiTheme.Card;
             _actionPanel.BackColor = _sidebar.BackColor;
@@ -1935,7 +1947,7 @@ namespace SantexnikaSRM.Forms
 
             foreach (TileUi tile in _tiles)
             {
-                tile.BaseColor = isLight ? Color.FromArgb(19, 35, 56) : Color.FromArgb(13, 24, 41);
+                tile.BaseColor = isLight ? Color.FromArgb(22, 38, 61) : Color.FromArgb(13, 24, 41);
                 tile.HoverColor = isLight ? Color.FromArgb(30, 50, 75) : Color.FromArgb(29, 45, 65);
                 tile.Card.BackColor = tile.BaseColor;
                 tile.Title.ForeColor = Color.FromArgb(188, 200, 216);
@@ -1943,7 +1955,7 @@ namespace SantexnikaSRM.Forms
                 tile.Card.Invalidate();
             }
 
-            _sidebar.BackColor = isLight ? Color.FromArgb(19, 35, 56) : Color.FromArgb(13, 24, 41);
+            _sidebar.BackColor = isLight ? Color.FromArgb(22, 38, 61) : Color.FromArgb(13, 24, 41);
             _btnSidebarToggle.BackColor = _sidebar.BackColor;
             _btnSidebarToggle.ForeColor = isLight ? Color.FromArgb(224, 238, 255) : Color.FromArgb(198, 218, 241);
             _btnSidebarToggle.FlatAppearance.BorderColor = isLight
@@ -2018,6 +2030,114 @@ namespace SantexnikaSRM.Forms
             _picThemeAction.BorderStyle = BorderStyle.None;
             _picThemeAction.AccessibleName = UiTheme.GetThemeToggleButtonText();
             _navigationToolTip.SetToolTip(_picThemeAction, UiTheme.GetThemeToggleButtonText());
+            if (_sidebarActionLabels.TryGetValue(_picThemeAction, out Label? label))
+            {
+                label.Text = UiTheme.GetThemeToggleButtonText();
+                label.AccessibleName = label.Text;
+                _navigationToolTip.SetToolTip(label, label.Text);
+                _sidebarActionRows[_picThemeAction].AccessibleName = label.Text;
+                _navigationToolTip.SetToolTip(_sidebarActionRows[_picThemeAction], label.Text);
+            }
+        }
+
+        private void AddSidebarAction(PictureBox icon, string labelText, Action activate, bool visible = true)
+        {
+            icon.Size = new Size(24, 24);
+            icon.Margin = Padding.Empty;
+            icon.AccessibleName = labelText;
+            icon.Visible = visible;
+
+            var row = new Panel
+            {
+                Height = SidebarActionRowHeight,
+                Width = Math.Max(1, _actionsFlow.ClientSize.Width),
+                Margin = Padding.Empty,
+                BackColor = Color.Transparent,
+                Cursor = Cursors.Hand,
+                TabStop = true
+            };
+            var label = new Label
+            {
+                Text = labelText,
+                Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 9.5f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(194, 204, 219),
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.Transparent,
+                Cursor = Cursors.Hand,
+                AutoEllipsis = true
+            };
+
+            _sidebarActionRows.Add(icon, row);
+            _sidebarActionLabels.Add(icon, label);
+            _sidebarActionVisibility.Add(icon, visible);
+            row.Controls.Add(icon);
+            row.Controls.Add(label);
+            _actionsFlow.Controls.Add(row);
+
+            icon.Click += (s, e) => activate();
+            row.Click += (s, e) => activate();
+            label.Click += (s, e) => activate();
+            row.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode is Keys.Enter or Keys.Space)
+                {
+                    activate();
+                    e.Handled = true;
+                }
+            };
+            _navigationToolTip.SetToolTip(icon, labelText);
+            _navigationToolTip.SetToolTip(label, labelText);
+            _navigationToolTip.SetToolTip(row, labelText);
+            row.AccessibleRole = AccessibleRole.PushButton;
+            row.AccessibleName = labelText;
+            LayoutSidebarActionRows();
+        }
+
+        private void LayoutSidebarActionRows()
+        {
+            int rowWidth = Math.Max(1, _actionsFlow.ClientSize.Width);
+            int visibleRows = 0;
+            foreach ((PictureBox icon, Panel row) in _sidebarActionRows)
+            {
+                bool visible = _sidebarActionVisibility[icon];
+                icon.Visible = visible;
+                row.Visible = visible;
+                if (!row.Visible)
+                {
+                    continue;
+                }
+
+                visibleRows++;
+                row.Width = rowWidth;
+                row.Height = SidebarActionRowHeight;
+                Label label = _sidebarActionLabels[icon];
+                label.Visible = !_isSidebarCollapsed;
+                icon.Location = new Point(
+                    _isSidebarCollapsed ? Math.Max(0, (row.ClientSize.Width - icon.Width) / 2) : 10,
+                    (row.ClientSize.Height - icon.Height) / 2);
+                label.SetBounds(44, 0, Math.Max(1, row.ClientSize.Width - 52), row.ClientSize.Height);
+            }
+
+            _actionPanel.Height = _actionPanel.Padding.Top + (visibleRows * SidebarActionRowHeight) + 4;
+            _actionPanel.PerformLayout();
+        }
+
+        private void SetSidebarActionVisible(PictureBox icon, bool visible)
+        {
+            _sidebarActionVisibility[icon] = visible;
+            icon.Visible = visible;
+            _sidebarActionRows[icon].Visible = visible;
+            LayoutSidebarActionRows();
+        }
+
+        private void UpdateSidebarGridHeight()
+        {
+            int rowsHeight = 0;
+            foreach (RowStyle rowStyle in _tilesGrid.RowStyles)
+            {
+                rowsHeight += (int)Math.Ceiling(rowStyle.Height);
+            }
+            _tilesGrid.Height = rowsHeight + _tilesGrid.Padding.Vertical;
         }
 
         private void SetupActionImageBox(PictureBox box, string text, Color c1, Color c2)
@@ -2187,6 +2307,7 @@ namespace SantexnikaSRM.Forms
             _picExitAction.Invalidate();
             _picLicenseAction.Invalidate();
             _picUpdateAction.Invalidate();
+            LayoutSidebarActionRows();
         }
 
         private static Image? GetThemeAwareImage(string themedFileName, string fallbackFileName)
@@ -2206,7 +2327,7 @@ namespace SantexnikaSRM.Forms
             {
                 _lastUpdateCheckError = null;
                 _pendingUpdate = null;
-                _picUpdateAction.Visible = false;
+                SetSidebarActionVisible(_picUpdateAction, false);
 
                 if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out _)
                     || activation == null
@@ -2236,9 +2357,8 @@ namespace SantexnikaSRM.Forms
                     caption,
                     result.Info.Mandatory ? Color.FromArgb(217, 76, 76) : Color.FromArgb(230, 150, 12),
                     result.Info.Mandatory ? Color.FromArgb(186, 54, 54) : Color.FromArgb(204, 120, 0));
-                _picUpdateAction.Visible = true;
+                SetSidebarActionVisible(_picUpdateAction, true);
                 _picUpdateAction.Invalidate();
-                _actionsFlow.PerformLayout();
                 ApplySidebarLayout(_isSidebarCollapsed);
             }
             catch
@@ -2435,16 +2555,14 @@ namespace SantexnikaSRM.Forms
 
         private void UpdateBodyScrollArea()
         {
-            int homeHeight = _homeContentPanel.Visible ? _homeContentPanel.Height : 0;
-            int contentHeight = homeHeight + _body.Padding.Top + _body.Padding.Bottom + 12;
-            _body.AutoScrollMinSize = new Size(0, contentHeight);
+            _body.AutoScrollMinSize = Size.Empty;
         }
 
         private static void UpdateCardRegion(Panel card)
         {
             int width = Math.Max(card.Width, 1);
             int height = Math.Max(card.Height, 1);
-            card.Region = new Region(RoundedRect(new Rectangle(0, 0, width, height), 16));
+            card.Region = new Region(RoundedRect(new Rectangle(0, 0, width, height), 9));
         }
 
         private static void UpdateTileLayout(Panel card, Panel iconBox, Label title, Label subtitle, bool collapsed)
@@ -2453,12 +2571,12 @@ namespace SantexnikaSRM.Forms
                 ? Math.Max(0, (card.ClientSize.Width - iconBox.Width) / 2)
                 : 12;
             int iconTop = Math.Max(0, (card.ClientSize.Height - iconBox.Height) / 2);
-            int textLeft = iconLeft + iconBox.Width + 12;
-            int textWidth = Math.Max(1, card.ClientSize.Width - textLeft - 8);
+            int textLeft = collapsed ? 0 : iconLeft + iconBox.Width + 12;
+            int textWidth = Math.Max(1, card.ClientSize.Width - textLeft - (collapsed ? 0 : 8));
             iconBox.SetBounds(iconLeft, iconTop, iconBox.Width, iconBox.Height);
-            title.SetBounds(textLeft, 7, textWidth, 24);
+            title.SetBounds(textLeft, 0, textWidth, TileRowHeight);
             title.TextAlign = ContentAlignment.MiddleLeft;
-            subtitle.SetBounds(textLeft, 32, textWidth, 20);
+            subtitle.SetBounds(textLeft, TileRowHeight, textWidth, 0);
             subtitle.TextAlign = ContentAlignment.MiddleLeft;
         }
 
@@ -3182,7 +3300,7 @@ namespace SantexnikaSRM.Forms
 
         private sealed class TileDefinition
         {
-            public TileDefinition(string title, string subtitle, string icon, Color iconColor, Action onClick, string? iconImageFile = null)
+            public TileDefinition(string title, string subtitle, string icon, Color iconColor, Action onClick, string? iconImageFile = null, string section = "ASOSIY")
             {
                 Title = title;
                 Subtitle = subtitle;
@@ -3190,6 +3308,7 @@ namespace SantexnikaSRM.Forms
                 IconColor = iconColor;
                 OnClick = onClick;
                 IconImageFile = iconImageFile;
+                Section = section;
             }
 
             public string Title { get; }
@@ -3198,6 +3317,7 @@ namespace SantexnikaSRM.Forms
             public Color IconColor { get; }
             public Action OnClick { get; }
             public string? IconImageFile { get; }
+            public string Section { get; }
         }
 
         private sealed class TileUi
