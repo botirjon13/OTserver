@@ -1,14 +1,21 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Windows.Forms;
 using Microsoft.Data.Sqlite;
 using SantexnikaSRM.Data;
+using SantexnikaSRM.Forms;
 using SantexnikaSRM.Models;
 using SantexnikaSRM.Services;
+using SantexnikaSRM.Utils;
 
 namespace ServiceTests;
 
@@ -21,6 +28,7 @@ internal static class Program
         Role = DatabaseHelper.RoleAdmin
     };
 
+    [STAThread]
     private static int Main()
     {
         var tests = new (string Name, Action Body)[]
@@ -33,6 +41,8 @@ internal static class Program
             ("historical cost", HistoricalCostIsUsedAfterProductCostChanges),
             ("debt sale", DebtSaleCreatesExpectedDebt),
             ("home dashboard", HomeDashboardShowsRoleAppropriateMetrics),
+            ("home dashboard status visuals", HomeDashboardStatusVisualsMatchState),
+            ("dashboard image bounds", DashboardImagesAreNotClipped),
             ("backup restore", BackupRestoreRestoresDatabaseSnapshot),
             ("legacy backup restore", LegacyDatabaseBackupRemainsRestorable),
             ("encrypted cloud backup", EncryptedCloudBackupRoundTripsAndRejectsTampering)
@@ -444,6 +454,117 @@ internal static class Program
         CryptographicOperations.ZeroMemory(key);
         CryptographicOperations.ZeroMemory(decrypted);
         CryptographicOperations.ZeroMemory(archive);
+    }
+
+    private static void HomeDashboardStatusVisualsMatchState()
+    {
+        using var form = new MainForm(Admin);
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var type = typeof(MainForm);
+        var status = (Label)(type.GetField("_lblHomeStatus", flags)?.GetValue(form)
+            ?? throw new InvalidOperationException("Status label not found."));
+        var date = (Label)(type.GetField("_lblHomeDate", flags)?.GetValue(form)
+            ?? throw new InvalidOperationException("Date label not found."));
+        var icon = (PictureBox)(type.GetField("_picHomeStatusCheck", flags)?.GetValue(form)
+            ?? throw new InvalidOperationException("Status icon not found."));
+        var saleButton = (Button)(type.GetField("_btnNewSale", flags)?.GetValue(form)
+            ?? throw new InvalidOperationException("Sale button not found."));
+        var error = type.GetField("_homeDashboardErrorMessage", flags)
+            ?? throw new InvalidOperationException("Status error field not found.");
+        var update = type.GetMethod("UpdateHomeStatus", flags)
+            ?? throw new InvalidOperationException("Status update method not found.");
+
+        void Check(Color expected, bool healthy)
+        {
+            update.Invoke(form, null);
+            AssertEqual(status.BackColor.ToArgb(), expected.ToArgb(), $"status text background ({status.Text})");
+            AssertEqual(date.BackColor.ToArgb(), expected.ToArgb(), "status date background");
+            AssertEqual(icon.BackColor.ToArgb(), expected.ToArgb(), "status icon background");
+            AssertEqual(icon.Image != null, healthy, "status icon state");
+        }
+
+        Check(Color.FromArgb(250, 243, 224), false);
+        AssertEqual(saleButton.BackColor.ToArgb(), Color.FromArgb(93, 95, 239).ToArgb(), "sale button colour");
+        AssertEqual(saleButton.FlatAppearance.MouseOverBackColor.ToArgb(), Color.FromArgb(77, 77, 220).ToArgb(), "sale button hover colour");
+        new DatabaseHelper().SaveCurrencyRate(new CurrencyRate { Rate = 12000, Date = DateTime.Now });
+        new BackupService().CreateBackup();
+        Check(Color.FromArgb(233, 244, 239), true);
+        error.SetValue(form, "Sinov xatosi");
+        Check(Color.FromArgb(253, 235, 234), false);
+        UiTheme.ToggleTheme();
+        try
+        {
+            var applyTheme = type.GetMethod("ApplyThemeStyles", flags)
+                ?? throw new InvalidOperationException("Theme update method not found.");
+            applyTheme.Invoke(form, null);
+            AssertEqual(saleButton.BackColor.ToArgb(), Color.FromArgb(93, 95, 239).ToArgb(), "dark sale button colour");
+            AssertEqual(saleButton.ForeColor.ToArgb(), Color.White.ToArgb(), "dark sale button text");
+            var cards = (IList)(type.GetField("_dashboardCards", flags)?.GetValue(form)
+                ?? throw new InvalidOperationException("Dashboard cards not found."));
+            string[] darkIcons = { "pdf-metric-sales-dark.png", "pdf-metric-profit-dark.png", "pdf-metric-expense-dark.png", "pdf-metric-debt-dark.png" };
+            AssertEqual(cards.Count, darkIcons.Length, "dashboard card count");
+            for (int i = 0; i < cards.Count; i++)
+            {
+                var card = (ITuple)(cards[i] ?? throw new InvalidOperationException("Dashboard card missing."));
+                var cardIcon = (PictureBox)(card[4] ?? throw new InvalidOperationException("Dashboard icon missing."));
+                AssertTrue(ReferenceEquals(cardIcon.Image, BrandingAssets.TryLoadAssetImage(darkIcons[i])), $"dark icon {darkIcons[i]}");
+            }
+            Check(Color.FromArgb(57, 34, 34), false);
+            error.SetValue(form, null);
+            Check(Color.FromArgb(30, 52, 45), true);
+            using (var connection = Database.GetConnection())
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "DELETE FROM CurrencyRates";
+                command.ExecuteNonQuery();
+            }
+            Check(Color.FromArgb(54, 46, 31), false);
+        }
+        finally
+        {
+            UiTheme.ToggleTheme();
+        }
+    }
+
+    private static void DashboardImagesAreNotClipped()
+    {
+        string[] names =
+        {
+            "pdf-footer-info.png", "pdf-button-plus.png", "pdf-button-refresh.png", "pdf-status-check.png",
+            "pdf-header-location.png", "pdf-header-bell.png", "pdf-header-chevron.png",
+            "pdf-metric-sales.png", "pdf-metric-profit.png", "pdf-metric-expense.png", "pdf-metric-debt.png",
+            "pdf-quick-products.png", "pdf-quick-customers.png", "pdf-quick-expenses.png", "pdf-quick-arrow.png",
+            "pdf-summary-products.png", "pdf-summary-debts.png",
+            "pdf-footer-info-dark.png", "pdf-button-refresh-dark.png", "pdf-status-check-dark.png",
+            "pdf-header-location-dark.png", "pdf-header-bell-dark.png", "pdf-header-chevron-dark.png",
+            "pdf-metric-sales-dark.png", "pdf-metric-profit-dark.png", "pdf-metric-expense-dark.png", "pdf-metric-debt-dark.png",
+            "pdf-quick-products-dark.png", "pdf-quick-customers-dark.png", "pdf-quick-expenses-dark.png", "pdf-quick-arrow-dark.png",
+            "pdf-summary-products-dark.png", "pdf-summary-debts-dark.png"
+        };
+        foreach (string name in names)
+        {
+            Image image = BrandingAssets.TryLoadAssetImage(name)
+                ?? throw new InvalidOperationException($"Missing image: {name}");
+            using var bitmap = new Bitmap(image);
+            for (int x = 0; x < bitmap.Width; x++)
+            {
+                AssertTrue(bitmap.GetPixel(x, 0).A == 0 && bitmap.GetPixel(x, bitmap.Height - 1).A == 0, $"{name}: vertical boundary");
+            }
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                AssertTrue(bitmap.GetPixel(0, y).A == 0 && bitmap.GetPixel(bitmap.Width - 1, y).A == 0, $"{name}: horizontal boundary");
+            }
+            bool hasVisiblePixel = false;
+            for (int y = 1; y < bitmap.Height - 1 && !hasVisiblePixel; y++)
+            {
+                for (int x = 1; x < bitmap.Width - 1 && !hasVisiblePixel; x++)
+                {
+                    hasVisiblePixel = bitmap.GetPixel(x, y).A > 0;
+                }
+            }
+            AssertTrue(hasVisiblePixel, $"{name}: image is empty");
+        }
     }
 
     private static void ResetDatabase(string testName)
