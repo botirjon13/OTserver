@@ -29,6 +29,7 @@ namespace SantexnikaSRM.Forms
         private readonly HomeDashboardService _homeDashboardService = new HomeDashboardService();
         private readonly Label _lblTitleOson = new Label();
         private readonly Label _lblHeaderAlerts = new Label();
+        private readonly Label _lblHeaderUpdate = new Label();
         private readonly PictureBox _picHeaderLocation = new PictureBox();
         private readonly Label _lblStoreName = new Label();
         private readonly PictureBox _picHeaderBell = new PictureBox();
@@ -73,7 +74,6 @@ namespace SantexnikaSRM.Forms
         private readonly PictureBox _picExitAction = new PictureBox();
         private readonly PictureBox _picLicenseAction = new PictureBox();
         private readonly PictureBox _picThemeAction = new PictureBox();
-        private readonly PictureBox _picUpdateAction = new PictureBox();
         private readonly System.Windows.Forms.Timer _actionHoverTimer = new System.Windows.Forms.Timer();
         private readonly Dictionary<PictureBox, ActionHoverState> _actionHoverStates = new Dictionary<PictureBox, ActionHoverState>();
         private readonly Label _lblFooter = new Label();
@@ -100,14 +100,16 @@ namespace SantexnikaSRM.Forms
         private Rectangle _appLogoBaseBounds;
         private Size _activePagePreferredSize;
         private const int TileColumns = 1;
-        private const int TileRowHeight = 44;
+        private const int TileRowHeight = 42;
         private const int SidebarSectionHeaderHeight = 26;
         private const int SidebarActionRowHeight = 32;
         private const int SidebarActionPanelHeight = 208;
+        private const float SidebarTitleFontSize = 9.5f;
         private static readonly Color DashboardSalesColor = Color.FromArgb(91, 91, 240);
         private AppUpdateInfo? _pendingUpdate;
         private Form? _activePage;
         private string? _lastUpdateCheckError;
+        private bool _hasUpdateCheckIssue;
         private bool _isUpdateDownloading;
         private bool _isSidebarCollapsed;
         private string _selectedNavigationTitle = "Bosh sahifa";
@@ -166,11 +168,15 @@ namespace SantexnikaSRM.Forms
             _sidebar.Padding = new Padding(12, 10, 12, 12);
             _sidebar.AutoScroll = true;
 
-            _btnSidebarToggle.Height = 36;
+            _btnSidebarToggle.Size = new Size(28, 28);
             _btnSidebarToggle.FlatStyle = FlatStyle.Flat;
-            _btnSidebarToggle.FlatAppearance.BorderSize = 1;
+            _btnSidebarToggle.FlatAppearance.BorderSize = 0;
             _btnSidebarToggle.Font = new Font("Segoe UI", 18, FontStyle.Regular);
             _btnSidebarToggle.Cursor = Cursors.Hand;
+            _btnSidebarToggle.TextAlign = ContentAlignment.MiddleCenter;
+            _btnSidebarToggle.Padding = Padding.Empty;
+            _btnSidebarToggle.UseVisualStyleBackColor = false;
+            _btnSidebarToggle.AccessibleRole = AccessibleRole.PushButton;
             _btnSidebarToggle.Click += (_, __) => ApplySidebarLayout(!_isSidebarCollapsed);
             _navigationToolTip.SetToolTip(_btnSidebarToggle, "Navigatsiyani yig'ish");
 
@@ -242,6 +248,20 @@ namespace SantexnikaSRM.Forms
             _lblHeaderAlerts.AutoSize = false;
             _lblHeaderAlerts.Visible = false;
 
+            _lblHeaderUpdate.AutoSize = false;
+            _lblHeaderUpdate.TextAlign = ContentAlignment.MiddleCenter;
+            _lblHeaderUpdate.Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 9.5f, FontStyle.Bold);
+            _lblHeaderUpdate.Cursor = Cursors.Hand;
+            _lblHeaderUpdate.Visible = false;
+            _lblHeaderUpdate.AccessibleRole = AccessibleRole.PushButton;
+            _lblHeaderUpdate.Click += (s, e) => UpdateAction_Click(_lblHeaderUpdate, EventArgs.Empty);
+            _lblHeaderUpdate.Resize += (_, __) =>
+            {
+                _lblHeaderUpdate.Region = new Region(
+                    RoundedRect(new Rectangle(0, 0, Math.Max(1, _lblHeaderUpdate.Width), Math.Max(1, _lblHeaderUpdate.Height)), 8));
+            };
+            _navigationToolTip.SetToolTip(_lblHeaderUpdate, "Dastur yangilanishini ochish");
+
             _picHeaderBell.Size = new Size(22, 24);
             _picHeaderBell.SizeMode = PictureBoxSizeMode.Zoom;
             _picHeaderBell.BackColor = Color.Transparent;
@@ -282,6 +302,7 @@ namespace SantexnikaSRM.Forms
             _header.Controls.Add(_lblTitleOson);
             _header.Controls.Add(_lblStoreName);
             _header.Controls.Add(_lblHeaderAlerts);
+            _header.Controls.Add(_lblHeaderUpdate);
             _header.Controls.Add(_picHeaderBell);
             _header.Controls.Add(_picRole);
             _header.Controls.Add(_lblRole);
@@ -369,7 +390,7 @@ namespace SantexnikaSRM.Forms
                     return;
                 }
 
-                string fallbackText = UiTheme.GetThemeToggleButtonText();
+                string fallbackText = GetThemeActionText();
                 TextRenderer.DrawText(
                     e.Graphics,
                     fallbackText,
@@ -404,9 +425,6 @@ namespace SantexnikaSRM.Forms
                     Close();
                 }
             });
-
-            SetupActionImageBox(_picUpdateAction, "Dastur yangilash", Color.FromArgb(230, 150, 12), Color.FromArgb(204, 120, 0));
-            AddSidebarAction(_picUpdateAction, "Yangilash", () => UpdateAction_Click(_picUpdateAction, EventArgs.Empty), visible: false);
 
             _actionPanel.Controls.Add(_actionsFlow);
             _actionsFlow.Resize += (s, e) => LayoutSidebarActionRows();
@@ -775,23 +793,21 @@ namespace SantexnikaSRM.Forms
             note.Controls.Add(noteText);
             layout.Controls.Add(note, 0, 4);
 
-            _btnDashboardRefresh.Size = new Size(124, 42);
+            _btnDashboardRefresh.Size = new Size(122, 38);
             _btnDashboardRefresh.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            UiTheme.StyleNeutralButton(_btnDashboardRefresh);
-            _btnDashboardRefresh.Text = "Yangilash";
-            _btnDashboardRefresh.Image = BrandingAssets.TryLoadAssetImage("pdf-button-refresh.png");
-            _btnDashboardRefresh.ImageAlign = ContentAlignment.MiddleLeft;
-            _btnDashboardRefresh.TextImageRelation = TextImageRelation.ImageBeforeText;
-            _btnDashboardRefresh.Padding = new Padding(8, 0, 8, 0);
-            _btnDashboardRefresh.BackColor = Color.White;
-            _btnDashboardRefresh.ForeColor = Color.FromArgb(30, 43, 64);
+            _btnDashboardRefresh.FlatStyle = FlatStyle.Flat;
             _btnDashboardRefresh.FlatAppearance.BorderSize = 1;
             _btnDashboardRefresh.FlatAppearance.BorderColor = Color.FromArgb(222, 229, 238);
+            _btnDashboardRefresh.Text = "Yangilash";
+            _btnDashboardRefresh.TextAlign = ContentAlignment.MiddleCenter;
+            _btnDashboardRefresh.Padding = Padding.Empty;
             _btnDashboardRefresh.Font = new Font(UiTheme.ResolveFontFamily("Bahnschrift"), 9.5f, FontStyle.Regular);
-            if (_btnDashboardRefresh.Image != null)
+            _btnDashboardRefresh.Cursor = Cursors.Hand;
+            _btnDashboardRefresh.Resize += (_, __) =>
             {
-                _btnDashboardRefresh.Image = new Bitmap(_btnDashboardRefresh.Image, new Size(18, 18));
-            }
+                _btnDashboardRefresh.Region = new Region(
+                    RoundedRect(new Rectangle(0, 0, Math.Max(1, _btnDashboardRefresh.Width), Math.Max(1, _btnDashboardRefresh.Height)), 7));
+            };
             _btnDashboardRefresh.Click += (_, __) => LoadHomeDashboard();
             _welcomePanel.Controls.Add(_btnDashboardRefresh);
 
@@ -1635,9 +1651,10 @@ namespace SantexnikaSRM.Forms
             _sidebarBrand.Visible = true;
 
             _btnSidebarToggle.Dock = DockStyle.None;
-            _btnSidebarToggle.SetBounds(collapsed ? 20 : 188, collapsed ? 70 : 28, 28, 28);
-            _btnSidebarToggle.Width = collapsed ? 32 : 28;
-            _btnSidebarToggle.Height = collapsed ? 32 : 28;
+            const int toggleSize = 28;
+            int sidebarContentWidth = (collapsed ? 72 : 232) - _sidebar.Padding.Horizontal;
+            _btnSidebarToggle.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            _btnSidebarToggle.SetBounds(sidebarContentWidth - toggleSize - 8, collapsed ? 84 : 28, toggleSize, toggleSize);
             _btnSidebarToggle.Margin = new Padding(0, 0, 0, 6);
             _btnSidebarToggle.Text = collapsed ? "\u203A" : "\u2039";
             _btnSidebarToggle.AccessibleName = collapsed
@@ -1649,6 +1666,7 @@ namespace SantexnikaSRM.Forms
             _btnSidebarToggle.ForeColor = Color.FromArgb(224, 238, 255);
             _btnSidebarToggle.BackColor = Color.FromArgb(34, 53, 78);
             _btnSidebarToggle.FlatAppearance.BorderColor = Color.FromArgb(71, 116, 177);
+            _btnSidebarToggle.FlatAppearance.BorderSize = 1;
             _btnSidebarToggle.FlatAppearance.MouseOverBackColor = Color.FromArgb(25, 68, 125);
 
             _tilesGrid.Padding = new Padding(0, 8, 0, 2);
@@ -1658,7 +1676,7 @@ namespace SantexnikaSRM.Forms
                 logo.Image = BrandingAssets.TryLoadAssetImage(collapsed ? "pdf-sidebar-mark.png" : "pdf-sidebar-brand.png")
                     ?? BrandingAssets.TryLoadLogo();
             }
-            _sidebarBrand.Height = 108;
+            _sidebarBrand.Height = collapsed ? 130 : 108;
             foreach (Control control in _tilesGrid.Controls)
             {
                 if (control is Label heading && Equals(heading.Tag, "sidebar-section"))
@@ -1809,7 +1827,8 @@ namespace SantexnikaSRM.Forms
                 Text = def.Title,
                 AutoSize = false,
                 Height = TileRowHeight,
-                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), 11.5f, FontStyle.Bold),
+                Font = new Font(SantexnikaSRM.Utils.UiTheme.ResolveFontFamily("Bahnschrift SemiBold"), SidebarTitleFontSize, FontStyle.Bold),
+                AutoEllipsis = true,
                 BackColor = Color.Transparent
             };
 
@@ -1902,12 +1921,17 @@ namespace SantexnikaSRM.Forms
             _homeDashboardChart.BackColor = UiTheme.Card;
             _homeDashboardSummary.BackColor = UiTheme.Card;
             _homeStatusPanel.BackColor = BackColor;
-            _btnDashboardRefresh.BackColor = isLight ? Color.FromArgb(87, 102, 122) : Color.FromArgb(58, 79, 103);
-            _btnDashboardRefresh.ForeColor = Color.White;
+            _btnDashboardRefresh.BackColor = isLight ? Color.White : Color.FromArgb(58, 79, 103);
+            _btnDashboardRefresh.ForeColor = isLight ? Color.FromArgb(30, 43, 64) : Color.White;
             _btnDashboardRefresh.FlatAppearance.MouseOverBackColor = isLight
-                ? Color.FromArgb(70, 85, 106)
+                ? Color.FromArgb(242, 245, 249)
                 : Color.FromArgb(71, 94, 121);
-            UiTheme.StyleNeutralButton(_btnDashboardRefresh);
+            _btnDashboardRefresh.FlatAppearance.MouseDownBackColor = isLight
+                ? Color.FromArgb(235, 240, 247)
+                : Color.FromArgb(71, 94, 121);
+            _btnDashboardRefresh.FlatAppearance.BorderColor = isLight
+                ? Color.FromArgb(222, 229, 238)
+                : UiTheme.Border;
             if (_btnNewSale.Visible)
             {
                 UiTheme.StylePrimaryButton(_btnNewSale);
@@ -1932,6 +1956,7 @@ namespace SantexnikaSRM.Forms
             _lblRole.BackColor = Color.Transparent;
             _lblTitleOson.ForeColor = isLight ? Color.FromArgb(26, 48, 82) : Color.FromArgb(238, 245, 255);
             _lblHeaderAlerts.ForeColor = isLight ? Color.FromArgb(157, 91, 0) : Color.FromArgb(255, 196, 84);
+            UpdateHeaderUpdateBadgeStyle();
             _lblStoreName.ForeColor = UiTheme.Muted;
             _lblRole.ForeColor = UiTheme.Text;
             _lblRoleSubtitle.ForeColor = UiTheme.Muted;
@@ -2027,16 +2052,24 @@ namespace SantexnikaSRM.Forms
         {
             _picThemeAction.Image = BrandingAssets.TryLoadAssetImage("pdf-nav-theme.png");
             _picThemeAction.BorderStyle = BorderStyle.None;
-            _picThemeAction.AccessibleName = UiTheme.GetThemeToggleButtonText();
-            _navigationToolTip.SetToolTip(_picThemeAction, UiTheme.GetThemeToggleButtonText());
+            string labelText = GetThemeActionText();
+            _picThemeAction.AccessibleName = labelText;
+            _navigationToolTip.SetToolTip(_picThemeAction, labelText);
             if (_sidebarActionLabels.TryGetValue(_picThemeAction, out Label? label))
             {
-                label.Text = UiTheme.GetThemeToggleButtonText();
+                label.Text = labelText;
                 label.AccessibleName = label.Text;
                 _navigationToolTip.SetToolTip(label, label.Text);
                 _sidebarActionRows[_picThemeAction].AccessibleName = label.Text;
                 _navigationToolTip.SetToolTip(_sidebarActionRows[_picThemeAction], label.Text);
             }
+        }
+
+        private static string GetThemeActionText()
+        {
+            return UiTheme.CurrentMode == UiTheme.ThemeMode.Light
+                ? "Tungi rejim"
+                : "Kunduzgi rejim";
         }
 
         private void ShowAboutDialog()
@@ -2186,14 +2219,6 @@ namespace SantexnikaSRM.Forms
                 SidebarActionPanelHeight,
                 _actionPanel.Padding.Top + (visibleRows * SidebarActionRowHeight) + 4);
             _actionPanel.PerformLayout();
-        }
-
-        private void SetSidebarActionVisible(PictureBox icon, bool visible)
-        {
-            _sidebarActionVisibility[icon] = visible;
-            icon.Visible = visible;
-            _sidebarActionRows[icon].Visible = visible;
-            LayoutSidebarActionRows();
         }
 
         private void UpdateSidebarGridHeight()
@@ -2363,16 +2388,12 @@ namespace SantexnikaSRM.Forms
             _picLogoutAction.Image = BrandingAssets.TryLoadAssetImage("pdf-nav-logout.png");
             _picExitAction.Image = BrandingAssets.TryLoadAssetImage("pdf-nav-exit.png");
             _picLicenseAction.Image = BrandingAssets.TryLoadAssetImage("pdf-nav-about.png");
-            _picUpdateAction.Image = BrandingAssets.TryLoadAssetImage("pdf-button-refresh.png");
-
             _picLogoutAction.BorderStyle = BorderStyle.None;
             _picExitAction.BorderStyle = BorderStyle.None;
             _picLicenseAction.BorderStyle = BorderStyle.None;
-            _picUpdateAction.BorderStyle = BorderStyle.None;
             _picLogoutAction.Invalidate();
             _picExitAction.Invalidate();
             _picLicenseAction.Invalidate();
-            _picUpdateAction.Invalidate();
             LayoutSidebarActionRows();
         }
 
@@ -2392,8 +2413,10 @@ namespace SantexnikaSRM.Forms
             try
             {
                 _lastUpdateCheckError = null;
+                _hasUpdateCheckIssue = false;
                 _pendingUpdate = null;
-                SetSidebarActionVisible(_picUpdateAction, false);
+                _lblHeaderUpdate.Visible = false;
+                LayoutHeaderCenterText();
 
                 if (!_activationService.TryGetValidLocalActivation(out LocalActivationRecord? activation, out _)
                     || activation == null
@@ -2405,7 +2428,7 @@ namespace SantexnikaSRM.Forms
                 UpdateCheckResult result = await _updateService.CheckAsync(activation.ServerUrl, Application.ProductVersion);
                 if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
                 {
-                    _lastUpdateCheckError = result.ErrorMessage;
+                    ShowUpdateCheckIssue(result.ErrorMessage);
                     return;
                 }
 
@@ -2415,22 +2438,31 @@ namespace SantexnikaSRM.Forms
                 }
 
                 _pendingUpdate = result.Info;
-                string caption = result.Info.Mandatory
-                    ? $"Majburiy yangilash ({result.Info.Version})"
-                    : $"Yangilash ({result.Info.Version})";
-
-                _picUpdateAction.Tag = Tuple.Create(
-                    caption,
-                    result.Info.Mandatory ? Color.FromArgb(217, 76, 76) : Color.FromArgb(230, 150, 12),
-                    result.Info.Mandatory ? Color.FromArgb(186, 54, 54) : Color.FromArgb(204, 120, 0));
-                SetSidebarActionVisible(_picUpdateAction, true);
-                _picUpdateAction.Invalidate();
-                ApplySidebarLayout(_isSidebarCollapsed);
+                _lblHeaderUpdate.Text = result.Info.Mandatory
+                    ? "Majburiy yangilanish"
+                    : "Yangilanish mavjud";
+                _lblHeaderUpdate.AccessibleName = $"{_lblHeaderUpdate.Text}: {result.Info.Version}";
+                _navigationToolTip.SetToolTip(_lblHeaderUpdate, $"Yangi versiya: {result.Info.Version}");
+                _lblHeaderUpdate.Visible = true;
+                UpdateHeaderUpdateBadgeStyle();
+                LayoutHeaderCenterText();
             }
-            catch
+            catch (Exception ex)
             {
-                // Update tekshiruvda xato bo'lsa, UI normal ishlashda davom etadi.
+                ShowUpdateCheckIssue(ex.Message);
             }
+        }
+
+        private void ShowUpdateCheckIssue(string message)
+        {
+            _lastUpdateCheckError = message;
+            _hasUpdateCheckIssue = true;
+            _lblHeaderUpdate.Text = "Yangilanish tekshirilmadi";
+            _lblHeaderUpdate.AccessibleName = _lblHeaderUpdate.Text;
+            _navigationToolTip.SetToolTip(_lblHeaderUpdate, "Batafsil ma'lumot uchun bosing");
+            _lblHeaderUpdate.Visible = true;
+            UpdateHeaderUpdateBadgeStyle();
+            LayoutHeaderCenterText();
         }
 
         private async void UpdateAction_Click(object? sender, EventArgs e)
@@ -2440,7 +2472,11 @@ namespace SantexnikaSRM.Forms
                 string text = string.IsNullOrWhiteSpace(_lastUpdateCheckError)
                     ? "Hozircha yangi update topilmadi."
                     : $"Update tekshiruvda xato:\n{_lastUpdateCheckError}";
-                MessageBox.Show(text, "Ma'lumot", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(
+                    text,
+                    "Ma'lumot",
+                    MessageBoxButtons.OK,
+                    string.IsNullOrWhiteSpace(_lastUpdateCheckError) ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
                 return;
             }
 
@@ -2463,7 +2499,7 @@ namespace SantexnikaSRM.Forms
             try
             {
                 _isUpdateDownloading = true;
-                _picUpdateAction.Enabled = false;
+                _lblHeaderUpdate.Enabled = false;
                 UseWaitCursor = true;
                 Cursor = Cursors.WaitCursor;
 
@@ -2477,7 +2513,7 @@ namespace SantexnikaSRM.Forms
             finally
             {
                 _isUpdateDownloading = false;
-                _picUpdateAction.Enabled = true;
+                _lblHeaderUpdate.Enabled = true;
                 UseWaitCursor = false;
                 Cursor = Cursors.Default;
             }
@@ -2642,8 +2678,38 @@ namespace SantexnikaSRM.Forms
             iconBox.SetBounds(iconLeft, iconTop, iconBox.Width, iconBox.Height);
             title.SetBounds(textLeft, 0, textWidth, TileRowHeight);
             title.TextAlign = ContentAlignment.MiddleLeft;
+            if (!collapsed)
+            {
+                FitSidebarTitleFont(title, textWidth);
+            }
             subtitle.SetBounds(textLeft, TileRowHeight, textWidth, 0);
             subtitle.TextAlign = ContentAlignment.MiddleLeft;
+        }
+
+        private static void FitSidebarTitleFont(Label title, int availableWidth)
+        {
+            Font currentFont = title.Font;
+            float targetSize = SidebarTitleFontSize;
+            using (var measureFont = new Font(currentFont.FontFamily, targetSize, currentFont.Style))
+            {
+                int textWidth = TextRenderer.MeasureText(
+                    title.Text,
+                    measureFont,
+                    Size.Empty,
+                    TextFormatFlags.SingleLine | TextFormatFlags.NoPadding).Width;
+                if (textWidth > availableWidth)
+                {
+                    targetSize = Math.Max(8.5f, targetSize * availableWidth / textWidth);
+                }
+            }
+
+            if (Math.Abs(currentFont.Size - targetSize) < 0.1f)
+            {
+                return;
+            }
+
+            title.Font = new Font(currentFont.FontFamily, targetSize, currentFont.Style);
+            currentFont.Dispose();
         }
 
         private static void SetImageIconBounds(PictureBox imageIcon, Panel iconBox, float hoverProgress)
@@ -2694,10 +2760,43 @@ namespace SantexnikaSRM.Forms
             int profileDividerX = _header.Width - 156;
             _picHeaderLocation.SetBounds(24, 24, 20, 24);
             _picHeaderBell.SetBounds(Math.Max(safeLeft + 100, profileDividerX - 42), 24, 20, 24);
-            int addressWidth = Math.Max(80, _picHeaderBell.Left - safeLeft - 16);
+            int availableRight = _picHeaderBell.Left - 16;
+            int addressRight = availableRight;
+            if (_lblHeaderUpdate.Visible)
+            {
+                const int badgeWidth = 188;
+                int badgeLeft = safeLeft + Math.Max(0, (availableRight - safeLeft - badgeWidth) / 2);
+                _lblHeaderUpdate.SetBounds(badgeLeft, 18, badgeWidth, 36);
+                addressRight = badgeLeft - 16;
+            }
+
+            int addressWidth = Math.Max(80, addressRight - safeLeft);
             _lblTitleOson.SetBounds(safeLeft, 9, addressWidth, 27);
             _lblStoreName.SetBounds(safeLeft, 35, addressWidth, 22);
             _lblHeaderAlerts.Visible = false;
+        }
+
+        private void UpdateHeaderUpdateBadgeStyle()
+        {
+            bool isLight = UiTheme.CurrentMode == UiTheme.ThemeMode.Light;
+            bool mandatory = _pendingUpdate?.Mandatory == true;
+            if (_hasUpdateCheckIssue)
+            {
+                _lblHeaderUpdate.BackColor = isLight
+                    ? Color.FromArgb(255, 244, 224)
+                    : Color.FromArgb(75, 58, 33);
+                _lblHeaderUpdate.ForeColor = isLight
+                    ? Color.FromArgb(145, 88, 14)
+                    : Color.FromArgb(255, 202, 120);
+                return;
+            }
+
+            _lblHeaderUpdate.BackColor = mandatory
+                ? (isLight ? Color.FromArgb(253, 235, 235) : Color.FromArgb(74, 37, 39))
+                : (isLight ? Color.FromArgb(231, 244, 238) : Color.FromArgb(28, 57, 48));
+            _lblHeaderUpdate.ForeColor = mandatory
+                ? (isLight ? Color.FromArgb(174, 48, 48) : Color.FromArgb(255, 164, 164))
+                : (isLight ? Color.FromArgb(22, 111, 78) : Color.FromArgb(135, 222, 181));
         }
 
         private (string Address, string BusinessName) GetHeaderStoreDetails()
